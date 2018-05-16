@@ -106,46 +106,31 @@ class Database:
 
     # Add the PCA construction of all the vectors
     # n_components refers to the amount of components to extract
-    # def add_pca(self, n_components=5):
+    def add_pca(self, n_components=5):
 
-    #     for pth in [self.train_pth, self.valid_pth]:
+        with h5py.File(self.train_pth) as dtb:
+            keys = list(dtb.keys())
+            train_pca, valid_pca = [], []
 
-    #         with h5py.File(pth, 'r') as dtb:
+        for key in tqdm.tqdm(keys):
 
-    #             sze = n_components * len(list(dtb.keys()))
-    #             tmp = np.empty((dtb['acc_x'].shape[0], sze))
+            pca = PCA(n_components=n_components)
 
-    #         for ind, key in tqdm.tqdm(enumerate(list(dtb.keys()))):
-
-    #             pca = PCA(n_components=n_components)
-
-    #             with h5py.File(pth, 'r') as dtb:
-    #                 pca.partial_fit
-
-
-    #     for ind, key in tqdm.tqdm(enumerate(self.KEYS)):
-
+            for pth in [self.train_pth, self.valid_pth]:
+                with h5py.File(pth, 'r') as dtb:
+                    pca.partial_fit(dtb[key].value)
             
+            with h5py.File(self.train_pth, 'r') as dtb:
+                train_pca.append(pca.transform(dtb[key].value))
 
-            
-                
-    #             with h5py.File(pth, 'r') as dtb:
-    #                 pca.partial_fit(dtb[key].value)
+            with h5py.File(self.valid_pth, 'r') as dtb:
+                valid_pca.append(pca.transform(dtb[key].value))
 
-    #         for pth in [self.train_pth, self.valid_pth]:
+        with h5py.File(self.train_pth, 'a') as dtb:
+            dtb.create_dataset('pca', data=np.hstack(tuple(train_pca)))
 
-    #             tmp = []
-    #             with h5py.File(pth, 'r') as dtb:
-    #                 tmp.append(pca.transform(dtb[key].value))
-
-    #         res[:,5*ind:5*(ind+1)] = np.vstack(tuple(tmp))
-
-    #         del pca, tmp
-
-    #     with h5py.File(self.train_pth, 'a') as dtb:
-    #         dtb.create_dataset('pca', data=res[:self.sets_size[0]])
-    #     with h5py.File(self.valid_pth, 'a') as dtb:
-    #         dtb.create_dataset('pca', data=res[-self.sets_size[1]:])
+        with h5py.File(self.valid_pth, 'a') as dtb:
+            dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
     def add_fft(self, n_components=50):
 
