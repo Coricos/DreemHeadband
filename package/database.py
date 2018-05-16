@@ -112,46 +112,58 @@ class Database:
             keys = list(dtb.keys())
             train_pca, valid_pca = [], []
 
+        # Iterates over the keys
         for key in tqdm.tqdm(keys):
 
+            # Defines the PCA transform adapted to incremental learning
             pca = IncrementalPCA(n_components=n_components)
-
+            # Partial fit over training and validation
             for pth in [self.train_pth, self.valid_pth]:
                 with h5py.File(pth, 'r') as dtb:
                     pca.partial_fit(dtb[key].value)
-            
+            # Apply transformation on training set
             with h5py.File(self.train_pth, 'r') as dtb:
                 train_pca.append(pca.transform(dtb[key].value))
-
+            # Apply transformation on validation set
             with h5py.File(self.valid_pth, 'r') as dtb:
                 valid_pca.append(pca.transform(dtb[key].value))
 
+        # Serialization for the training results
         with h5py.File(self.train_pth, 'a') as dtb:
+            if dtb.get('pca'): del dtb[pca]
             dtb.create_dataset('pca', data=np.hstack(tuple(train_pca)))
-
+        # Serialization for the validation results
         with h5py.File(self.valid_pth, 'a') as dtb:
+            if dtb.get('pca'): del dtb[pca]
             dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
+    # Add the discrete FFT components
+    # n_components refers to the amount of harmonics to keep
     def add_fft(self, n_components=50):
 
+        # Iterates over both training and validation
         for pth in [self.train_pth, self.valid_pth]:
-        
+            # Defines the keys fft may give better insights
             for key in ['norm', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
 
+                # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-
+                # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                 fun = partial(compute_fft, n_components=n_components)
                 fft = pol.map(fun, val)
                 pol.close()
                 pol.join()
 
-                with h5py.File(pth, 'a') as dtb: 
+                # Output serialization
+                with h5py.File(pth, 'a') as dtb:
+                    if dtb.get('fft_{}'.format(key)): del dtb['fft_{}'.format(key)]
                     dtb.create_dataset('fft_{}'.format(key), data=val)
 
+                # Memory efficiency
                 del pol, fun, fft
 
-
+    # Apply the chaos theory features on the different vectors
     def add_chaos(self):
 
         for idx, pth in enumerate([self.train_pth, self.valid_pth]):

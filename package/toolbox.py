@@ -99,7 +99,9 @@ def kalman_filter(val, std_factor=3, smooth_window=5):
     # Defines the variables
     R = (np.std(val))**2
     Q = (np.std(val) / std_factor)**2
-    x_t[0] = val[0]
+    tmp = np.nanmean(val[:5])
+    if np.isnan(tmp): x_t[0] = np.nanmean(val)
+    else: x_t[0] = tmp    
     P_t[0] = np.std(val)
 
     # Iterative construction
