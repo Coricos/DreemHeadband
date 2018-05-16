@@ -6,6 +6,8 @@ from package.toolbox import *
 
 class Database:
 
+    # Initialization
+    # storage refers to where to get the datasets
     def __init__(self, storage='./dataset'):
 
         self.train_pth = '{}/train.h5'.format(storage)
@@ -20,6 +22,9 @@ class Database:
         with h5py.File(self.valid_pth, 'r') as dtb:
             self.sets_size.append(dtb['po_r'].shape[0])
 
+    # Apply filtering and interpolation on the samples
+    # vec_size refers to the sought size of all vectors
+    # out_storage refers to where to put the newly build datasets
     def build(self, vec_size=2000, out_storage='/mnt/Storage'):
 
         # Filtering through Kalman filter
@@ -67,6 +72,8 @@ class Database:
         self.train_pth = train_out
         self.valid_pth = valid_out
 
+    # Simple function to redirect to the input datasets
+    # out_storage refers to where to get the datasets
     def redirect(self, out_storage='/mnt/Storage'):
 
         self.train_pth = '{}/dts_train.h5'.format(out_storage)
@@ -75,16 +82,20 @@ class Database:
         with h5py.File(self.train_pth, 'r') as dtb:
             self.keys = list(dtb.keys())
 
+    # Build the norm of the accelerometers
     def add_norm(self):
 
+        # Iterates over both the training and validation sets
         for pth in [self.train_pth, self.valid_pth]:
 
             with h5py.File(pth, 'r') as dtb:
 
+                # Aggregates the values
                 tmp = np.square(dtb['acc_x'].value)
                 tmp += np.square(dtb['acc_y'].value)
                 tmp += np.square(dtb['acc_z'].value)
 
+            # Serialize the result
             with h5py.File(pth, 'a') as dtb:
 
                 if dtb.get('norm'): del dtb['norm']
@@ -93,7 +104,50 @@ class Database:
             # Memory efficiency
             del tmp
 
-    def add_FFT(self, n_components=50):
+    # Add the PCA construction of all the vectors
+    # n_components refers to the amount of components to extract
+    # def add_pca(self, n_components=5):
+
+    #     for pth in [self.train_pth, self.valid_pth]:
+
+    #         with h5py.File(pth, 'r') as dtb:
+
+    #             sze = n_components * len(list(dtb.keys()))
+    #             tmp = np.empty((dtb['acc_x'].shape[0], sze))
+
+    #         for ind, key in tqdm.tqdm(enumerate(list(dtb.keys()))):
+
+    #             pca = PCA(n_components=n_components)
+
+    #             with h5py.File(pth, 'r') as dtb:
+    #                 pca.partial_fit
+
+
+    #     for ind, key in tqdm.tqdm(enumerate(self.KEYS)):
+
+            
+
+            
+                
+    #             with h5py.File(pth, 'r') as dtb:
+    #                 pca.partial_fit(dtb[key].value)
+
+    #         for pth in [self.train_pth, self.valid_pth]:
+
+    #             tmp = []
+    #             with h5py.File(pth, 'r') as dtb:
+    #                 tmp.append(pca.transform(dtb[key].value))
+
+    #         res[:,5*ind:5*(ind+1)] = np.vstack(tuple(tmp))
+
+    #         del pca, tmp
+
+    #     with h5py.File(self.train_pth, 'a') as dtb:
+    #         dtb.create_dataset('pca', data=res[:self.sets_size[0]])
+    #     with h5py.File(self.valid_pth, 'a') as dtb:
+    #         dtb.create_dataset('pca', data=res[-self.sets_size[1]:])
+
+    def add_fft(self, n_components=50):
 
         for pth in [self.train_pth, self.valid_pth]:
         
@@ -112,37 +166,8 @@ class Database:
 
                 del pol, fun, fft
 
-    def add_PCA(self, n_components=5):
 
-        res = np.empty((np.sum(self.sets_size), len(self.KEYS)*n_components))
-
-        for ind, key in tqdm.tqdm(enumerate(self.KEYS)):
-
-            pca = PCA(n_components=n_components)
-
-            for pth in [self.train_pth, self.valid_pth]:
-                
-                with h5py.File(pth, 'r') as dtb:
-                    pca.partial_fit(dtb[key].value)
-
-            for pth in [self.train_pth, self.valid_pth]:
-
-                tmp = []
-                with h5py.File(pth, 'r') as dtb:
-                    tmp.append(pca.transform(dtb[key].value))
-
-            res[:,5*ind:5*(ind+1)] = np.vstack(tuple(tmp))
-
-            del pca, tmp
-
-        with h5py.File(self.train_pth, 'a') as dtb:
-            dtb.create_dataset('pca', data=res[:self.sets_size[0]])
-        with h5py.File(self.valid_pth, 'a') as dtb:
-            dtb.create_dataset('pca', data=res[-self.sets_size[1]:])
-
-        self.keys.append('pca')
-
-    def add_CHAOS(self):
+    def add_chaos(self):
 
         for idx, pth in enumerate([self.train_pth, self.valid_pth]):
 
