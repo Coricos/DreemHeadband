@@ -137,6 +137,31 @@ class Database:
             if dtb.get('pca'): del dtb[pca]
             dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
+    # Apply the chaos theory features on the different vectors
+    def add_chaos(self):
+
+        with h5py.File(self.train_pth) as dtb:
+            keys = list(dtb.keys())
+
+        for pth in [self.train_pth, self.valid_pth]:
+
+            res = []
+            # Iterates over the keys
+            for key in tqdm.tqdm(keys):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                res.append(np.asarray(pol.map(compute_chaos, val)))
+                pol.close()
+                pol.join()
+
+            # Serialize the output
+            with h5py.File(pth, 'a') as dtb:
+                if dtb.get('chaos'): del dtb['chaos']
+                dtb.create_dataset('chaos', data=np.hstack(tuple(res)))
+
     # Add the discrete FFT components
     # n_components refers to the amount of harmonics to keep
     def add_fft(self, n_components=50):
@@ -144,7 +169,7 @@ class Database:
         # Iterates over both training and validation
         for pth in [self.train_pth, self.valid_pth]:
             # Defines the keys fft may give better insights
-            for key in ['norm', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
+            for key in tqdm.tqdm(['norm', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']):
 
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
@@ -162,28 +187,6 @@ class Database:
 
                 # Memory efficiency
                 del pol, fun, fft
-
-    # Apply the chaos theory features on the different vectors
-    def add_chaos(self):
-
-        for idx, pth in enumerate([self.train_pth, self.valid_pth]):
-
-            res = np.empty(self.sets_size[idx], len(self.KEYS)*6)
-
-            for ind, key in tqdm.tqdm(enumerate(self.KEYS)):
-
-                apl = [nolds.sampen, nolds.dfa, nolds.hurst, nolds.lyap_r]
-
-                for inc, fun in enumerate(apl):
-                    
-                    with h5py.File(pth, 'r') as dtb:
-                        tmp = np.apply_along_axis(fun, 1, dtb[key].value)
-                        res[:,ind+apl] = tmp
-                    
-            with h5py.File(pth, 'a') as dtb:
-                dtb.create_dataset('chaos', data=res)
-
-            self.keys.append('chaos')
 
     def rescale(self):
 
@@ -233,3 +236,21 @@ class Database:
 
             except:
                 pass
+
+    # Defines a way to reduce the problem
+    # output refers to where to serialize the output database
+    # size refers to the amount of vectors to keep
+    def truncate(self, output, size=3000):
+
+        with h5py.File(self.train_pth, 'r') as inp:
+
+            # Defines the indexes for extraction
+            arg = {'size': size, 'replace': False}
+            idx = np.random.choice(np.arange(inp['acc_x'].shape[0]), **arg)
+
+            with h5py.File(output, 'a') as out:
+
+                for key in tqdm.tqdm(list(inp.keys())):
+                    # Iterated serialization of the key component
+                    out.create_dataset(key, data=inp[key].value[idx])
+

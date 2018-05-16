@@ -159,3 +159,16 @@ def interpolate(val, size=2000):
 def compute_fft(val, n_components=50):
 
     return np.abs(np.fft.rfft(val))[:n_components]
+
+# Compute features related to the chaos theory
+# val refers to a 1D array
+def compute_chaos(val):
+
+    res = []
+    res.append(nolds.sampen(val))
+    res.append(nolds.dfa(val))
+    res.append(nolds.hurst_rs(val))
+    res.append(nolds.lyap_r(val))
+    res += list(nolds.lyap_e(val))
+
+    return np.asarray(res)
