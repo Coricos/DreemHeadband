@@ -4,7 +4,7 @@
 
 # Core packages
 
-import h5py, multiprocessing, tqdm
+import h5py, multiprocessing, tqdm, nolds
 
 import numpy as np
 import scipy.signal as sg
