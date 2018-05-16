@@ -62,7 +62,7 @@ class Database:
                     dtb.create_dataset(key, data=val)
 
                 # Memory efficiency
-                del pol, fun, val, arg
+                del pol, fun, val
 
         self.train_pth = train_out
         self.valid_pth = valid_out
