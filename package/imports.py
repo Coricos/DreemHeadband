@@ -13,7 +13,7 @@ from functools import partial
 from scipy.interpolate import interp1d
 
 from sklearn.pipeline import Pipeline
-from sklearn.decomposition import PCA
+from sklearn.decomposition import IncrementalPCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 # Graphical imports

@@ -114,7 +114,7 @@ class Database:
 
         for key in tqdm.tqdm(keys):
 
-            pca = PCA(n_components=n_components)
+            pca = IncrementalPCA(n_components=n_components)
 
             for pth in [self.train_pth, self.valid_pth]:
                 with h5py.File(pth, 'r') as dtb:
