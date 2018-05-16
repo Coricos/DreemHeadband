@@ -90,36 +90,40 @@ def display(idx, storage='./dataset/valid.h5'):
 # smooth_window refers to the convolution window for smoothing
 def kalman_filter(val, std_factor=3, smooth_window=5):
 
-    # Initialize the arrays
-    x_t = np.zeros(val.shape[0])
-    P_t = np.zeros(val.shape[0])
-    x_m = np.zeros(val.shape[0])
-    P_m = np.zeros(val.shape[0])
-    fac = np.zeros(val.shape[0])
-    # Defines the variables
-    R = (np.std(val))**2
-    Q = (np.std(val) / std_factor)**2
-    tmp = np.nanmean(val[:5])
-    if np.isnan(tmp): x_t[0] = np.nanmean(val)
-    else: x_t[0] = tmp    
-    P_t[0] = np.std(val)
+    if np.std(val) < 1e-5: 
+        return np.zeros(len(val))
 
-    # Iterative construction
-    for k in range(1, val.shape[0]):
-        x_m[k] = x_t[k-1]
-        P_m[k] = P_t[k-1] + Q
-        fac[k] = P_m[k] / (P_m[k] + R)
-        x_t[k] = x_m[k] + fac[k] * (val[k] - x_m[k])
-        P_t[k] = (1 - fac[k]) * P_m[k]
+    else:
+        # Initialize the arrays
+        x_t = np.zeros(val.shape[0])
+        P_t = np.zeros(val.shape[0])
+        x_m = np.zeros(val.shape[0])
+        P_m = np.zeros(val.shape[0])
+        fac = np.zeros(val.shape[0])
+        # Defines the variables
+        R = (np.std(val))**2
+        Q = (np.std(val) / std_factor)**2
+        tmp = np.nanmean(val[:5])
+        if np.isnan(tmp): x_t[0] = np.nanmean(val)
+        else: x_t[0] = tmp    
+        P_t[0] = np.std(val)
 
-    # Apply smoothing
-    b = np.full(smooth_window, 1.0 / smooth_window)
-    x_t = sg.lfilter(b, 1, x_t)
+        # Iterative construction
+        for k in range(1, val.shape[0]):
+            x_m[k] = x_t[k-1]
+            P_m[k] = P_t[k-1] + Q
+            fac[k] = P_m[k] / (P_m[k] + R)
+            x_t[k] = x_m[k] + fac[k] * (val[k] - x_m[k])
+            P_t[k] = (1 - fac[k]) * P_m[k]
 
-    # Memory efficiency
-    del P_t, x_m, P_m, fac, R, Q
-    
-    return x_t
+        # Apply smoothing
+        b = np.full(smooth_window, 1.0 / smooth_window)
+        x_t = sg.lfilter(b, 1, x_t)
+
+        # Memory efficiency
+        del P_t, x_m, P_m, fac, R, Q
+        
+        return x_t
 
 # Defines a multiprocessed oriented call to build the acceleration norm
 # vec_x refers to the first component
