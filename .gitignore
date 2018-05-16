@@ -1,0 +1,5 @@
+# Personal Use
+*.ipynb
+
+# Heavy data
+./dataset
