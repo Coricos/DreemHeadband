@@ -1,5 +1,5 @@
 # DINDIN Meryll
-# April 17th, 2018
+# May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
 # Core packages
@@ -7,6 +7,7 @@
 import h5py, multiprocessing, tqdm, nolds
 
 import numpy as np
+import pandas as pd
 import scipy.signal as sg
 
 from functools import partial

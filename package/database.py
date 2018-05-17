@@ -1,5 +1,5 @@
 # DINDIN Meryll
-# April 17th, 2018
+# May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
 from package.toolbox import *
@@ -188,54 +188,98 @@ class Database:
                 # Memory efficiency
                 del pol, fun, fft
 
-    def rescale(self):
+    # Rescale the datasets considering both training and validation
+    def rescale(self, env_coeff=10000):
 
-        for key in tqdm.tqdm(['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
-                              'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']):
+        with h5py.File(self.train_pth, 'r') as dtb:
+            tem = ['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
+                   'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
+            env = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
+            oth = [key for key in list(dtb.keys()) if key not in tem]
 
-            mms = MinMaxScaler(feature_range=(0, 1))
+        # Apply the logarithmic envelope
+        for key in tqdm.tqdm(env):
+
+            # Load the data from both the training and validation sets
+            with h5py.File(self.train_pth, 'r') as dtb:
+                v_t = dtb[key].value
+            with h5py.File(self.valid_pth, 'r') as dtb:
+                v_v = dtb[key].value
+
+            # Apply the transformation
+            tmp = np.hstack(np.vstack((v_t, v_v))).ravel()
+            tmp = envelope(tmp, coeff=env_coeff).reshape(tmp.shape)
+
+            # Serialize and replace
+            with h5py.File(self.train_pth, 'a') as dtb:
+                dtb[key][...] = tmp[:v_t.shape[0],:]
+            with h5py.File(self.valid_pth, 'a') as dtb:
+                dtb[key][...] = tmp[v_t.shape[0]:,:]
+
+            # Memory efficiency
+            del v_t, v_v, tmp
+
+        # Specific scaling for temporal units
+        for key in tqdm.tqdm(tem):
+
+            # Defines the scalers
+            mms = MinMaxScaler(feature_range=(0,1))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_pth, self.valid_pth]:
-
+                # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
             for pth in [self.train_pth, self.valid_pth]:
-
+                # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
-                    shp = dtb[key].shape
                     tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
                     sts.partial_fit(tmp)
                     del shp, tmp
 
+            # Concatenate the pipeline of scalers
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
             for pth in [self.train_pth, self.valid_pth]:
-
+                # Apply transformation
                 with h5py.File(pth, 'a') as dtb:
                     shp = dtb[key].shape
-                    val = pip.transform(np.hstack(dtb[key].value).reshape(-1,1)).reshape(shp)
-                    dtb[key][...] = val
+                    tmp = np.hstack(dtb[key].value).reshape(-1,1)
+                    dtb[key][...] = pip.transform(tmp).reshape(shp)
 
-        for key in tqdm.tqdm(['pca', 'chaos', 'fft_norm', 'fft_po_ir',
-                              'fft_eeg_1', 'fft_eeg_2', 'fft_eeg_3', 'fft_eeg_4']):
+            # Memory efficiency
+            del mms, sts, pip, tmp
+
+        # Specific scaling for features datasets
+        for key in tqdm.tqdm(oth):
 
             try: 
-                mms = MinMaxScaler(feature_range=(0, 1))
+                # Build the scaler
+                mms = MinMaxScaler(feature_range=(0,1))
 
                 for pth in [self.train_pth, self.valid_pth]:
-
+                    # Partial fit for both training and validation
                     with h5py.File(pth, 'r') as dtb:
                         mms.partial_fit(dtb[key].value)
 
                 for pth in [self.train_pth, self.valid_pth]:
-
+                    # Transformation for both training and validation
                     with h5py.File(pth, 'a') as dtb:
                         dtb[key][...] = mms.transform(dtb[key].value)
-
             except:
                 pass
+
+    # Load the corresponding labels
+    # input refers to the input_file in which the labels are stored
+    def load_labels(self, input):
+
+        lab = pd.read_csv(input, sep=';', index_col=0)
+
+        with h5py.File(self.train_pth, 'a') as dtb:
+            # Serialize the labels
+            if dtb.get('lab'): del dtb['lab']
+            dtb.create_dataset('lab', data=lab.values)
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database
@@ -253,4 +297,6 @@ class Database:
                 for key in tqdm.tqdm(list(inp.keys())):
                     # Iterated serialization of the key component
                     out.create_dataset(key, data=inp[key].value[idx])
+
+    # def preprocess(self, output, test=0.4):
 

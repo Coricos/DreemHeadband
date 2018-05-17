@@ -1,5 +1,5 @@
 # DINDIN Meryll
-# April 17th, 2018
+# May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
 from package.imports import *
@@ -125,14 +125,6 @@ def kalman_filter(val, std_factor=3, smooth_window=5):
         
         return x_t
 
-# Defines a multiprocessed oriented call to build the acceleration norm
-# vec_x refers to the first component
-# vec_y refers to the second component
-# vec_z refers to the third component
-def get_norm(vec_x, vec_y, vec_z):
-
-    return np.sqrt(np.square(vec_x) + np.square(vec_y) + np.square(vec_z))
-
 # Defines a vector reduction through interpolation
 # val refers to a 1D array
 # size refers to the desired size
@@ -172,3 +164,18 @@ def compute_chaos(val):
     res += list(nolds.lyap_e(val))
 
     return np.asarray(res)
+
+
+# Apply a logarithmic envelope to a whole signal
+# val refers to a 1D array
+# coeff refers to the upper dimension reduction
+def envelope(val, coeff=2):
+    
+    tmp = np.zeros(len(val))
+    m_x = max(np.abs(val))
+    idx = np.where(val > 0)[0]
+    tmp[idx] = np.log(1 + coeff*val[idx] / m_x) / coeff
+    idx = np.where(val < 0)[0]
+    tmp[idx] = - np.log(1 + coeff*np.abs(val[idx]) / m_x) / coeff
+    
+    return tmp
