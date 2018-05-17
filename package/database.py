@@ -207,17 +207,28 @@ class Database:
                 v_v = dtb[key].value
 
             # Apply the transformation
-            tmp = np.hstack(np.vstack((v_t, v_v))).ravel()
-            tmp = envelope(tmp, coeff=env_coeff).reshape(tmp.shape)
+            m_x = max(max(v_t.ravel(), v_v.ravel()))
+
+            pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+            fun = partial(envelope, m_x=m_x, coeff=env_coeff)
+            v_t = np.asarray(pol.map(fun, v_t))
+            pol.close()
+            pol.join()
+
+            pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+            fun = partial(envelope, m_x=m_x, coeff=env_coeff)
+            v_v = np.asarray(pol.map(fun, v_v))
+            pol.close()
+            pol.join()
 
             # Serialize and replace
             with h5py.File(self.train_pth, 'a') as dtb:
-                dtb[key][...] = tmp[:v_t.shape[0],:]
+                dtb[key][...] = v_t
             with h5py.File(self.valid_pth, 'a') as dtb:
-                dtb[key][...] = tmp[v_t.shape[0]:,:]
+                dtb[key][...] = v_v
 
             # Memory efficiency
-            del v_t, v_v, tmp
+            del v_t, v_v
 
         # Specific scaling for temporal units
         for key in tqdm.tqdm(tem):
