@@ -3,3 +3,6 @@
 
 # Heavy data
 dataset/*
+
+# Cythonized
+package/__pycache__/*
