@@ -165,17 +165,26 @@ def compute_chaos(val):
 
     return np.asarray(res)
 
-
 # Apply a logarithmic envelope to a whole signal
 # val refers to a 1D array
 # coeff refers to the upper dimension reduction
-def envelope(val, coeff=2):
+def envelope(val, m_x=1.0, coeff=2.0):
     
     tmp = np.zeros(len(val))
-    m_x = max(np.abs(val))
     idx = np.where(val > 0)[0]
     tmp[idx] = np.log(1 + coeff*val[idx] / m_x) / coeff
     idx = np.where(val < 0)[0]
     tmp[idx] = - np.log(1 + coeff*np.abs(val[idx]) / m_x) / coeff
     
     return tmp
+
+
+# Defines a dictionnary composed of class weights
+# lab refers to a 1D array of labels
+def class_weight(lab) :
+    
+    res = dict()
+    wei = compute_class_weight('balanced', np.unique(lab), lab)
+    for idx, ele in enumerate(wei) : res[idx] = ele
+        
+    return res

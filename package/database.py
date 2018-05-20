@@ -207,7 +207,7 @@ class Database:
                 v_v = dtb[key].value
 
             # Apply the transformation
-            m_x = max(max(v_t.ravel(), v_v.ravel()))
+            m_x = max(max(v_t.ravel()), max(v_v.ravel()))
 
             pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
             fun = partial(envelope, m_x=m_x, coeff=env_coeff)
@@ -247,7 +247,7 @@ class Database:
                 with h5py.File(pth, 'r') as dtb:
                     tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
                     sts.partial_fit(tmp)
-                    del shp, tmp
+                    del tmp
 
             # Concatenate the pipeline of scalers
             pip = Pipeline([('mms', mms), ('sts', sts)])
@@ -309,5 +309,39 @@ class Database:
                     # Iterated serialization of the key component
                     out.create_dataset(key, data=inp[key].value[idx])
 
-    # def preprocess(self, output, test=0.4):
+    # Defines both training and testing instances
+    # output refers to where to put the data
+    # test refers to the test_size
+    def preprocess(self, output, test=0.4):
 
+        # Split the training set into both training and testing
+        with h5py.File(self.train_pth, 'r') as dtb:
+
+            idx = np.arange(dtb['lab'].shape[0])
+            arg = {'test_size': test, 'shuffle': True}
+            i_t, i_e, _, _ = train_test_split(idx, idx, **arg)
+            i_t = shuffle(i_t)
+
+            for key in tqdm.tqdm(list(dtb.keys())):
+
+                with h5py.File(output, 'a') as out:
+
+                    lab_t, lab_e = '{}_t'.format(key), '{}_e'.format(key)
+
+                    if out.get(lab_t): del out[lab_t]
+                    out.create_dataset(lab_t, data=dtb[key].value[i_t])
+                    if out.get(lab_e): del out[lab_e]
+                    out.create_dataset(lab_e, data=dtb[key].value[i_e])
+
+        # Adds the validation set into the output database
+        with h5py.File(self.valid_pth, 'r') as dtb:
+
+            for key in tqdm.tqdm(list(dtb.keys())):
+
+                with h5py.File(output, 'a') as out:
+
+                    lab_v = '{}_v'.format(key)
+
+                    if out.get(lab_v): del out[lab_v]
+                    out.create_dataset(lab_v, data=dtb[key].value)
+        
