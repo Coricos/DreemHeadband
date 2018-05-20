@@ -20,7 +20,6 @@ class DL_Model:
         with h5py.File(self.pth, 'r') as dtb:
             self.l_t = dtb['lab_t'].value.ravel()
             self.l_e = dtb['lab_e'].value.ravel()
-            self.l_v = dtb['lab_v'].value.ravel()
             self.n_c = len(np.unique(self.l_t))
 
     def data_gen(self, fmt, batch=32):
@@ -31,7 +30,6 @@ class DL_Model:
             
             if fmt == 't': ann = self.l_t
             if fmt == 'e': ann = self.l_e
-            if fmt == 'v': ann = self.l_v
             # Reinitialize when going too far
             if ind + batch >= len(ann) : ind = 0
             # Initialization of data vector
