@@ -212,10 +212,10 @@ class Database:
                 # Output serialization
                 with h5py.File(pth, 'a') as dtb:
                     if dtb.get('fft_{}'.format(key)): del dtb['fft_{}'.format(key)]
-                    dtb.create_dataset('fft_{}'.format(key), data=val)
+                    dtb.create_dataset('fft_{}'.format(key), data=fft)
 
                 # Memory efficiency
-                del pol, fun, fft
+                del pol, fun, fft, val
 
     # Apply the chaos theory features on the different vectors
     def add_chaos(self):
