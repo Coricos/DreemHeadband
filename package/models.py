@@ -252,7 +252,7 @@ class DL_Model:
             model = AdaptiveDropout(self.drp.prb, self.drp)(model)
 
         # Last layer for probabilities
-        model = MaxoutDense(self.n_c, activation='softmax')(model)
+        model = Dense(self.n_c, activation='softmax')(model)
 
         return model
 
