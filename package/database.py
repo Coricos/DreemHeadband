@@ -142,17 +142,20 @@ class Database:
 
                 # Iterates over all the keys
                 for key in tqdm.tqdm(dtb.keys()):
-                    # Multiprocessed sliding window
-                    val = dtb[key].value
-                    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                    fun = partial(vectorization, vec_size=vec_size, overlap=overlap)
-                    val = np.vstack(tuple(pol.map(fun, val)))
-                    pol.close()
-                    pol.join()
-                    # Clear and replace
-                    del dtb[key]
-                    dtb.create_dataset(key, data=val)
-                    del pol, fun, val
+
+                    if key == 'lab': pass
+                    else:
+                        # Multiprocessed sliding window
+                        val = dtb[key].value
+                        pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                        fun = partial(vectorization, vec_size=vec_size, overlap=overlap)
+                        val = np.vstack(tuple(pol.map(fun, val)))
+                        pol.close()
+                        pol.join()
+                        # Clear and replace
+                        del dtb[key]
+                        dtb.create_dataset(key, data=val)
+                        del pol, fun, val
 
     # Add the PCA construction of all the vectors
     # n_components refers to the amount of components to extract
