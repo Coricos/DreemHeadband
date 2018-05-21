@@ -165,7 +165,7 @@ class Database:
         train_pca, valid_pca = [], []
 
         # Iterates over the keys
-        for key in tqdm.tqdm(keys):
+        for key in tqdm.tqdm(lst):
 
             # Defines the PCA transform adapted to incremental learning
             pca = IncrementalPCA(n_components=n_components)
