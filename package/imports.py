@@ -30,6 +30,7 @@ from keras.layers import GlobalMaxPooling1D, MaxoutDense
 from keras.layers.core import Dense, Dropout, Activation, Reshape
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from keras.layers.merge import concatenate
+from keras.engine.topology import Layer
 
 # Graphical imports
 
