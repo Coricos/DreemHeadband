@@ -154,40 +154,12 @@ class Database:
                     dtb.create_dataset(key, data=val)
                     del pol, fun, val
 
-    # Add the discrete FFT components
-    # n_components refers to the amount of harmonics to keep
-    def add_fft(self, n_components=100):
-
-        # Iterates over both training and validation
-        for pth in [self.train_pth, self.valid_pth]:
-            # Defines the keys fft may give better insights
-            lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
-            for key in tqdm.tqdm(lst):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                fun = partial(compute_fft, n_components=n_components)
-                fft = pol.map(fun, val)
-                pol.close()
-                pol.join()
-
-                # Output serialization
-                with h5py.File(pth, 'a') as dtb:
-                    if dtb.get('fft_{}'.format(key)): del dtb['fft_{}'.format(key)]
-                    dtb.create_dataset('fft_{}'.format(key), data=val)
-
-                # Memory efficiency
-                del pol, fun, fft
-
     # Add the PCA construction of all the vectors
     # n_components refers to the amount of components to extract
     def add_pca(self, n_components=10):
 
-        with h5py.File(self.train_pth) as dtb:
-            keys = list(dtb.keys())
-            train_pca, valid_pca = [], []
+        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        train_pca, valid_pca = [], []
 
         # Iterates over the keys
         for key in tqdm.tqdm(keys):
@@ -214,17 +186,44 @@ class Database:
             if dtb.get('pca'): del dtb[pca]
             dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
+    # Add the discrete FFT components
+    # n_components refers to the amount of harmonics to keep
+    def add_fft(self, n_components=100):
+
+        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+
+        # Iterates over both training and validation
+        for pth in [self.train_pth, self.valid_pth]:
+            # Defines the keys fft may give better insights
+            for key in tqdm.tqdm(lst):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                fun = partial(compute_fft, n_components=n_components)
+                fft = pol.map(fun, val)
+                pol.close()
+                pol.join()
+
+                # Output serialization
+                with h5py.File(pth, 'a') as dtb:
+                    if dtb.get('fft_{}'.format(key)): del dtb['fft_{}'.format(key)]
+                    dtb.create_dataset('fft_{}'.format(key), data=val)
+
+                # Memory efficiency
+                del pol, fun, fft
+
     # Apply the chaos theory features on the different vectors
     def add_chaos(self):
 
-        with h5py.File(self.train_pth) as dtb:
-            keys = list(dtb.keys())
+        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
         for pth in [self.train_pth, self.valid_pth]:
 
             res = []
             # Iterates over the keys
-            for key in tqdm.tqdm(keys):
+            for key in tqdm.tqdm(lst):
 
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
