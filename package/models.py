@@ -58,15 +58,6 @@ class DL_Model:
 
             if self.cls['with_eeg']:
 
-                # with h5py.File(self.pth, 'r') as dtb:
-                #     shp = dtb['eeg_1_{}'.format(fmt)].shape
-                #     tmp = np.empty((batch, 4, shp[1]))
-                #     for idx in range(4):
-                #         ann = 'eeg_{}_{}'.format(idx+1, fmt)
-                #         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
-                #     vec.append(tmp)
-                #     del shp, tmp, ann
-
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['eeg_2_{}'.format(fmt)][ind:ind+batch])
@@ -74,15 +65,6 @@ class DL_Model:
                     vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_por']:
-
-                # with h5py.File(self.pth, 'r') as dtb:
-                #     shp = dtb['po_r_{}'.format(fmt)].shape
-                #     tmp = np.empty((batch, 2, shp[1]))
-                #     for idx, key in zip(range(2), ['r', 'ir']):
-                #         ann = 'po_{}_{}'.format(key, fmt)
-                #         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
-                #     vec.append(tmp)
-                #     del shp, tmp, ann
 
                  with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
@@ -125,17 +107,17 @@ class DL_Model:
         mod = Convolution2D(64, (inp._keras_shape[1], 60), data_format='channels_first')(mod)
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
-        mod = Activation('relu')(mod)
+        mod = Activation('tanh')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Convolution2D(128, (1, 30), data_format='channels_first')(mod)
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
-        mod = Activation('relu')(mod)
+        mod = Activation('tanh')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Convolution2D(256, (1, 15), data_format='channels_first')(mod)
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
-        mod = Activation('relu')(mod)
+        mod = Activation('tanh')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalAveragePooling2D()(mod)
         # Rework through dense network
@@ -161,16 +143,16 @@ class DL_Model:
         mod = Conv1D(64, 60)(mod)
         mod = MaxPooling1D(pool_size=2)(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = Activation('tanh')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Conv1D(128, 30)(mod)
         mod = MaxPooling1D(pool_size=2)(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = Activation('tanh')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Conv1D(256, 15)(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = Activation('tanh')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalMaxPooling1D()(mod)
         # Rework through dense network
@@ -284,6 +266,7 @@ class DL_Model:
         except: pass
         arg = {'loss': 'categorical_crossentropy', 'optimizer': 'adadelta'}
         model.compile(metrics=['accuracy'], **arg)
+        print('# Model Compiled')
         
         # Implements the callbacks
         arg = {'patience': patience, 'verbose': 0}
@@ -295,6 +278,6 @@ class DL_Model:
         model.fit_generator(self.data_gen('t', batch=32),
                             steps_per_epoch=len(self.l_t)//batch, verbose=1, 
                             epochs=max_epochs, callbacks=[self.drp, early, check],
-                            shuffle=True, validation_steps=len(self.l_e) // batch,
+                            shuffle=True, validation_steps=len(self.l_e)//batch,
                             validation_data=self.data_gen('e', batch=32), 
                             class_weight=class_weight(self.l_t))

@@ -178,7 +178,6 @@ def envelope(val, m_x=1.0, coeff=2.0):
     
     return tmp
 
-
 # Defines a dictionnary composed of class weights
 # lab refers to a 1D array of labels
 def class_weight(lab) :
@@ -188,3 +187,17 @@ def class_weight(lab) :
     for idx, ele in enumerate(wei) : res[idx] = ele
         
     return res
+
+# Defines a vectorization process for sliding window
+# vec_size refers to the size of the output vector
+# overlap refers to the amount of needed overlap
+def vectorization(val, vec_size, overlap):
+
+    stp = int((1-overlap) * vec_size)
+    
+    new, ind = [], 0
+    while ind + vec_size < len(val):
+        new.append((ind, ind + vec_size))
+        ind += stp
+    
+    return np.asarray([val[i:j] for i,j in new])

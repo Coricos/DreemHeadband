@@ -25,7 +25,7 @@ class Database:
     # Apply filtering and interpolation on the samples
     # vec_size refers to the sought size of all vectors
     # out_storage refers to where to put the newly build datasets
-    def build(self, vec_size=2000, out_storage='/mnt/Storage'):
+    def build(self, vec_size=2100, out_storage='/mnt/Storage'):
 
         # Filtering through Kalman filter
         train_out = '{}/dts_train.h5'.format(out_storage)
@@ -104,9 +104,86 @@ class Database:
             # Memory efficiency
             del tmp
 
+    # Load the corresponding labels
+    # input refers to the input_file in which the labels are stored
+    def load_labels(self, input):
+
+        lab = pd.read_csv(input, sep=';', index_col=0)
+
+        with h5py.File(self.train_pth, 'a') as dtb:
+            # Serialize the labels
+            if dtb.get('lab'): del dtb['lab']
+            dtb.create_dataset('lab', data=lab.values)
+
+    # Apply a slicing over the signal to reduce their time period
+    # vec_size refers to the size of the output signal
+    # overlap refers to the amount of overlap between two signals
+    def slice(self, vec_size=700, overlap=0.5):
+
+        with h5py.File(self.train_pth, 'r') as dtb:
+            # Check whether the labels are loaded for synchronization
+            if not dtb.get('lab'): 
+                print('! Labels needed')
+                return
+
+        with h5py.File(self.train_pth, 'a') as dtb:
+            # Deals with the labels
+            lab = dtb['lab'].value
+            sze = dtb['acc_x'].shape[1]
+            sze = len(vectorization(np.zeros(sze), vec_size, overlap))
+            lab = np.hstack(tuple([lab.reshape(-1,1) for i in range(sze)])).ravel()
+            del dtb['lab']
+            dtb.create_dataset('lab', data=lab)
+            del sze, lab
+
+        for pth in [self.train_pth, self.valid_pth]:
+
+            with h5py.File(pth, 'a') as dtb:
+
+                # Iterates over all the keys
+                for key in tqdm.tqdm(dtb.keys()):
+                    # Multiprocessed sliding window
+                    val = dtb[key].value
+                    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                    fun = partial(vectorization, vec_size=vec_size, overlap=overlap)
+                    val = np.vstack(tuple(pol.map(fun, val)))
+                    pol.close()
+                    pol.join()
+                    # Clear and replace
+                    del dtb[key]
+                    dtb.create_dataset(key, data=val)
+                    del pol, fun, val
+
+    # Add the discrete FFT components
+    # n_components refers to the amount of harmonics to keep
+    def add_fft(self, n_components=100):
+
+        # Iterates over both training and validation
+        for pth in [self.train_pth, self.valid_pth]:
+            # Defines the keys fft may give better insights
+            lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+            for key in tqdm.tqdm(lst):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                fun = partial(compute_fft, n_components=n_components)
+                fft = pol.map(fun, val)
+                pol.close()
+                pol.join()
+
+                # Output serialization
+                with h5py.File(pth, 'a') as dtb:
+                    if dtb.get('fft_{}'.format(key)): del dtb['fft_{}'.format(key)]
+                    dtb.create_dataset('fft_{}'.format(key), data=val)
+
+                # Memory efficiency
+                del pol, fun, fft
+
     # Add the PCA construction of all the vectors
     # n_components refers to the amount of components to extract
-    def add_pca(self, n_components=5):
+    def add_pca(self, n_components=10):
 
         with h5py.File(self.train_pth) as dtb:
             keys = list(dtb.keys())
@@ -162,34 +239,8 @@ class Database:
                 if dtb.get('chaos'): del dtb['chaos']
                 dtb.create_dataset('chaos', data=np.hstack(tuple(res)))
 
-    # Add the discrete FFT components
-    # n_components refers to the amount of harmonics to keep
-    def add_fft(self, n_components=50):
-
-        # Iterates over both training and validation
-        for pth in [self.train_pth, self.valid_pth]:
-            # Defines the keys fft may give better insights
-            for key in tqdm.tqdm(['norm', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                fun = partial(compute_fft, n_components=n_components)
-                fft = pol.map(fun, val)
-                pol.close()
-                pol.join()
-
-                # Output serialization
-                with h5py.File(pth, 'a') as dtb:
-                    if dtb.get('fft_{}'.format(key)): del dtb['fft_{}'.format(key)]
-                    dtb.create_dataset('fft_{}'.format(key), data=val)
-
-                # Memory efficiency
-                del pol, fun, fft
-
     # Rescale the datasets considering both training and validation
-    def rescale(self, env_coeff=1000):
+    def rescale(self, env_coeff=100):
 
         with h5py.File(self.train_pth, 'r') as dtb:
             tem = ['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
@@ -235,22 +286,22 @@ class Database:
 
             # Defines the scalers
             mms = MinMaxScaler(feature_range=(0,1))
-            # sts = StandardScaler(with_std=False)
+            sts = StandardScaler(with_std=False)
 
             for pth in [self.train_pth, self.valid_pth]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-            # for pth in [self.train_pth, self.valid_pth]:
-            #     # Partial fit for both training and validation
-            #     with h5py.File(pth, 'r') as dtb:
-            #         tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
-            #         sts.partial_fit(tmp)
-            #         del tmp
+            for pth in [self.train_pth, self.valid_pth]:
+                # Partial fit for both training and validation
+                with h5py.File(pth, 'r') as dtb:
+                    tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
+                    sts.partial_fit(tmp)
+                    del tmp
 
             # Concatenate the pipeline of scalers
-            # pip = Pipeline([('mms', mms), ('sts', sts)])
+            pip = Pipeline([('mms', mms), ('sts', sts)])
 
             for pth in [self.train_pth, self.valid_pth]:
                 # Apply transformation
@@ -260,8 +311,7 @@ class Database:
                     dtb[key][...] = mms.transform(tmp).reshape(shp)
 
             # Memory efficiency
-            # del mms, sts, pip, tmp
-            del mms, tmp
+            del mms, sts, pip, tmp
 
         # Specific scaling for features datasets
         for key in tqdm.tqdm(oth):
@@ -281,17 +331,6 @@ class Database:
                         dtb[key][...] = mms.transform(dtb[key].value)
             except:
                 pass
-
-    # Load the corresponding labels
-    # input refers to the input_file in which the labels are stored
-    def load_labels(self, input):
-
-        lab = pd.read_csv(input, sep=';', index_col=0)
-
-        with h5py.File(self.train_pth, 'a') as dtb:
-            # Serialize the labels
-            if dtb.get('lab'): del dtb['lab']
-            dtb.create_dataset('lab', data=lab.values)
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database
