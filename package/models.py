@@ -116,23 +116,23 @@ class DL_Model:
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = Convolution2D(128, (1, 30), data_format='channels_first')(mod)
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = Convolution2D(256, (1, 15), data_format='channels_first')(mod)
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = GlobalAveragePooling2D()(mod)
         # Rework through dense network
         mod = Dense(mod._keras_shape[1])(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = MaxoutDense(mod._keras_shape[1] // 3)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
@@ -152,22 +152,22 @@ class DL_Model:
         mod = MaxPooling1D(pool_size=2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = Conv1D(128, 30)(mod)
         mod = MaxPooling1D(pool_size=2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = Conv1D(256, 15)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = GlobalMaxPooling1D()(mod)
         # Rework through dense network
         mod = Dense(mod._keras_shape[1])(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = MaxoutDense(mod._keras_shape[1] // 3)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
@@ -185,7 +185,7 @@ class DL_Model:
         mod = Dense(inp._keras_shape[1])(inp)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dropout(callback.prb)(mod)
         mod = MaxoutDense(mod._keras_shape[1] // 2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
@@ -204,39 +204,39 @@ class DL_Model:
     def build(self, dropout, decrease, n_tail):
 
         # Defines the dropout callback
-        drp = DecreaseDropout(dropout, decrease)
+        self.drp = DecreaseDropout(dropout, decrease)
 
         if self.cls['with_acc']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(3, dtb['acc_x_t'].shape[1]))
-                self.add_CONV2D(inp, drp)
+                self.add_CONV2D(inp, self.drp)
 
         if self.cls['with_eeg']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(4, dtb['eeg_1_t'].shape[1]))
-                self.add_CONV2D(inp, drp)
+                self.add_CONV2D(inp, self.drp)
 
         if self.cls['with_por']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(2, dtb['po_ir_t'].shape[1]))
-                self.add_CONV2D(inp, drp)
+                self.add_CONV2D(inp, self.drp)
 
         if self.cls['with_nrm']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['norm_t'].shape[1], ))
-                self.add_CONV1D(inp, drp)
+                self.add_CONV1D(inp, self.drp)
 
         if self.cls['with_fft']:
             with h5py.File(self.pth, 'r') as dtb:
                 lst = sorted([ele for ele in dtb.keys() if ele[:3] == 'fft' and ele[-1] == 't'])
                 for key in lst:
                     inp = Input(shape=(dtb[key].shape[1],))
-                    self.add_LDENSE(inp, drp)
+                    self.add_LDENSE(inp, self.drp)
 
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['pca_t'].shape[1], ))
-                self.add_LDENSE(inp, drp)
+                self.add_LDENSE(inp, self.drp)
 
         # Gather all the model in one dense network
         print('# Ns Channels: ', len(self.mrg))
@@ -249,7 +249,7 @@ class DL_Model:
             model = Dense(int(tails[n_tail - 1 - idx]))(model)
             model = BatchNormalization()(model)
             model = Activation('relu')(model)
-            model = AdaptiveDropout(drp.prb, drp)(model)
+            model = AdaptiveDropout(self.drp.prb, self.drp)(model)
 
         # Last layer for probabilities
         model = MaxoutDense(self.n_c, activation='softmax')(model)
@@ -281,7 +281,7 @@ class DL_Model:
         # Fit the model
         model.fit_generator(self.data_gen('t', batch=32),
                             steps_per_epoch=len(self.l_t)//batch, verbose=1, 
-                            epochs=max_epochs, callbacks=[early, check],
+                            epochs=max_epochs, callbacks=[self.drp, early, check],
                             shuffle=True, validation_steps=len(self.l_e) // batch,
                             validation_data=self.data_gen('e', batch=32), 
                             class_weight=class_weight(self.l_t))
