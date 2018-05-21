@@ -20,14 +20,15 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 
+from keras import backend as K
 from keras.utils import np_utils
 from keras.models import Model, load_model
 from keras.layers import Convolution2D, MaxPooling2D, Flatten
 from keras.layers import Conv1D, Input, MaxPooling1D, GlobalAveragePooling1D
 from keras.layers import BatchNormalization, GlobalAveragePooling2D
-from keras.layers import GlobalMaxPooling1D, GaussianDropout
+from keras.layers import GlobalMaxPooling1D, MaxoutDense
 from keras.layers.core import Dense, Dropout, Activation, Reshape
-from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from keras.layers.merge import concatenate
 
 # Graphical imports
