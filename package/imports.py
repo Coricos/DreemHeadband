@@ -20,6 +20,8 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 
+import tensorflow as tf
+
 from keras import backend as K
 from keras.utils import np_utils
 from keras.models import Model, load_model
