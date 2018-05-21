@@ -58,25 +58,35 @@ class DL_Model:
 
             if self.cls['with_eeg']:
 
+                # with h5py.File(self.pth, 'r') as dtb:
+                #     shp = dtb['eeg_1_{}'.format(fmt)].shape
+                #     tmp = np.empty((batch, 4, shp[1]))
+                #     for idx in range(4):
+                #         ann = 'eeg_{}_{}'.format(idx+1, fmt)
+                #         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                #     vec.append(tmp)
+                #     del shp, tmp, ann
+
                 with h5py.File(self.pth, 'r') as dtb:
-                    shp = dtb['eeg_1_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 4, shp[1]))
-                    for idx in range(4):
-                        ann = 'eeg_{}_{}'.format(idx+1, fmt)
-                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
-                    vec.append(tmp)
-                    del shp, tmp, ann
+                    vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['eeg_2_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_por']:
 
-                with h5py.File(self.pth, 'r') as dtb:
-                    shp = dtb['po_r_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 2, shp[1]))
-                    for idx, key in zip(range(2), ['r', 'ir']):
-                        ann = 'po_{}_{}'.format(key, fmt)
-                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
-                    vec.append(tmp)
-                    del shp, tmp, ann
+                # with h5py.File(self.pth, 'r') as dtb:
+                #     shp = dtb['po_r_{}'.format(fmt)].shape
+                #     tmp = np.empty((batch, 2, shp[1]))
+                #     for idx, key in zip(range(2), ['r', 'ir']):
+                #         ann = 'po_{}_{}'.format(key, fmt)
+                #         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                #     vec.append(tmp)
+                #     del shp, tmp, ann
+
+                 with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_nrm']:
 
@@ -133,7 +143,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxoutDense(mod._keras_shape[1] // 3)(mod)
+        mod = MaxoutDense(mod._keras_shape[1] // 2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
 
@@ -168,7 +178,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxoutDense(mod._keras_shape[1] // 3)(mod)
+        mod = MaxoutDense(mod._keras_shape[1] // 2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
 
@@ -213,13 +223,15 @@ class DL_Model:
 
         if self.cls['with_eeg']:
             with h5py.File(self.pth, 'r') as dtb:
-                inp = Input(shape=(4, dtb['eeg_1_t'].shape[1]))
-                self.add_CONV2D(inp, self.drp)
+                for key in ['eeg_1_t', 'eeg_2_t', 'eeg_3_t', 'eeg_4_t']:
+                    inp = Input(shape=(dtb[key].shape[1], ))
+                    self.add_CONV1D(inp, self.drp)
 
         if self.cls['with_por']:
             with h5py.File(self.pth, 'r') as dtb:
-                inp = Input(shape=(2, dtb['po_ir_t'].shape[1]))
-                self.add_CONV2D(inp, self.drp)
+                for key in ['po_r_t', 'po_ir_t']:
+                    inp = Input(shape=(dtb[key].shape[1], ))
+                    self.add_CONV1D(inp, self.drp)
 
         if self.cls['with_nrm']:
             with h5py.File(self.pth, 'r') as dtb:

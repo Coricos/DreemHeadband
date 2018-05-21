@@ -189,7 +189,7 @@ class Database:
                 del pol, fun, fft
 
     # Rescale the datasets considering both training and validation
-    def rescale(self, env_coeff=10000):
+    def rescale(self, env_coeff=1000):
 
         with h5py.File(self.train_pth, 'r') as dtb:
             tem = ['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
@@ -235,32 +235,33 @@ class Database:
 
             # Defines the scalers
             mms = MinMaxScaler(feature_range=(0,1))
-            sts = StandardScaler(with_std=False)
+            # sts = StandardScaler(with_std=False)
 
             for pth in [self.train_pth, self.valid_pth]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-            for pth in [self.train_pth, self.valid_pth]:
-                # Partial fit for both training and validation
-                with h5py.File(pth, 'r') as dtb:
-                    tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
-                    sts.partial_fit(tmp)
-                    del tmp
+            # for pth in [self.train_pth, self.valid_pth]:
+            #     # Partial fit for both training and validation
+            #     with h5py.File(pth, 'r') as dtb:
+            #         tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
+            #         sts.partial_fit(tmp)
+            #         del tmp
 
             # Concatenate the pipeline of scalers
-            pip = Pipeline([('mms', mms), ('sts', sts)])
+            # pip = Pipeline([('mms', mms), ('sts', sts)])
 
             for pth in [self.train_pth, self.valid_pth]:
                 # Apply transformation
                 with h5py.File(pth, 'a') as dtb:
                     shp = dtb[key].shape
                     tmp = np.hstack(dtb[key].value).reshape(-1,1)
-                    dtb[key][...] = pip.transform(tmp).reshape(shp)
+                    dtb[key][...] = mms.transform(tmp).reshape(shp)
 
             # Memory efficiency
-            del mms, sts, pip, tmp
+            # del mms, sts, pip, tmp
+            del mms, tmp
 
         # Specific scaling for features datasets
         for key in tqdm.tqdm(oth):
