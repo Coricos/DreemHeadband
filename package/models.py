@@ -21,8 +21,8 @@ class DL_Model:
         self.inp = []
         self.mrg = []
         # Output definition
-        if marker: self.out = './models/MOD_{}.ks'.format(marker)
-        else: self.out = './models/MOD.ks'.format(marker)
+        if marker: self.out = './models/MOD_{}.weights'.format(marker)
+        else: self.out = './models/MOD.weights'.format(marker)
         # Handling labels
         with h5py.File(self.pth, 'r') as dtb:
             self.l_t = dtb['lab_t'].value.ravel()
@@ -278,15 +278,17 @@ class DL_Model:
     def learn(self, dropout=0.33, decrease=100, n_tail=5, patience=3, max_epochs=100, batch=32):
 
         # Compile the model
-        model = self.build(dropout, decrease, n_tail)
+        with tf.device('/cpu:0'): model = self.build(dropout, decrease, n_tail)
         model = Model(inputs=self.inp, outputs=model)
+        try: model = multi_gpu_model(model)
+        except: pass
         arg = {'loss': 'categorical_crossentropy', 'optimizer': 'adadelta'}
         model.compile(metrics=['accuracy'], **arg)
         
         # Implements the callbacks
         arg = {'patience': patience, 'verbose': 0}
         early = EarlyStopping(monitor='val_acc', min_delta=1e-5, **arg)
-        arg = {'save_best_only': True, 'save_weights_only': False}
+        arg = {'save_best_only': True, 'save_weights_only': True}
         check = ModelCheckpoint(self.out, monitor='val_acc', **arg)
         
         # Fit the model
