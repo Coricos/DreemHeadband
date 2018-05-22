@@ -139,7 +139,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 15)(motmph)
+        mod = Conv1D(128, 15)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
