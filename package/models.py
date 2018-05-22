@@ -104,21 +104,16 @@ class DL_Model:
 
         # Build model
         mod = Reshape((1, inp._keras_shape[1], inp._keras_shape[2]))(inp)
-        mod = Convolution2D(64, (inp._keras_shape[1], 60), data_format='channels_first')(mod)
+        mod = Convolution2D(64, (inp._keras_shape[1], 30), data_format='channels_first')(mod)
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(128, (1, 30), data_format='channels_first')(mod)
-        mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
+        mod = Convolution2D(64, (1, 15), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(256, (1, 15), data_format='channels_first')(mod)
-        mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
-        mod = BatchNormalization(axis=1)(mod)
-        mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+
         mod = GlobalAveragePooling2D()(mod)
         # Rework through dense network
         mod = Dense(mod._keras_shape[1])(mod)
@@ -145,12 +140,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 30)(mod)
-        mod = MaxPooling1D(pool_size=2)(mod)
-        mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(256, 15)(mod)
+        mod = Conv1D(64, 15)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -178,9 +168,6 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxoutDense(mod._keras_shape[1] // 2)(mod)
-        mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
         mod = MaxoutDense(mod._keras_shape[1] // 2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
@@ -260,7 +247,8 @@ class DL_Model:
     def learn(self, dropout=0.33, decrease=100, n_tail=5, patience=3, max_epochs=100, batch=32):
 
         # Compile the model
-        with tf.device('/cpu:0'): model = self.build(dropout, decrease, n_tail)
+        with tf.device('/cpu:0'): 
+            model = self.build(dropout, decrease, n_tail)
         model = Model(inputs=self.inp, outputs=model)
         try: model = multi_gpu_model(model)
         except: pass
