@@ -106,26 +106,26 @@ class DL_Model:
         mod = Reshape((1, inp._keras_shape[1], inp._keras_shape[2]))(inp)
         mod = Convolution2D(64, (inp._keras_shape[1], 30), 
                             data_format='channels_first',
-                            kernel_regularizer=regularizers.l2(0.01))(mod)
+                            bias_regularizer=regularizers.l2(0.01))(mod)
         mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Convolution2D(128, (1, 15), 
                             data_format='channels_first',
-                            kernel_regularizer=regularizers.l2(0.01))(mod)
+                            bias_regularizer=regularizers.l2(0.01))(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalAveragePooling2D()(mod)
         # Rework through dense network
         mod = Dense(mod._keras_shape[1],
-                    kernel_regularizer=regularizers.l2(0.01))(mod)
+                    bias_regularizer=regularizers.l2(0.01))(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Dense(mod._keras_shape[1] // 2,
-                    kernel_regularizer=regularizers.l2(0.01))(mod)
+                    bias_regularizer=regularizers.l2(0.01))(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
 
@@ -141,25 +141,25 @@ class DL_Model:
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
         mod = Conv1D(64, 30,
-                     kernel_regularizer=regularizers.l2(0.01))(mod)
+                     bias_regularizer=regularizers.l2(0.01))(mod)
         mod = MaxPooling1D(pool_size=2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Conv1D(128, 15,
-                     kernel_regularizer=regularizers.l2(0.01))(mod)
+                     bias_regularizer=regularizers.l2(0.01))(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalMaxPooling1D()(mod)
         # Rework through dense network
         mod = Dense(mod._keras_shape[1],
-                    kernel_regularizer=regularizers.l2(0.01))(mod)
+                    bias_regularizer=regularizers.l2(0.01))(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Dense(mod._keras_shape[1] // 2,
-                    kernel_regularizer=regularizers.l2(0.01))(mod)
+                    bias_regularizer=regularizers.l2(0.01))(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
 
@@ -174,12 +174,12 @@ class DL_Model:
 
         # Build the model
         mod = Dense(inp._keras_shape[1], 
-                    kernel_regularizer=regularizers.l2(0.01))(inp)
+                    bias_regularizer=regularizers.l2(0.01))(inp)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Dense(mod._keras_shape[1] // 2,
-                    kernel_regularizer=regularizers.l2(0.01))(mod)
+                    bias_regularizer=regularizers.l2(0.01))(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('selu')(mod)
 
@@ -239,7 +239,7 @@ class DL_Model:
         tails = np.linspace(2*self.n_c, 2*model._keras_shape[1], num=n_tail)
         for idx in range(n_tail):
             model = Dense(int(tails[n_tail - 1 - idx]),
-                          kernel_regularizer=regularizers.l2(0.01))(model)
+                          bias_regularizer=regularizers.l2(0.01))(model)
             model = BatchNormalization()(model)
             model = Activation('relu')(model)
             model = AdaptiveDropout(self.drp.prb, self.drp)(model)
