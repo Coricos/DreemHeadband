@@ -256,7 +256,8 @@ class DL_Model:
         model = Model(inputs=self.inp, outputs=model)
         try: model = multi_gpu_model(model)
         except: pass
-        arg = {'loss': 'categorical_crossentropy', 'optimizer': 'adadelta'}
+        opt = SGD(lr=1e-2, momentum=0.1, decay=1e-4)
+        arg = {'loss': 'categorical_crossentropy', 'optimizer': opt}
         model.compile(metrics=['accuracy'], **arg)
         print('# Model Compiled')
         
