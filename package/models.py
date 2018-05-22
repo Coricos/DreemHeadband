@@ -238,7 +238,7 @@ class DL_Model:
         print('# Merge Layer: ', model._keras_shape[1])
 
         # Defines the learning tail
-        tails = np.linspace(2*self.n_c, 1.5*model._keras_shape[1], num=n_tail)
+        tails = np.linspace(2*self.n_c, 2*model._keras_shape[1], num=n_tail)
         for idx in range(n_tail):
             model = Dense(int(tails[n_tail - 1 - idx]))(model)
             model = BatchNormalization()(model)

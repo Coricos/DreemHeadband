@@ -242,6 +242,7 @@ class Database:
                 dtb.create_dataset('chaos', data=np.hstack(tuple(res)))
 
     # Rescale the datasets considering both training and validation
+    # env_coeff refers to the coefficient relative to the logarithmic envelope
     def rescale(self, env_coeff=100):
 
         with h5py.File(self.train_pth, 'r') as dtb:
@@ -310,7 +311,7 @@ class Database:
                 with h5py.File(pth, 'a') as dtb:
                     shp = dtb[key].shape
                     tmp = np.hstack(dtb[key].value).reshape(-1,1)
-                    dtb[key][...] = mms.transform(tmp).reshape(shp)
+                    dtb[key][...] = pip.transform(tmp).reshape(shp)
 
             # Memory efficiency
             del mms, sts, pip, tmp
