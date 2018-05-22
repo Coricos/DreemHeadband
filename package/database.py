@@ -249,7 +249,7 @@ class Database:
             tem = ['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
                    'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
             env = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
-            oth = [key for key in list(dtb.keys()) if key not in tem]
+            oth = [key for key in list(dtb.keys()) if key not in tem + ['lab']]
 
         # Apply the logarithmic envelope
         for key in tqdm.tqdm(env):
@@ -319,21 +319,26 @@ class Database:
         # Specific scaling for features datasets
         for key in tqdm.tqdm(oth):
 
-            try: 
-                # Build the scaler
-                mms = MinMaxScaler(feature_range=(0,1))
+            # Build the scaler
+            mms = MinMaxScaler(feature_range=(0,1))
+            sts = StandardScaler(with_std=False)
 
-                for pth in [self.train_pth, self.valid_pth]:
-                    # Partial fit for both training and validation
-                    with h5py.File(pth, 'r') as dtb:
-                        mms.partial_fit(dtb[key].value)
+            for pth in [self.train_pth, self.valid_pth]:
+                # Partial fit for both training and validation
+                with h5py.File(pth, 'r') as dtb:
+                    mms.partial_fit(dtb[key].value)
 
-                for pth in [self.train_pth, self.valid_pth]:
-                    # Transformation for both training and validation
-                    with h5py.File(pth, 'a') as dtb:
-                        dtb[key][...] = mms.transform(dtb[key].value)
-            except:
-                pass
+            for pth in [self.train_pth, self.valid_pth]:
+                # Partial fit for both training and validation
+                with h5py.File(pth, 'r') as dtb:
+                    sts.partial_fit(mms.transform(dtb[key].value))
+
+            pip = Pipeline([('mms', mms), ('sts', sts)])
+
+            for pth in [self.train_pth, self.valid_pth]:
+                # Transformation for both training and validation
+                with h5py.File(pth, 'a') as dtb:
+                    dtb[key][...] = pip.transform(dtb[key].value)
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database

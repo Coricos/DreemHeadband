@@ -32,7 +32,7 @@ class DL_Model:
     # Defines a generator (training and testing)
     # fmt refers to whether apply it for training or testing
     # batch refers to the batch size
-    def data_gen(self, fmt, batch=32):
+    def data_gen(self, fmt, batch=16):
         
         ind = 0
 
@@ -90,10 +90,10 @@ class DL_Model:
             with h5py.File(self.pth, 'r') as dtb:
 
                 lab = dtb['lab_{}'.format(fmt)][ind:ind+batch]
-                res = shuffle(lab, *vec)
-                lab = np_utils.to_categorical(res[0], num_classes=self.n_c)
-                yield(res[1:], lab)
-                del lab, res
+                # res = shuffle(lab, *vec)
+                lab = np_utils.to_categorical(lab, num_classes=self.n_c)
+                yield(vec, lab)
+                del lab, vec #,res
 
             ind += batch
 
@@ -107,11 +107,11 @@ class DL_Model:
         mod = Reshape(shp)(inp)
         mod = Convolution2D(64, (inp._keras_shape[1], 30), 
                             data_format='channels_first')(mod)
-        mod = MaxPooling2D(pool_size=(1, 2), 
-                           data_format='channels_first')(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = MaxPooling2D(pool_size=(1, 2), 
+                           data_format='channels_first')(mod)
         mod = Convolution2D(128, (1, 15))(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = Activation('relu')(mod)
@@ -138,12 +138,16 @@ class DL_Model:
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
         mod = Conv1D(64, 30)(mod)
+        mod = BatchNormalization()(mod)
+        mod = Activation('relu')(mod)
         mod = Conv1D(64, 30)(mod)
-        mod = MaxPooling1D(pool_size=2)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = MaxPooling1D(pool_size=2)(mod)
         mod = Conv1D(128, 15)(mod)
+        mod = BatchNormalization()(mod)
+        mod = Activation('relu')(mod)
         mod = Conv1D(128, 15)(mod)
         mod = BatchNormalization()(mod)
         mod = Activation('relu')(mod)
@@ -248,16 +252,12 @@ class DL_Model:
     # patience is the parameter of the EarlyStopping callback
     # max_epochs refers to the amount of epochs achievable
     # batch refers to the batch_size
-    def learn(self, dropout=0.33, decrease=100, n_tail=5, patience=3, max_epochs=100, batch=32):
+    def learn(self, dropout=0.33, decrease=50, n_tail=5, patience=3, max_epochs=100, batch=16):
 
         # Compile the model
-        with tf.device('/cpu:0'): 
-            model = self.build(dropout, decrease, n_tail)
+        with tf.device('/cpu:0'): model = self.build(dropout, decrease, n_tail)
         model = Model(inputs=self.inp, outputs=model)
-        try: model = multi_gpu_model(model)
-        except: pass
-        opt = SGD(lr=1e-2, momentum=0.1, decay=1e-4)
-        arg = {'loss': 'categorical_crossentropy', 'optimizer': opt}
+        arg = {'loss': 'categorical_crossentropy', 'optimizer': 'adadelta'}
         model.compile(metrics=['accuracy'], **arg)
         print('# Model Compiled')
         
