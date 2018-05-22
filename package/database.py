@@ -191,7 +191,7 @@ class Database:
 
     # Add the discrete FFT components
     # n_components refers to the amount of harmonics to keep
-    def add_fft(self, n_components=100):
+    def add_fft(self, n_components=300):
 
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
