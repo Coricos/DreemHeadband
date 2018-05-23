@@ -261,16 +261,16 @@ class Database:
                 v_v = dtb[key].value
 
             # Apply the transformation
-            m_x = max(max(v_t.ravel()), max(v_v.ravel()))
+            m_x = max(max(np.abs(v_t).ravel()), max(np.abs(v_v).ravel()))
 
             pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-            fun = partial(envelope, m_x=m_x, coeff=env_coeff)
+            fun = partial(envelope, m_x=m_x, coeff=m_x)
             v_t = np.asarray(pol.map(fun, v_t))
             pol.close()
             pol.join()
 
             pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-            fun = partial(envelope, m_x=m_x, coeff=env_coeff)
+            fun = partial(envelope, m_x=m_x, coeff=m_x)
             v_v = np.asarray(pol.map(fun, v_v))
             pol.close()
             pol.join()
