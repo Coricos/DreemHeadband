@@ -105,26 +105,24 @@ class DL_Model:
         # Build model
         shp = (1, inp._keras_shape[1], inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(64, (inp._keras_shape[1], 30), 
-                            data_format='channels_first')(mod)
+        mod = Convolution2D(64, (inp._keras_shape[1], 30), data_format='channels_first')(mod)
+        mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
-        mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxPooling2D(pool_size=(1, 2), 
-                           data_format='channels_first')(mod)
+        mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = Convolution2D(128, (1, 15))(mod)
+        mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
-        mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalAveragePooling2D()(mod)
         # Rework through dense network
-        mod = Dense(mod._keras_shape[1])(mod)
+        mod = Dense(mod._keras_shape[1], kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 2)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = PReLU()(mod)
 
         # Add layers to the model
         self.inp.append(inp)
@@ -138,29 +136,26 @@ class DL_Model:
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
         mod = Conv1D(64, 30)(mod)
+        mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
-        mod = Conv1D(64, 30)(mod)
-        mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxPooling1D(pool_size=2)(mod)
-        mod = Conv1D(128, 15)(mod)
+        mod = Conv1D(128, 10)(mod)
+        mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
-        mod = Conv1D(128, 15)(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(256, 5)(mod)
+        mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalMaxPooling1D()(mod)
         # Rework through dense network
-        mod = Dense(mod._keras_shape[1])(mod)
+        mod = Dense(mod._keras_shape[1], kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 2)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = PReLU()(mod)
 
         # Add model to main model
         self.inp.append(inp)
@@ -172,13 +167,22 @@ class DL_Model:
     def add_LDENSE(self, inp, callback):
 
         # Build the model
-        mod = Dense(inp._keras_shape[1])(inp)
+        mod = Dense(inp._keras_shape[1], kernel_initializer='he_normal')(inp)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 2)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
-        mod = Activation('relu')(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add layers to model
         self.inp.append(inp)
@@ -234,14 +238,15 @@ class DL_Model:
 
         # Defines the learning tail
         tails = np.linspace(2*self.n_c, 2*model._keras_shape[1], num=n_tail)
+
         for idx in range(n_tail):
-            model = Dense(int(tails[n_tail - 1 - idx]))(model)
+            model = Dense(int(tails[n_tail - 1 - idx]), kernel_initializer='he_normal')(model)
             model = BatchNormalization()(model)
-            model = Activation('relu')(model)
-            model = Dropout(self.drp.prb / 2.0)(model)
+            model = PReLU()(model)
+            model = AdaptiveDropout(self.drp.prb, self.drp)(mod)
 
         # Last layer for probabilities
-        model = Dense(self.n_c, activation='softmax')(model)
+        model = Dense(self.n_c, activation='softmax', kernel_initializer='he_normal')(model)
 
         return model
 
@@ -252,7 +257,7 @@ class DL_Model:
     # patience is the parameter of the EarlyStopping callback
     # max_epochs refers to the amount of epochs achievable
     # batch refers to the batch_size
-    def learn(self, dropout=0.33, decrease=50, n_tail=5, patience=3, max_epochs=100, batch=16):
+    def learn(self, dropout=0.5, decrease=50, n_tail=5, patience=3, max_epochs=100, batch=16):
 
         # Compile the model
         with tf.device('/cpu:0'): model = self.build(dropout, decrease, n_tail)
