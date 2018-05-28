@@ -83,7 +83,7 @@ class Database:
     def add_norm(self):
 
         # Iterates over both the training and validation sets
-        for pth in zip([self.train_out, self.valid_out]):
+        for pth in [self.train_out, self.valid_out]:
 
             with h5py.File(pth, 'r') as dtb:
 
@@ -159,7 +159,7 @@ class Database:
 
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
-        for pth in zip([self.train_out, self.valid_out]):
+        for pth in [self.train_out, self.valid_out]:
 
             res = []
             # Iterates over the keys
@@ -217,7 +217,7 @@ class Database:
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
         # Iterates over both training and validation
-        for pth in zip([self.train_out, self.valid_out]):
+        for pth in [self.train_out, self.valid_out]:
 
             # Defines the keys fft may give better insights
             for key in tqdm.tqdm(lst):
@@ -244,7 +244,7 @@ class Database:
 
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
-        for pth in zip([self.train_out, self.valid_out]):
+        for pth in [self.train_out, self.valid_out]:
 
             res = []
             # Iterates over the keys
