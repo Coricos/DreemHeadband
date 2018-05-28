@@ -10,6 +10,10 @@ import numpy as np
 import pandas as pd
 import scipy.signal as sg
 
+from math import log, ceil
+from hyperopt import hp
+from hyperopt.pyll.stochatic import sample
+
 from functools import partial
 from collections import Counter
 from scipy.stats import kurtosis, skew
