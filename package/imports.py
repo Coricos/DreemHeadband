@@ -12,7 +12,7 @@ import scipy.signal as sg
 
 from math import log, ceil
 from hyperopt import hp
-from hyperopt.pyll.stochatic import sample
+from hyperopt.pyll.stochastic import sample
 
 from functools import partial
 from collections import Counter
