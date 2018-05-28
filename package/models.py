@@ -87,8 +87,6 @@ class ML_Model:
         # Defines the random search through cross-validation
         hyp = Hyperband(get_params, try_params, max_iter=max_iter, n_jobs=self.threads)
         res = hyp.run(nme, val, self.strategy, skip_last=1)
-        if self.strategy == 'binary': key = 'acc'
-        if self.strategy == 'multiclass': key = 'f1_score'
         res = sorted(res, key = lambda x: x[key])[0]
         # Extract the best estimator
         if nme == 'RFS':
@@ -390,7 +388,7 @@ class DL_Model:
             with h5py.File(self.pth, 'r') as dtb:
                 for key in ['eeg_1_t', 'eeg_2_t', 'eeg_3_t', 'eeg_4_t']:
                     inp = Input(shape=(dtb[key].shape[1], ))
-                    self.add_DUALCV(inp, self.drp)
+                    self.add_CONV1D(inp, self.drp)
 
         if self.cls['with_por']:
             with h5py.File(self.pth, 'r') as dtb:
