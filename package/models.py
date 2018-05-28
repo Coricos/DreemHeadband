@@ -192,7 +192,7 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     pca = dtb['pca_{}'.format(fmt)][ind:ind+batch]
                     fea = dtb['fea_{}'.format(fmt)][ind:ind+batch]
-                    vec.append(np.hstack(pca, fea))
+                    vec.append(np.hstack((pca, fea)))
 
             with h5py.File(self.pth, 'r') as dtb:
 
@@ -333,7 +333,7 @@ class DL_Model:
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = GlobalMaxPooling1D()(s_mod)
+        l_mod = GlobalMaxPooling1D()(l_mod)
 
         # Rework through dense network
         mod = concatenate([s_mod, l_mod])
@@ -427,7 +427,7 @@ class DL_Model:
             model = Dense(int(tails[n_tail - 1 - idx]), kernel_initializer='he_normal')(model)
             model = BatchNormalization()(model)
             model = PReLU()(model)
-            model = AdaptiveDropout(self.drp.prb, self.drp)(mod)
+            model = AdaptiveDropout(self.drp.prb, self.drp)(model)
 
         # Last layer for probabilities
         model = Dense(self.n_c, activation='softmax', kernel_initializer='he_normal')(model)
