@@ -2,22 +2,25 @@
 # May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
-import argparse
+import argparse, warnings
 
 from package.database import *
 
 # Pipeline description of dataset construction
 
-def build_dataset(storage, label_csv, vec_size, overlap, env_coeff, output):
+def build_dataset(storage, label_csv, vec_size, overlap, output):
 
     dtb = Database(storage=storage)
     dtb.build(out_storage=storage)
-    dtb.add_norm()
     dtb.load_labels(label_csv)
+    dtb.add_norm()
+    
     if vec_size != 0: dtb.slice(vec_size=vec_size, overlap=overlap)
+
     dtb.add_features()
     dtb.add_fft()
     dtb.add_pca()
+    
     dtb.rescale()
     dtb.preprocess(output)
 

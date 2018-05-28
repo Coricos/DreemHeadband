@@ -12,6 +12,8 @@ class Database:
 
         self.train_pth = '{}/train.h5'.format(storage)
         self.valid_pth = '{}/valid.h5'.format(storage)
+        self.train_out = '{}/dts_train.h5'.format(storage)
+        self.valid_out = '{}/dts_valid.h5'.format(storage)
 
         self.storage = storage
         self.sets_size = []
@@ -27,12 +29,8 @@ class Database:
     # out_storage refers to where to put the newly build datasets
     def build(self, vec_size=2100, out_storage='/mnt/Storage'):
 
-        # Filtering through Kalman filter
-        train_out = '{}/dts_train.h5'.format(out_storage)
-        valid_out = '{}/dts_valid.h5'.format(out_storage)
-
         # Defines the parameters for each key
-        fil = {'po_r': True, 'po_ir': True,
+        fil = {'po_r': True, 'po_ir': True, 'norm': False,
                'acc_x': False, 'acc_y': False, 'acc_z': False,
                'eeg_1': True, 'eeg_2': True, 'eeg_3': True, 'eeg_4': True}
         dic = {'eeg_1': (4, 20), 'eeg_2': (4, 20), 'eeg_3': (4, 20),
@@ -41,7 +39,8 @@ class Database:
         # Iterates over the keys
         for key in tqdm.tqdm(fil.keys()):
             # Link inputs to outputs
-            for out, pth in zip([train_out, valid_out], [self.train_pth, self.valid_pth]):
+            for pth, out in zip([self.train_pth, self.valid_pth], 
+                                [self.train_out, self.valid_out]):
                 # Load the values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
 
@@ -69,24 +68,22 @@ class Database:
                 # Memory efficiency
                 del pol, fun, val
 
-        self.train_pth = train_out
-        self.valid_pth = valid_out
+    # Load the corresponding labels
+    # input refers to the input_file in which the labels are stored
+    def load_labels(self, input):
 
-    # Simple function to redirect to the input datasets
-    # out_storage refers to where to get the datasets
-    def redirect(self, out_storage='/mnt/Storage'):
+        lab = pd.read_csv(input, sep=';', index_col=0)
 
-        self.train_pth = '{}/dts_train.h5'.format(out_storage)
-        self.valid_pth = '{}/dts_valid.h5'.format(out_storage)
-
-        with h5py.File(self.train_pth, 'r') as dtb:
-            self.keys = list(dtb.keys())
+        with h5py.File(self.train_out, 'a') as dtb:
+            # Serialize the labels
+            if dtb.get('lab'): del dtb['lab']
+            dtb.create_dataset('lab', data=lab.values)
 
     # Build the norm of the accelerometers
     def add_norm(self):
 
         # Iterates over both the training and validation sets
-        for pth in [self.train_pth, self.valid_pth]:
+        for pth in zip([self.train_out, self.valid_out]):
 
             with h5py.File(pth, 'r') as dtb:
 
@@ -104,97 +101,65 @@ class Database:
             # Memory efficiency
             del tmp
 
-    # Load the corresponding labels
-    # input refers to the input_file in which the labels are stored
-    def load_labels(self, input):
-
-        lab = pd.read_csv(input, sep=';', index_col=0)
-
-        with h5py.File(self.train_pth, 'a') as dtb:
-            # Serialize the labels
-            if dtb.get('lab'): del dtb['lab']
-            dtb.create_dataset('lab', data=lab.values)
-
     # Apply a slicing over the signal to reduce their time period
     # vec_size refers to the size of the output signal
     # overlap refers to the amount of overlap between two signals
     def slice(self, vec_size=700, overlap=0.5):
 
-        with h5py.File(self.train_pth, 'r') as dtb:
+        train_out = '{}/dts_train_{}.h5'.format(vec_size)
+        valid_out = '{}/dts_valid_{}.h5'.format(vec_size)
+
+        with h5py.File(self.train_out, 'r') as dtb:
             # Check whether the labels are loaded for synchronization
             if not dtb.get('lab'): 
                 print('! Labels needed')
                 return
 
-        with h5py.File(self.train_pth, 'a') as dtb:
+        with h5py.File(self.train_out, 'r') as dtb:
+
             # Deals with the labels
             lab = dtb['lab'].value
             sze = dtb['acc_x'].shape[1]
             sze = len(vectorization(np.zeros(sze), vec_size, overlap))
             lab = np.hstack(tuple([lab.reshape(-1,1) for i in range(sze)])).ravel()
-            del dtb['lab']
-            dtb.create_dataset('lab', data=lab)
-            del sze, lab
 
-        for pth in [self.train_pth, self.valid_pth]:
+            # Serialize in output database
+            with h5py.File(train_out, 'a') as out:
+                if out.get('lab'): del out['lab']
+                out.create_dataset('lab', data=lab)
 
-            with h5py.File(pth, 'a') as dtb:
+        for out, pth in zip([train_out, valid_out], [self.train_out, self.valid_out]):
+
+            with h5py.File(pth, 'r') as dtb:
 
                 # Iterates over all the keys
-                for key in tqdm.tqdm(dtb.keys()):
+                for key in ['norm', 'acc_x', 'acc_y', 'acc_z', 'po_ir', 
+                            'po_r', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
 
-                    if key == 'lab': pass
-                    else:
-                        # Multiprocessed sliding window
-                        val = dtb[key].value
-                        pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                        fun = partial(vectorization, vec_size=vec_size, overlap=overlap)
-                        val = np.vstack(tuple(pol.map(fun, val)))
-                        pol.close()
-                        pol.join()
-                        # Clear and replace
-                        del dtb[key]
-                        dtb.create_dataset(key, data=val)
-                        del pol, fun, val
+                    # Multiprocessed sliding window
+                    val = dtb[key].value
+                    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                    fun = partial(vectorization, vec_size=vec_size, overlap=overlap)
+                    val = np.vstack(tuple(pol.map(fun, val)))
+                    pol.close()
+                    pol.join()
+                    # Clear and replace
+                        with h5py.File(out, 'a') as out:
+                            if out.get(key): del out[key]
+                            out.create_dataset(key, data=val)
+                    # Memory efficiency
+                    del pol, fun, val
 
-    # Add the PCA construction of all the vectors
-    # n_components refers to the amount of components to extract
-    def add_pca(self, n_components=5):
-
-        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
-        train_pca, valid_pca = [], []
-
-        # Iterates over the keys
-        for key in tqdm.tqdm(lst):
-
-            # Defines the PCA transform adapted to incremental learning
-            pca = IncrementalPCA(n_components=n_components)
-            # Partial fit over training and validation
-            for pth in [self.train_pth, self.valid_pth]:
-                with h5py.File(pth, 'r') as dtb:
-                    pca.partial_fit(dtb[key].value)
-            # Apply transformation on training set
-            with h5py.File(self.train_pth, 'r') as dtb:
-                train_pca.append(pca.transform(dtb[key].value))
-            # Apply transformation on validation set
-            with h5py.File(self.valid_pth, 'r') as dtb:
-                valid_pca.append(pca.transform(dtb[key].value))
-
-        # Serialization for the training results
-        with h5py.File(self.train_pth, 'a') as dtb:
-            if dtb.get('pca'): del dtb[pca]
-            dtb.create_dataset('pca', data=np.hstack(tuple(train_pca)))
-        # Serialization for the validation results
-        with h5py.File(self.valid_pth, 'a') as dtb:
-            if dtb.get('pca'): del dtb[pca]
-            dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
+        # Redirecting the database
+        self.train_out = train_out
+        self.valid_out = valid_out
 
     # Build the features for each channel
     def add_features(self):
 
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
-        for pth in [self.train_pth, self.valid_pth]:
+        for pth in zip([self.train_out, self.valid_out]):
 
             res = []
             # Iterates over the keys
@@ -210,8 +175,40 @@ class Database:
 
             # Serialize the output
             with h5py.File(pth, 'a') as dtb:
-                if dtb.get('chaos'): del dtb['chaos']
-                dtb.create_dataset('chaos', data=np.hstack(tuple(res)))
+                if dtb.get('fea'): del dtb['fea']
+                dtb.create_dataset('fea', data=np.hstack(tuple(res)))
+
+    # Add the PCA construction of all the vectors
+    # n_components refers to the amount of components to extract
+    def add_pca(self, n_components=5):
+
+        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        train_pca, valid_pca = [], []
+
+        # Iterates over the keys
+        for key in tqdm.tqdm(lst):
+
+            # Defines the PCA transform adapted to incremental learning
+            pca = IncrementalPCA(n_components=n_components)
+            # Partial fit over training and validation
+            for pth in [self.train_out, self.valid_out]:
+                with h5py.File(pth, 'r') as dtb:
+                    pca.partial_fit(dtb[key].value)
+            # Apply transformation on training set
+            with h5py.File(self.train_out, 'r') as dtb:
+                train_pca.append(pca.transform(dtb[key].value))
+            # Apply transformation on validation set
+            with h5py.File(self.valid_out, 'r') as dtb:
+                valid_pca.append(pca.transform(dtb[key].value))
+
+        # Serialization for the training results
+        with h5py.File(self.train_out, 'a') as dtb:
+            if dtb.get('pca'): del dtb[pca]
+            dtb.create_dataset('pca', data=np.hstack(tuple(train_pca)))
+        # Serialization for the validation results
+        with h5py.File(self.valid_out, 'a') as dtb:
+            if dtb.get('pca'): del dtb[pca]
+            dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
     # Add the discrete FFT components
     # n_components refers to the amount of harmonics to keep
@@ -220,7 +217,8 @@ class Database:
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
         # Iterates over both training and validation
-        for pth in [self.train_pth, self.valid_pth]:
+        for pth in zip([self.train_out, self.valid_out]):
+
             # Defines the keys fft may give better insights
             for key in tqdm.tqdm(lst):
 
@@ -246,7 +244,7 @@ class Database:
 
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
-        for pth in [self.train_pth, self.valid_pth]:
+        for pth in zip([self.train_out, self.valid_out]):
 
             res = []
             # Iterates over the keys
