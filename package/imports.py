@@ -11,14 +11,25 @@ import pandas as pd
 import scipy.signal as sg
 
 from functools import partial
+from collections import Counter
+from scipy.stats import kurtosis, skew
 from scipy.interpolate import interp1d
 
 from sklearn.utils import shuffle
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import SGDClassifier
 from sklearn.decomposition import IncrementalPCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
+
+import xgboost as xgb
+import lightgbm as lgb
+
 
 import tensorflow as tf
 
@@ -44,3 +55,19 @@ try:
 	import matplotlib.gridspec as gs
 except:
 	pass
+
+# TDA packages
+
+try:
+    # Add gudhi to the environment path
+    gpath = '2018-01-31-09-25-53_GUDHI_2.1.0/build/cython'
+    build = '/home/intern/Downloads/{}'.format(gpath)
+    sys.path.append(build)
+    build = '/home/meryll/Documents/Environment/{}'.format(gpath)
+    sys.path.append(build)
+    del build, gpath
+
+    import gudhi
+
+except:
+    pass
