@@ -243,7 +243,7 @@ def compute_features(val):
 
         ent = 0.0
         for prd in pbs:
-            ent -= prd * math.log(prd, 2.0)
+            ent -= prd * log(prd, 2.0)
 
         return ent
 
@@ -266,3 +266,19 @@ def compute_features(val):
     del grd
 
     return np.asarray(res)
+
+# Needed for imbalance counter-balancing
+def sample_weight(lab) :
+
+    # Defines the sample_weight
+    res = np.zeros(len(lab))
+    wei = compute_class_weight('balanced', np.unique(lab), lab)
+    wei = wei / sum(wei)
+    
+    for ele in np.unique(lab) :
+        for idx in np.where(lab == ele)[0] :
+            res[idx] = wei[int(ele)]
+
+    del wei
+
+    return res
