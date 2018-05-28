@@ -144,9 +144,9 @@ class Database:
                     pol.close()
                     pol.join()
                     # Clear and replace
-                        with h5py.File(out, 'a') as out:
-                            if out.get(key): del out[key]
-                            out.create_dataset(key, data=val)
+                    with h5py.File(out, 'a') as out:
+                        if out.get(key): del out[key]
+                        out.create_dataset(key, data=val)
                     # Memory efficiency
                     del pol, fun, val
 
