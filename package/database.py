@@ -169,7 +169,7 @@ class Database:
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
                 # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                res.append(np.asarray(pol.map(compute_chaos, val)))
+                res.append(np.asarray(pol.map(compute_features, val)))
                 pol.close()
                 pol.join()
 
