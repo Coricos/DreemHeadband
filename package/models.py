@@ -5,6 +5,111 @@
 from package.database import *
 from package.callback import *
 
+# Defines a structure for the machine-learning models
+
+class ML_Model:
+
+    # Initialization
+    # path refers to the absolute path towards the datasets
+    # threads refers to the amount of affordable threads
+    def __init__(self, path, threads=multiprocessing.cpu_count()):
+
+        # Attributes
+        self.input = path
+        self.njobs = threads
+        self.train
+
+        # Clearer definition
+        msk_labels = list(np.unique(msk_labels))
+        print('# Mask {} during training'.format(msk_labels))
+
+        # Apply on the data
+        with h5py.File(self.inp, 'r') as dtb:
+            # Load the labels and initialize training and testing sets
+            self.m_t = get_mask(dtb['t_lab'].value, lab_to_del=msk_labels)
+            self.m_e = get_mask(dtb['e_lab'].value, lab_to_del=msk_labels)
+            self.m_v = get_mask(dtb['v_lab'].value, lab_to_del=msk_labels)
+            self.l_t = dtb['t_lab'].value[self.m_t]
+            self.l_e = dtb['e_lab'].value[self.m_e]
+            self.l_v = dtb['v_lab'].value[self.m_v]
+            # Memory efficiency
+            del msk_labels
+
+        # Suppress the missing labels for categorical learning
+        self.lbe = LabelEncoder()
+        tmp = np.unique(list(self.l_t) + list(self.l_e) + list(self.l_v))
+        self.lbe.fit(tmp)
+        self.l_t = self.lbe.transform(self.l_t)
+        self.l_e = self.lbe.transform(self.l_e)
+        self.l_v = self.lbe.transform(self.l_v)
+        # Define the specific anomaly issue
+        self.num_classes = len(tmp)
+        # Memory efficiency
+        del tmp
+
+        if strategy == 'binary':
+            # Defines the index relative to the normal beats
+            self.n_idx = self.lbe.transform(self.abs.transform(['N']))[0]
+            # Defines the binary issue
+            self.l_t = np_utils.to_categorical(self.l_t, num_classes=self.num_classes)
+            self.l_t = self.l_t[:,self.n_idx].astype('int')
+            self.l_e = np_utils.to_categorical(self.l_e, num_classes=self.num_classes)
+            self.l_e = self.l_e[:,self.n_idx].astype('int')
+            self.l_v = np_utils.to_categorical(self.l_v, num_classes=self.num_classes)
+            self.l_v = self.l_v[:,self.n_idx].astype('int')
+
+        # Load the data
+        with h5py.File(self.inp, 'r') as dtb:
+            tmp = np.hstack((dtb['t_fea'].value, dtb['t_fft'].value))
+            self.train = tmp[self.m_t]
+            tmp = np.hstack((dtb['e_fea'].value, dtb['e_fft'].value))
+            self.valid = tmp[self.m_e]
+            tmp = np.hstack((dtb['v_fea'].value, dtb['v_fft'].value))
+            self.evals = tmp[self.m_v]
+
+        # Defines the different folds on which to apply the Hyperband
+        self.folds = KFold(n_splits=5, shuffle=True)
+
+    # Application of the ML models
+    # nme refers to the type of model to use
+    # marker allows specific learning instance
+    # max_iter refers to the amount of iterations with the hyperband algorithm
+    def learn(self, nme, marker='None', max_iter=100):
+
+        # Defines the data representation folder
+        val = dict()
+        val['x_train'] = self.train
+        val['y_train'] = self.l_t
+        val['w_train'] = sample_weight(self.l_t)
+        val['x_valid'] = self.valid
+        val['y_valid'] = self.l_e
+        val['w_valid'] = sample_weight(self.l_e)
+        # Defines the random search through cross-validation
+        hyp = Hyperband(get_params, try_params, max_iter=max_iter, n_jobs=self.threads)
+        res = hyp.run(nme, val, self.strategy, skip_last=1)
+        if self.strategy == 'binary': key = 'acc'
+        if self.strategy == 'multiclass': key = 'f1_score'
+        res = sorted(res, key = lambda x: x[key])[0]
+        # Extract the best estimator
+        if nme == 'RFS':
+            mod = RandomForestClassifier(**res['params'])
+        if nme == 'GBT':
+            mod = GradientBoostingClassifier(**res['params'])
+        if nme == 'LGB':
+            mod = lgb.LGBMClassifier(objective=self.strategy, **res['params'])
+        if nme == 'ETS':
+            mod = ExtraTreesClassifier(**res['params'])
+        if nme == 'XGB':
+            mod = xgb.XGBClassifier(**res['params'])
+        if nme == 'SGD':
+            mod = SGDClassifier(**res['params'])
+        # Refit the best model
+        mod.fit(val['x_train'], val['y_train'], sample_weight=val['w_train'])
+        # Serialize the best obtained model
+        if marker == 'None': pth = '../Results/{}_{}.pk'.format(nme, self.strategy)
+        else: pth = '../Results/{}_{}_{}.pk'.format(nme, marker, self.strategy)
+        joblib.dump(mod, pth)
+
 # Defines the multi-channel networks
 
 class DL_Model:
@@ -172,11 +277,11 @@ class DL_Model:
         # Defines the LSTM layer
         mod = Reshape((3, inp._keras_shape[1] // 3))(inp)
         arg = {'return_sequences': True}
-        mod = LSTM(512, , kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(512, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = LSTM(512, , kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(512, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
