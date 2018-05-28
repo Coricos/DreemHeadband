@@ -55,10 +55,10 @@ from keras.utils.training_utils import multi_gpu_model
 # Graphical imports
 
 try: 
-	import matplotlib.pyplot as plt
-	import matplotlib.gridspec as gs
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gs
 except:
-	pass
+    pass
 
 # TDA packages
 
