@@ -96,7 +96,7 @@ class Database:
             with h5py.File(pth, 'a') as dtb:
 
                 if dtb.get('norm'): del dtb['norm']
-                dtb.create_dataset('norm', data=tmp)
+                dtb.create_dataset('norm', data=np.sqrt(tmp))
 
             # Memory efficiency
             del tmp
@@ -266,7 +266,7 @@ class Database:
     # Rescale the datasets considering both training and validation
     def rescale(self):
 
-        with h5py.File(self.train_pth, 'r') as dtb:
+        with h5py.File(self.train_out, 'r') as dtb:
             tem = ['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
                    'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
             env = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
@@ -276,9 +276,9 @@ class Database:
         for key in tqdm.tqdm(env):
 
             # Load the data from both the training and validation sets
-            with h5py.File(self.train_pth, 'r') as dtb:
+            with h5py.File(self.train_out, 'r') as dtb:
                 v_t = dtb[key].value
-            with h5py.File(self.valid_pth, 'r') as dtb:
+            with h5py.File(self.valid_out, 'r') as dtb:
                 v_v = dtb[key].value
 
             # Apply the transformation
@@ -297,9 +297,9 @@ class Database:
             pol.join()
 
             # Serialize and replace
-            with h5py.File(self.train_pth, 'a') as dtb:
+            with h5py.File(self.train_out, 'a') as dtb:
                 dtb[key][...] = v_t
-            with h5py.File(self.valid_pth, 'a') as dtb:
+            with h5py.File(self.valid_out, 'a') as dtb:
                 dtb[key][...] = v_v
 
             # Memory efficiency
@@ -312,12 +312,12 @@ class Database:
             mms = MinMaxScaler(feature_range=(0,1))
             sts = StandardScaler(with_std=False)
 
-            for pth in [self.train_pth, self.valid_pth]:
+            for pth in [self.train_out, self.valid_out]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-            for pth in [self.train_pth, self.valid_pth]:
+            for pth in [self.train_out, self.valid_out]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
@@ -327,7 +327,7 @@ class Database:
             # Concatenate the pipeline of scalers
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
-            for pth in [self.train_pth, self.valid_pth]:
+            for pth in [self.train_out, self.valid_out]:
                 # Apply transformation
                 with h5py.File(pth, 'a') as dtb:
                     shp = dtb[key].shape
@@ -348,19 +348,19 @@ class Database:
             mms = MinMaxScaler(feature_range=(0,1))
             sts = StandardScaler(with_std=False)
 
-            for pth in [self.train_pth, self.valid_pth]:
+            for pth in [self.train_out, self.valid_out]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(dtb[key].value)
 
-            for pth in [self.train_pth, self.valid_pth]:
+            for pth in [self.train_out, self.valid_out]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     sts.partial_fit(mms.transform(dtb[key].value))
 
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
-            for pth in [self.train_pth, self.valid_pth]:
+            for pth in [self.train_out, self.valid_out]:
                 # Transformation for both training and validation
                 with h5py.File(pth, 'a') as dtb:
                     dtb[key][...] = pip.transform(dtb[key].value)
