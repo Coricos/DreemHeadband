@@ -86,6 +86,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['pca_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['fea_{}'.format(fmt)][ind:ind+batch])
 
             with h5py.File(self.pth, 'r') as dtb:
 
@@ -105,12 +106,12 @@ class DL_Model:
         # Build model
         shp = (1, inp._keras_shape[1], inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(64, (inp._keras_shape[1], 30), data_format='channels_first')(mod)
+        mod = Convolution2D(64, (inp._keras_shape[1], 120), data_format='channels_first', kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
-        mod = Convolution2D(128, (1, 15))(mod)
+        mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first', kernel_initializer='he_normal')(mod)
+        mod = Convolution2D(256, (1, 20))(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -123,6 +124,7 @@ class DL_Model:
         mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add layers to the model
         self.inp.append(inp)
@@ -135,20 +137,100 @@ class DL_Model:
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 30)(mod)
+        mod = Conv1D(64, 240, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 10)(mod)
+        mod = Conv1D(128, 60, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(256, 5)(mod)
+        mod = Conv1D(256, 15, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalMaxPooling1D()(mod)
         # Rework through dense network
+        mod = Dense(mod._keras_shape[1], kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+
+        # Add model to main model
+        self.inp.append(inp)
+        self.mrg.append(mod)
+
+    # Adds a 1D-LSTM Channel
+    # inp refers to the defined input
+    # callback refers to the callback managing the dropout rate 
+    def add_LSTM1D(self, inp, callback):
+
+        # Defines the LSTM layer
+        mod = Reshape((3, inp._keras_shape[1] // 3))(inp)
+        arg = {'return_sequences': True}
+        mod = LSTM(512, , kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = LSTM(512, , kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        # Rework through dense network
+        mod = Dense(mod._keras_shape[1], kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+
+        # Add model to main model
+        self.inp.append(inp)
+        self.mrg.append(mod)
+
+    # Aims at representing both short and long patterns
+    # inp refers to the defined input
+    # callback refers to the callback managing the dropout rate 
+    def add_DUALCV(self, inp, callback):
+
+        # Build the channel for small patterns
+        s_mod = Reshape((inp._keras_shape[1], 1))(inp)
+        s_mod = Conv1D(64, 40, kernel_initializer='he_normal')(s_mod)
+        s_mod = PReLU()(s_mod)
+        s_mod = BatchNormalization()(s_mod)
+        s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
+        s_mod = Conv1D(128, 20, kernel_initializer='he_normal')(s_mod)
+        s_mod = PReLU()(s_mod)
+        s_mod = BatchNormalization()(s_mod)
+        s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
+        s_mod = Conv1D(256, 10, kernel_initializer='he_normal')(s_mod)
+        s_mod = PReLU()(s_mod)
+        s_mod = BatchNormalization()(s_mod)
+        s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
+        s_mod = GlobalMaxPooling1D()(s_mod)
+
+        # Build the channel for longer patterns
+        l_mod = Reshape((inp._keras_shape[1], 1))(inp)
+        l_mod = Conv1D(64, 360, kernel_initializer='he_normal')(l_mod)
+        l_mod = PReLU()(l_mod)
+        l_mod = BatchNormalization()(l_mod)
+        l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
+        l_mod = Conv1D(128, 60, kernel_initializer='he_normal')(l_mod)
+        l_mod = PReLU()(l_mod)
+        l_mod = BatchNormalization()(l_mod)
+        l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
+        l_mod = Conv1D(256, 10, kernel_initializer='he_normal')(l_mod)
+        l_mod = PReLU()(l_mod)
+        l_mod = BatchNormalization()(l_mod)
+        l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
+        l_mod = GlobalMaxPooling1D()(s_mod)
+
+        # Rework through dense network
+        mod = concatenate([s_mod, l_mod])
         mod = Dense(mod._keras_shape[1], kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
@@ -168,10 +250,6 @@ class DL_Model:
 
         # Build the model
         mod = Dense(inp._keras_shape[1], kernel_initializer='he_normal')(inp)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -206,7 +284,7 @@ class DL_Model:
             with h5py.File(self.pth, 'r') as dtb:
                 for key in ['eeg_1_t', 'eeg_2_t', 'eeg_3_t', 'eeg_4_t']:
                     inp = Input(shape=(dtb[key].shape[1], ))
-                    self.add_CONV1D(inp, self.drp)
+                    self.add_DUALCV(inp, self.drp)
 
         if self.cls['with_por']:
             with h5py.File(self.pth, 'r') as dtb:
@@ -230,6 +308,8 @@ class DL_Model:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['pca_t'].shape[1], ))
                 self.add_LDENSE(inp, self.drp)
+                inp = Input(shape=(dtb['fea_t'].shape[1], ))
+                self.add_LDENSE(inp, self.drp)
 
         # Gather all the model in one dense network
         print('# Ns Channels: ', len(self.mrg))
@@ -237,7 +317,7 @@ class DL_Model:
         print('# Merge Layer: ', model._keras_shape[1])
 
         # Defines the learning tail
-        tails = np.linspace(2*self.n_c, 2*model._keras_shape[1], num=n_tail)
+        tails = np.linspace(2*self.n_c, model._keras_shape[1], num=n_tail)
 
         for idx in range(n_tail):
             model = Dense(int(tails[n_tail - 1 - idx]), kernel_initializer='he_normal')(model)
