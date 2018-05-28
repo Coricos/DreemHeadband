@@ -30,7 +30,7 @@ class Database:
     def build(self, vec_size=2100, out_storage='/mnt/Storage'):
 
         # Defines the parameters for each key
-        fil = {'po_r': True, 'po_ir': True, 'norm': False,
+        fil = {'po_r': True, 'po_ir': True,
                'acc_x': False, 'acc_y': False, 'acc_z': False,
                'eeg_1': True, 'eeg_2': True, 'eeg_3': True, 'eeg_4': True}
         dic = {'eeg_1': (4, 20), 'eeg_2': (4, 20), 'eeg_3': (4, 20),
