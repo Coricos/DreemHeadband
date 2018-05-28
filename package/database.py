@@ -159,7 +159,7 @@ class Database:
 
     # Add the PCA construction of all the vectors
     # n_components refers to the amount of components to extract
-    def add_pca(self, n_components=10):
+    def add_pca(self, n_components=5):
 
         lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
         train_pca, valid_pca = [], []
@@ -188,6 +188,30 @@ class Database:
         with h5py.File(self.valid_pth, 'a') as dtb:
             if dtb.get('pca'): del dtb[pca]
             dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
+
+    # Build the features for each channel
+    def add_features(self):
+
+        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+
+        for pth in [self.train_pth, self.valid_pth]:
+
+            res = []
+            # Iterates over the keys
+            for key in tqdm.tqdm(lst):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                res.append(np.asarray(pol.map(compute_chaos, val)))
+                pol.close()
+                pol.join()
+
+            # Serialize the output
+            with h5py.File(pth, 'a') as dtb:
+                if dtb.get('chaos'): del dtb['chaos']
+                dtb.create_dataset('chaos', data=np.hstack(tuple(res)))
 
     # Add the discrete FFT components
     # n_components refers to the amount of harmonics to keep
@@ -242,8 +266,7 @@ class Database:
                 dtb.create_dataset('chaos', data=np.hstack(tuple(res)))
 
     # Rescale the datasets considering both training and validation
-    # env_coeff refers to the coefficient relative to the logarithmic envelope
-    def rescale(self, env_coeff=100):
+    def rescale(self):
 
         with h5py.File(self.train_pth, 'r') as dtb:
             tem = ['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
@@ -311,10 +334,14 @@ class Database:
                 with h5py.File(pth, 'a') as dtb:
                     shp = dtb[key].shape
                     tmp = np.hstack(dtb[key].value).reshape(-1,1)
-                    dtb[key][...] = pip.transform(tmp).reshape(shp)
+                    res = pip.transform(tmp).reshape(shp)
+                    # Rescale to independant zero mean
+                    zmn = StandardScaler(with_std=False)
+                    res = zmn.fit_transform(np.transpose(res))
+                    dtb[key][...] = np.transpose(res)
 
             # Memory efficiency
-            del mms, sts, pip, tmp
+            del mms, sts, pip, tmp, zmn
 
         # Specific scaling for features datasets
         for key in tqdm.tqdm(oth):

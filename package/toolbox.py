@@ -201,3 +201,68 @@ def vectorization(val, vec_size, overlap):
         ind += stp
     
     return np.asarray([val[i:j] for i,j in new])
+
+# Defines the feature construction pipeline
+# val refers to a 1D array
+def compute_features(val):
+
+    # Defines a way to characterize inactivity
+    def inactivity(val, threshold=1e-5, sze=100):
+
+        cnt, res = 0, []
+
+        for ind in range(len(val)):
+            if np.abs(val[ind]) < threshold: res.append(ind)
+
+        res = np.asarray(res)
+        res = np.split(res, np.where(np.diff(res) != 1)[0] + 1)
+
+        for ele in res: 
+            if len(ele) > sze: cnt += len(ele)
+
+        return cnt
+    
+    # Defines the amount of crossing-overs
+    def crossing_over(val):
+        
+        sgn = np.sign(val)
+        sgn[sgn == 0] == -1
+
+        return len(np.where(np.diff(sgn))[0])
+    
+    # Defines the entropy of the signal
+    def entropy(val):
+        
+        dta = np.round(val, 2)
+        cnt = Counter()
+
+        for ele in dta: cnt[ele] += 1
+
+        pbs = [val / len(dta) for val in cnt.values()]
+        pbs = [prd for prd in pbs if prd > 0.0]
+
+        ent = 0.0
+        for prd in pbs:
+            ent -= prd * math.log(prd, 2.0)
+
+        return ent
+
+    res = []
+    # Build the feature vector
+    res.append(np.mean(val))
+    res.append(np.std(val))
+    res.append(min(val))
+    res.append(max(val))
+    res.append(np.sum(np.abs(np.fft.rfft(val))))
+    res.append(kurtosis(val))
+    res.append(skew(val))
+    res.append(crossing_over(val))
+    res.append(entropy(val))
+    grd = np.gradient(val)
+    res.append(np.mean(grd))
+    res.append(np.std(grd))
+    res.append(min(grd))
+    res.append(max(grd))
+    del grd
+
+    return np.asarray(res)
