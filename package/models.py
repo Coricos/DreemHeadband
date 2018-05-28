@@ -85,8 +85,9 @@ class DL_Model:
             if self.cls['with_fea']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['pca_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['fea_{}'.format(fmt)][ind:ind+batch])
+                    pca = dtb['pca_{}'.format(fmt)][ind:ind+batch]
+                    fea = dtb['fea_{}'.format(fmt)][ind:ind+batch]
+                    vec.append(np.hstack(pca, fea))
 
             with h5py.File(self.pth, 'r') as dtb:
 
@@ -306,9 +307,7 @@ class DL_Model:
 
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
-                inp = Input(shape=(dtb['pca_t'].shape[1], ))
-                self.add_LDENSE(inp, self.drp)
-                inp = Input(shape=(dtb['fea_t'].shape[1], ))
+                inp = Input(shape=(dtb['pca_t'].shape[1] + dtb['fea_t'].shape[1], ))
                 self.add_LDENSE(inp, self.drp)
 
         # Gather all the model in one dense network
