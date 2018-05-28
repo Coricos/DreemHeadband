@@ -388,7 +388,7 @@ class Database:
     def preprocess(self, output, test=0.4):
 
         # Split the training set into both training and testing
-        with h5py.File(self.train_pth, 'r') as dtb:
+        with h5py.File(self.train_out, 'r') as dtb:
 
             idx = np.arange(dtb['lab'].shape[0])
             arg = {'test_size': test, 'shuffle': True}
@@ -407,7 +407,7 @@ class Database:
                     out.create_dataset(lab_e, data=dtb[key].value[i_e])
 
         # Adds the validation set into the output database
-        with h5py.File(self.valid_pth, 'r') as dtb:
+        with h5py.File(self.valid_out, 'r') as dtb:
 
             for key in tqdm.tqdm(list(dtb.keys())):
 
