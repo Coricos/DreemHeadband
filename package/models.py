@@ -231,7 +231,7 @@ class DL_Model:
         mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add layers to the model
-        self.inp.append(inp)
+        if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
 
     # Adds a 1D-Convolution Channel
@@ -264,7 +264,7 @@ class DL_Model:
         mod = PReLU()(mod)
 
         # Add model to main model
-        self.inp.append(inp)
+        if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
 
     # Adds a 1D-LSTM Channel
@@ -294,7 +294,7 @@ class DL_Model:
         mod = PReLU()(mod)
 
         # Add model to main model
-        self.inp.append(inp)
+        if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
 
     # Aims at representing both short and long patterns
@@ -345,7 +345,7 @@ class DL_Model:
         mod = PReLU()(mod)
 
         # Add model to main model
-        self.inp.append(inp)
+        if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
 
     # Adds a locally connected dense channel
@@ -368,7 +368,7 @@ class DL_Model:
         mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add layers to model
-        self.inp.append(inp)
+        if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
 
     # Defines the whole architecture
