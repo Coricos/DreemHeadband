@@ -273,14 +273,14 @@ class DL_Model:
     def add_LSTM1D(self, inp, callback):
 
         # Defines the LSTM layer
-        mod = Reshape((3, inp._keras_shape[1] // 3))(inp)
+        mod = Reshape((5, inp._keras_shape[1] // 5))(inp)
         arg = {'return_sequences': True}
         mod = LSTM(512, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': False}
-        mod = LSTM(512, return_sequences=False, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(512, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -390,16 +390,19 @@ class DL_Model:
                 for key in ['eeg_1_t', 'eeg_2_t', 'eeg_3_t', 'eeg_4_t']:
                     inp = Input(shape=(dtb[key].shape[1], ))
                     self.add_LSTM1D(inp, self.drp)
+                    self.add_CONV1D(inp, self.drp)
 
         if self.cls['with_por']:
             with h5py.File(self.pth, 'r') as dtb:
                 for key in ['po_r_t', 'po_ir_t']:
                     inp = Input(shape=(dtb[key].shape[1], ))
+                    self.add_LSTM1D(inp, self.drp)
                     self.add_CONV1D(inp, self.drp)
 
         if self.cls['with_nrm']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['norm_t'].shape[1], ))
+                self.add_LSTM1D(inp, self.drp)
                 self.add_CONV1D(inp, self.drp)
 
         if self.cls['with_fft']:
