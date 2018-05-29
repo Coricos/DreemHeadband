@@ -275,10 +275,11 @@ class DL_Model:
         # Defines the LSTM layer
         mod = Reshape((3, inp._keras_shape[1] // 3))(inp)
         arg = {'return_sequences': True}
-        mod = LSTM(512, return_sequences=True, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(512, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        arg = {'return_sequences': False}
         mod = LSTM(512, return_sequences=False, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
