@@ -446,8 +446,9 @@ class DL_Model:
     def learn(self, dropout=0.5, decrease=50, n_tail=5, patience=3, max_epochs=100, batch=16):
 
         # Compile the model
-        with tf.device('/cpu:0'): model = self.build(dropout, decrease, n_tail)
-        model = Model(inputs=self.inp, outputs=model)
+        model = self.build(dropout, decrease, n_tail)
+        try: model = multi_gpu_model(Model(inputs=self.inp, outputs=model))
+        except: model = Model(inputs=self.inp, outputs=model)
         arg = {'loss': 'categorical_crossentropy', 'optimizer': 'adadelta'}
         model.compile(metrics=['accuracy'], **arg)
         print('# Model Compiled')
