@@ -44,7 +44,7 @@ from keras.models import Model, load_model
 from keras.layers import Convolution2D, MaxPooling2D, Flatten
 from keras.layers import Conv1D, Input, MaxPooling1D, GlobalAveragePooling1D
 from keras.layers import BatchNormalization, GlobalAveragePooling2D
-from keras.layers import GlobalMaxPooling1D, MaxoutDense, PReLU
+from keras.layers import GlobalMaxPooling1D, MaxoutDense, PReLU, LSTM
 from keras.layers.core import Dense, Dropout, Activation, Reshape
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from keras.optimizers import SGD, RMSprop
