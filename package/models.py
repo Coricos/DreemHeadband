@@ -270,6 +270,44 @@ class DL_Model:
         if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
 
+    # Adds an autoencoder channel
+    # inp refers to the defined input
+    # callback refers to the callback managing the dropout rate 
+    def add_ENCODE(self, inp):
+
+        # Build the autoencoder model
+        enc0 = Dense(inp._keras_shape[1] // 5, kernel_initializer='he_normal')(inp)
+        enc = BatchNormalization()(enc0)
+        enc = PReLU()(enc)
+        enc = Dropout(0.1)(enc)
+        enc1 = Dense(enc._keras_shape[1] // 5, kernel_initializer='he_normal')(enc)
+        enc = BatchNormalization()(enc1)
+        enc = PReLU()(enc)
+        enc = Dropout(0.1)(enc)
+        enc2 = Dense(enc._keras_shape[1] // 5, kernel_initializer='he_normal')(enc)
+        enc = BatchNormalization()(enc2)
+        enc = PReLU()(enc)
+        enc = Dropout(0.1)(enc)
+
+        print('# Latent Space Dimension', enc._keras_shape[1])
+
+        dec = Dense(enc1._keras_shape[1], kernel_initializer='he_normal')(enc)
+        dec = BatchNormalization()(dec)
+        dec = PReLU()(dec)
+        enc = Dropout(0.1)(enc)
+        dec = Dense(enc0._keras_shape[1], kernel_initializer='he_normal')(enc)
+        dec = BatchNormalization()(dec)
+        dec = PReLU()(dec)
+        enc = Dropout(0.1)(enc)
+        arg = {'activation': 'tanh', 'name': 'autoencoder'}
+        dec = Dense(inp._keras_shape[1], kernel_initializer='he_normal', **arg)(dec)
+
+        self.auto_encoder = dec
+
+        # Add model to main model
+        if inp not in self.inp: self.inp.append(inp)
+        self.merge.append(enc)
+
     # Adds a 1D-LSTM Channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
