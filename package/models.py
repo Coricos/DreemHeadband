@@ -128,7 +128,7 @@ class DL_Model:
         if marker: self.out = './models/MOD_{}.weights'.format(marker)
         else: self.out = './models/MOD.weights'.format(marker)
         if marker: self.his = './models/HIS_{}.history'.format(marker)
-        else: self.out = './models/HIS.history'
+        else: self.his = './models/HIS.history'
         # Handling labels
         with h5py.File(self.pth, 'r') as dtb:
             self.l_t = dtb['lab_t'].value.ravel()
@@ -286,11 +286,11 @@ class DL_Model:
         enc = BatchNormalization()(enc0)
         enc = PReLU()(enc)
         enc = Dropout(0.1)(enc)
-        enc1 = Dense(enc._keras_shape[1] // 5, kernel_initializer='he_normal')(enc)
+        enc1 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
         enc = BatchNormalization()(enc1)
         enc = PReLU()(enc)
         enc = Dropout(0.1)(enc)
-        enc2 = Dense(enc._keras_shape[1] // 5, kernel_initializer='he_normal')(enc)
+        enc2 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
         enc = BatchNormalization()(enc2)
         enc = PReLU()(enc)
         enc = Dropout(0.1)(enc)
