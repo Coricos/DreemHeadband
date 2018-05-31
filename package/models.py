@@ -121,11 +121,14 @@ class DL_Model:
         self.pth = input_db
         self.cls = channels
         # Constructors
+        self.ate = []
         self.inp = []
         self.mrg = []
         # Output definition
         if marker: self.out = './models/MOD_{}.weights'.format(marker)
         else: self.out = './models/MOD.weights'.format(marker)
+        if marker: self.his = './models/HIS_{}.history'.format(marker)
+        else: self.out = './models/HIS.history'
         # Handling labels
         with h5py.File(self.pth, 'r') as dtb:
             self.l_t = dtb['lab_t'].value.ravel()
@@ -212,11 +215,14 @@ class DL_Model:
 
             with h5py.File(self.pth, 'r') as dtb:
 
+                # Defines the labels
                 lab = dtb['lab_{}'.format(fmt)][ind:ind+batch]
-                # res = shuffle(lab, *vec)
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
+                if self.cls['with_eeg_ate']:
+                    lab = [lab]
+                    for i in range(1, 5): lab.append(dtb['eeg_{}_{}'].format(i, fmt)[ind:ind+batch])
                 yield(vec, lab)
-                del lab, vec #,res
+                del lab, vec
 
             ind += batch
 
@@ -299,14 +305,13 @@ class DL_Model:
         dec = BatchNormalization()(dec)
         dec = PReLU()(dec)
         enc = Dropout(0.1)(enc)
-        arg = {'activation': 'tanh', 'name': 'autoencoder'}
+        arg = {'activation': 'linear', 'name': 'ate_{}'.format(len(self.ate))}
         dec = Dense(inp._keras_shape[1], kernel_initializer='he_normal', **arg)(dec)
-
-        self.auto_encoder = dec
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
-        self.merge.append(enc)
+        self.ate.append(dec)
+        self.mrg.append(enc)
 
     # Adds a 1D-LSTM Channel
     # inp refers to the defined input
@@ -420,6 +425,7 @@ class DL_Model:
                 if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, self.drp)
                 if self.cls['with_eeg_ls1']: self.add_LSTM1D(inp, self.drp)
                 if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp)
+                if self.cls['with_eeg_ate']: self.add_ENCODE(inp)
 
         with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
@@ -459,7 +465,8 @@ class DL_Model:
             model = AdaptiveDropout(self.drp.prb, self.drp)(model)
 
         # Last layer for probabilities
-        model = Dense(self.n_c, activation='softmax', kernel_initializer='he_normal')(model)
+        arg = {'activation': 'softmax', 'name': 'output'}
+        model = Dense(self.n_c, kernel_initializer='he_normal', **arg)(model)
 
         return model
 
@@ -470,26 +477,46 @@ class DL_Model:
     # patience is the parameter of the EarlyStopping callback
     # max_epochs refers to the amount of epochs achievable
     # batch refers to the batch_size
-    def learn(self, dropout=0.5, decrease=50, n_tail=5, patience=3, max_epochs=100, batch=16):
+    def learn(self, dropout=0.5, decrease=50, n_tail=8, patience=3, max_epochs=100, batch=32):
 
         # Compile the model
         model = self.build(dropout, decrease, n_tail)
+
+        # Defines the losses depending on the case
+        if self.cls['with_eeg_ate']: 
+            model = [model] + self.ate
+            loss = {'output': 'categorical_crossentropy', 
+                    'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
+                    'ate_2': 'mean_squared_error', 'ate_3': 'mean_squared_error'}
+            loss_weights = {'output': 0.5, 'ate_0': 0.25, 'ate_1': 0.25, 
+                            'ate_2': 0.25, 'ate_3': 0.25}
+            metrics = {'output': 'accuracy', 'ate_0': 'mae', 'ate_1': 'mae', 
+                       'ate_2': 'mae', 'ate_3': 'mae'}
+        else: 
+            loss = 'categorical_crossentropy'
+            loss_weights = None
+            metrics = ['accuracy']
+
+        # Implements the model and its callbacks
+        arg = {'patience': patience, 'verbose': 0}
+        early = EarlyStopping(monitor='val_loss', min_delta=1e-5, **arg)
+        arg = {'save_best_only': True, 'save_weights_only': True}
+        check = ModelCheckpoint(self.out, monitor='val_loss', **arg)
+
+        # Build and compile the model
         try: model = multi_gpu_model(Model(inputs=self.inp, outputs=model))
         except: model = Model(inputs=self.inp, outputs=model)
-        arg = {'loss': 'categorical_crossentropy', 'optimizer': 'adadelta'}
-        model.compile(metrics=['accuracy'], **arg)
+        arg = {'optimizer': 'adadelta'}
+        model.compile(metrics=metrics, loss=loss, loss_weights=loss_weights, **arg)
         print('# Model Compiled')
         
-        # Implements the callbacks
-        arg = {'patience': patience, 'verbose': 0}
-        early = EarlyStopping(monitor='val_acc', min_delta=1e-5, **arg)
-        arg = {'save_best_only': True, 'save_weights_only': True}
-        check = ModelCheckpoint(self.out, monitor='val_acc', **arg)
-        
         # Fit the model
-        model.fit_generator(self.data_gen('t', batch=32),
-                            steps_per_epoch=len(self.l_t)//batch, verbose=1, 
-                            epochs=max_epochs, callbacks=[self.drp, early, check],
-                            shuffle=True, validation_steps=len(self.l_e)//batch,
-                            validation_data=self.data_gen('e', batch=32), 
-                            class_weight=class_weight(self.l_t))
+        his = model.fit_generator(self.data_gen('t', batch=batch),
+                    steps_per_epoch=len(self.l_t)//batch, verbose=1, 
+                    epochs=max_epochs, callbacks=[self.drp, early, check],
+                    shuffle=True, validation_steps=len(self.l_e)//batch,
+                    validation_data=self.data_gen('e', batch=batch), 
+                    class_weight=class_weight(self.l_t))
+
+        # Serialize its training history
+        with open(self.his, 'wb') as raw: pickle.dump(his, raw)
