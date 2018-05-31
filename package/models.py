@@ -180,7 +180,7 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1'] or self.cls['with_eeg_dlc']:
+            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1'] or self.cls['with_eeg_dlc'] or self.cls['with_eeg_ate']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
