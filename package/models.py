@@ -162,7 +162,7 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            if self.cls['with_acc_cv1'] or self.cls['with_acc_ls1']:
+            if self.cls['with_acc_cv1'] or self.cls['with_acc_ls1'] or self.cls['with_acc_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['acc_x_{}'.format(fmt)][ind:ind+batch])
@@ -180,7 +180,9 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1'] or self.cls['with_eeg_dlc'] or self.cls['with_eeg_ate']:
+            boo = self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1']
+            boo = boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_ate']
+            if boo or self.cls['with_eeg_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
@@ -188,13 +190,13 @@ class DL_Model:
                     vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']:
+            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1'] or self.cls['with_oxy_cvl']:
 
                  with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1']:
+            if self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1'] or self.cls['with_nrm_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_{}'.format(fmt)][ind:ind+batch])
@@ -321,12 +323,60 @@ class DL_Model:
         # Defines the LSTM layer
         mod = Reshape((5, inp._keras_shape[1] // 5))(inp)
         arg = {'return_sequences': True}
-        mod = LSTM(512, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        arg = {'return_sequences': True}
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        arg = {'return_sequences': True}
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': False}
-        mod = LSTM(512, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+
+        # Add model to main model
+        if inp not in self.inp: self.inp.append(inp)
+        self.mrg.append(mod)
+
+    # Defines a channel combining CONV and LSTM structures
+    # inp refers to the defined input
+    # callback refers to the callback managing the dropout rate 
+    def add_CVLSTM(self, inp, callback):
+
+        # Build the selected model
+        mod = Reshape((inp._keras_shape[1], 1))(inp)
+        mod = Conv1D(32, 240, kernel_initializer='he_normal')(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling1D(pool_size=2)(mod)
+        mod = Conv1D(64, 8, kernel_initializer='he_normal')(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling1D(pool_size=2)(mod)
+        # Output into LSTM network
+        arg = {'return_sequences': True}
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        arg = {'return_sequences': True}
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        arg = {'return_sequences': False}
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -415,6 +465,7 @@ class DL_Model:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_acc_cv1']: self.add_CONV1D(inp, self.drp)
                 if self.cls['with_acc_ls1']: self.add_LSTM1D(inp, self.drp)
+                if self.cls['with_acc_cvl']: self.add_CVLSTM(inp, self.drp)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_cv2']:
@@ -426,17 +477,20 @@ class DL_Model:
                 if self.cls['with_eeg_ls1']: self.add_LSTM1D(inp, self.drp)
                 if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp)
                 if self.cls['with_eeg_ate']: self.add_ENCODE(inp)
+                if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp)
 
         with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp)
                 if self.cls['with_oxy_ls1']: self.add_LSTM1D(inp, self.drp)
+                if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_t'].shape[1], ))
             if self.cls['with_nrm_cv1']: self.add_LSTM1D(inp, self.drp)
             if self.cls['with_nrm_ls1']: self.add_CONV1D(inp, self.drp)
+            if self.cls['with_nrm_cvl']: self.add_CVLSTM(inp, self.drp)
 
         if self.cls['with_fft']:
             with h5py.File(self.pth, 'r') as dtb:
