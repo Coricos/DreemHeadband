@@ -220,7 +220,7 @@ class DL_Model:
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
                 if self.cls['with_eeg_ate']:
                     lab = [lab]
-                    for i in range(1, 5): lab.append(dtb['eeg_{}_{}'].format(i, fmt)[ind:ind+batch])
+                    for i in range(1, 5): lab.append(dtb['eeg_{}_{}'.format(i, fmt)][ind:ind+batch])
                 yield(vec, lab)
                 del lab, vec
 
