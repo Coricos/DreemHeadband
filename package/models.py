@@ -811,7 +811,7 @@ class DL_Model:
     # Validate on the unseen samples
     # fmt refers to whether apply it for testing or validation
     # batch refers to the batch size
-    def predict(self, fmt, n_tail=8, batch=128):
+    def predict(self, fmt, n_tail=8, batch=256):
 
         # Load the best model saved
         mod = self.reconstruct(n_tail=n_tail)
@@ -868,52 +868,5 @@ class DL_Model:
             plt.show()
 
         # Compute the predictions for validation
-        prd = self.predict_test()
+        prd = self.predict('e', n_tail=n_tail, batch=256)
         build_matrix(mod, self.evals, self.l_e, 'TEST')
-
-    # Model evaluation for csv writing
-    # n_tail refers to the amount of layers to merge the channels
-    # dropout is the dropout rate into the model
-    # marker defines where to look for the weights
-    # prebuild refers to the autoencoder if necessary
-    def get_scores(self, n_tail=5, marker='None', autoencoder=None, encoder=None):
-
-        # Remove unnecessary logs
-        warnings.simplefilter('ignore')
-
-        # Look for the training history
-        if marker != 'None':
-            pth = '../Results/HIS_{}_{}.pk'.format(marker, self.strategy)
-        if marker == 'None':
-            pth = '../Results/HIS_{}.pk'.format(self.disease_type)
-        # Load the history
-        with open(pth, 'rb') as raw: his = pickle.load(raw)
-
-        # Load the best model saved
-        mod = self.reconstruct(n_tail=n_tail, marker=marker, autoencoder=autoencoder, encoder=encoder)
-        
-        # Intermediary extraction of predictions if necessary
-        if self.with_enc and (self.strategy == 'multiclass' or self.strategy == 'aami'):
-            prd = mod.predict(self.evals)[0]
-            acc, val = his['output_acc'], his['val_output_acc']
-        else:
-            prd = mod.predict(self.evals)
-            acc, val = his['acc'], his['val_acc']
-
-        # Look for training and testing scores
-        acc_e = max(val)
-        acc_t = acc[np.asarray(val).argmax()]
-
-        # Look for the validation score
-        if self.strategy == 'binary':
-            prd = np.round(prd).astype('int')
-            acc_v = accuracy_score(self.l_v, prd)
-
-        if self.strategy == 'multiclass' or self.strategy == 'aami':
-            prd = [np.argmax(pbs) for pbs in prd]
-            acc_v = accuracy_score(self.l_v, self.lbe.inverse_transform(prd))
-        
-        # Memory efficiency
-        del pth, his, mod, prd, acc
-
-        return acc_t, acc_e, acc_v
