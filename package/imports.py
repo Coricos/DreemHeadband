@@ -9,7 +9,9 @@ import pickle
 
 import numpy as np
 import pandas as pd
+import matplotlib as plt
 import scipy.signal as sg
+import matplotlib.gridspec as gd
 
 from math import log, ceil
 from hyperopt import hp
