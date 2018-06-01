@@ -181,8 +181,8 @@ class DL_Model:
                     del shp, tmp, ann
 
             boo = self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1']
-            boo = boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_ate']
-            if boo or self.cls['with_eeg_cvl']:
+            boo = boo or self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']
+            if boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
@@ -190,13 +190,15 @@ class DL_Model:
                     vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1'] or self.cls['with_oxy_cvl']:
+            boo = self.cls['with_oxy_atc'] or self.cls['with_oxy_atd']
+            if boo or self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1'] or self.cls['with_oxy_cvl']:
 
                  with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1'] or self.cls['with_nrm_cvl']:
+            boo = self.cls['with_nrm_atc'] or self.cls['with_nrm_atd']
+            if boo or self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1'] or self.cls['with_nrm_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_{}'.format(fmt)][ind:ind+batch])
