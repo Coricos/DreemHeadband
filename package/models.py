@@ -246,6 +246,10 @@ class DL_Model:
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalAveragePooling2D()(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add layers to the model
         if inp not in self.inp: self.inp.append(inp)
@@ -273,6 +277,10 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = GlobalAveragePooling1D()(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -374,6 +382,10 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -409,6 +421,10 @@ class DL_Model:
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': False}
         mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -460,6 +476,10 @@ class DL_Model:
 
         # Rework through dense network
         mod = concatenate([s_mod, l_mod])
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -472,6 +492,10 @@ class DL_Model:
 
         # Build the model
         mod = Dense(inp._keras_shape[1], kernel_initializer='he_normal')(inp)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
