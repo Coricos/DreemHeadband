@@ -284,29 +284,38 @@ class DL_Model:
     def add_ENCODE(self, inp):
 
         # Build the autoencoder model
-        enc0 = Dense(inp._keras_shape[1] // 5, kernel_initializer='he_normal')(inp)
+        enc0 = Dense(inp._keras_shape[1] // 3, kernel_initializer='he_normal')(inp)
         enc = BatchNormalization()(enc0)
         enc = PReLU()(enc)
         enc = Dropout(0.1)(enc)
-        enc1 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
+        enc1 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
         enc = BatchNormalization()(enc1)
         enc = PReLU()(enc)
         enc = Dropout(0.1)(enc)
-        enc2 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
+        enc2 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
         enc = BatchNormalization()(enc2)
+        enc = PReLU()(enc)
+        enc = Dropout(0.1)(enc)
+        enc3 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
+        enc = BatchNormalization()(enc3)
         enc = PReLU()(enc)
         enc = Dropout(0.1)(enc)
 
         print('# Latent Space Dimension', enc._keras_shape[1])
 
-        dec = Dense(enc1._keras_shape[1], kernel_initializer='he_normal')(enc)
+
+        dec = Dense(enc2._keras_shape[1], kernel_initializer='he_normal')(enc)
         dec = BatchNormalization()(dec)
         dec = PReLU()(dec)
-        enc = Dropout(0.1)(enc)
-        dec = Dense(enc0._keras_shape[1], kernel_initializer='he_normal')(enc)
+        dec = Dropout(0.1)(dec)
+        dec = Dense(enc1._keras_shape[1], kernel_initializer='he_normal')(dec)
         dec = BatchNormalization()(dec)
         dec = PReLU()(dec)
-        enc = Dropout(0.1)(enc)
+        dec = Dropout(0.1)(dec)
+        dec = Dense(enc0._keras_shape[1], kernel_initializer='he_normal')(dec)
+        dec = BatchNormalization()(dec)
+        dec = PReLU()(dec)
+        dec = Dropout(0.1)(dec)
         arg = {'activation': 'linear', 'name': 'ate_{}'.format(len(self.ate))}
         dec = Dense(inp._keras_shape[1], kernel_initializer='he_normal', **arg)(dec)
 
