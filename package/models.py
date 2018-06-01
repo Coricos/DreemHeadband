@@ -242,7 +242,7 @@ class DL_Model:
         while True :
             
             # Reinitialize when going too far
-            if ind >= sze + batch : break
+            if ind > sze : ind = 0
             # Initialization of data vector
             vec = []
 
@@ -819,13 +819,21 @@ class DL_Model:
         if fmt == 'v': 
             with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_t'].shape[0]
 
-        # Gather the predictions
-        if sze%batch == 0: stp = sze // batch
-        else: stp = (sze // batch) + 1
-        prd = mod.predict_generator(self.data_val(fmt), steps=stp,
-                                    max_queue_size=multiprocessing.cpu_count())
+        # Defines the tools for prediction
+        gen, ind, prd = self.data_val(fmt, batch=batch), 0, []
 
-        return prd
+        for vec in gen:
+            # Defines the right stop according to the batch_size
+            if (sze / batch) - int(sze / batch) == 0 : end = int(sze / batch) - 1
+            else : end = int(sze / batch)
+            # Iterate according to the right stopping point
+            if ind <= end :
+                prd += [np.argmax(pbs) for pbs in self.model.predict(vec)]
+                ind += 1
+            else : 
+                break
+
+        return np.asarray(prd)
 
     # Generates the confusion matrixes for train, test and validation sets
     # n_tail refers to the amount of layers to merge the channels
