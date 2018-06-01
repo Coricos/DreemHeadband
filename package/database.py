@@ -101,28 +101,6 @@ class Database:
             # Memory efficiency
             del tmp
 
-    def add_norm_eeg(self):
-
-        # Iterates over both the training and validation sets
-        for pth in [self.train_out, self.valid_out]:
-
-            with h5py.File(pth, 'r') as dtb:
-
-                # Aggregates the values
-                tmp = np.square(dtb['eeg_1'].value)
-                tmp += np.square(dtb['eeg_2'].value)
-                tmp += np.square(dtb['eeg_3'].value)
-                tmp += np.square(dtb['eeg_4'].value)
-
-            # Serialize the result
-            with h5py.File(pth, 'a') as dtb:
-
-                if dtb.get('neeg'): del dtb['neeg']
-                dtb.create_dataset('neeg', data=np.sqrt(tmp))
-
-            # Memory efficiency
-            del tmp
-
     # Apply a slicing over the signal to reduce their time period
     # vec_size refers to the size of the output signal
     # overlap refers to the amount of overlap between two signals

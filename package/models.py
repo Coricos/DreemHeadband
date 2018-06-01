@@ -623,3 +623,235 @@ class DL_Model:
 
         # Serialize its training history
         with open(self.his, 'wb') as raw: pickle.dump(his.history, raw)
+
+    # Generates figure of training history
+    def generate_figure(self):
+
+        # Load model history
+        with open(self.his, 'rb') as raw: dic = pickle.load(raw)
+
+        # Generates the plot
+        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+            plt.figure(figsize=(18,8))
+        else:
+            plt.figure(figsize=(18,4))
+        
+        fig = gd.GridSpec(2,2)
+
+        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+            plt.subplot(fig[0,0])
+            acc, val = dic['output_acc'], dic['val_output_acc']
+        else:
+            plt.subplot(fig[:,0])
+            acc, val = dic['acc'], dic['val_acc']
+
+        plt.title('Accuracy Evolution - Classification')
+        plt.plot(range(len(acc)), acc, c='orange', label='Train')
+        plt.scatter(range(len(val)), val, marker='x', s=50, c='grey', label='Test')
+        plt.legend(loc='best')
+        plt.grid()
+        plt.xlabel('Epochs')
+        plt.ylabel('Accuracy')
+
+        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+            plt.subplot(fig[0,1])
+            plt.title('Score Evolution - AutoEncoder')
+            color_t, color_e = ['orange', 'lightblue', 'red', 'grey'], ['blue', 'yellow', 'green', 'black']
+            for ate, col_t, col_e in zip(['ate_0', 'ate_1', 'ate_2', 'ate_3'], color_t, color_e):
+                plt.plot(dic['{}_mean_absolute_error'.format(ate)], c=col_t, label='Train_{}'.format(ate))
+                tmp = dic['val_{}_mean_absolute_error'.format(ate)]
+                plt.scatter(range(len(tmp)), tmp, marker='x', s=4, c=col_e, label='Test_{}'.format(ate))
+            plt.legend(loc='best')
+            plt.grid()
+            plt.xlabel('Epochs')
+            plt.ylabel('MAE')
+
+        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+            plt.subplot(fig[1,:])
+        else: 
+            plt.subplot(fig[:,1])
+
+        plt.title('Losses Evolution')
+        plt.plot(dic['loss'], c='orange', label='Train Loss')
+        plt.plot(dic['val_loss'], c='grey', label='Test Loss')
+
+        self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+            plt.plot(dic['output_loss'], c='red', label='Train Classification Loss')
+            plt.plot(dic['val_output_loss'], c='darkblue', label='Test Classification Loss')
+            color_t, color_e = ['orange', 'lightblue', 'red', 'grey'], ['blue', 'yellow', 'green', 'black']
+            for ate, col_t, col_e in zip(['ate_0', 'ate_1', 'ate_2', 'ate_3'], color_t, color_e):
+                plt.plot(dic['{}_loss'.format(ate)], c=col_t, label='Loss_Train_{}'.format(ate))
+                plt.plot(dic['val_{}_loss'.format(ate)], c=col_e, label='Loss_Test_{}'.format(ate))
+
+        plt.legend(loc='best')
+        plt.grid()
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+
+        plt.tight_layout()
+        plt.show()
+
+    # Rebuild the model from the saved weights
+    # n_tail refers to the amount of layers to merge the channels
+    def reconstruct(self, n_tail=8):
+
+        # Reinitialize attributes
+        self.input, self.merge = [], []
+        self.train, self.valid, self.evals = [], [], []
+        
+        # Build the model
+        model = self.build(0.0, 100, n_tail)
+
+        # Defines the losses depending on the case
+        if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']: 
+            model = [model] + self.ate
+            loss = {'output': 'categorical_crossentropy', 
+                    'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
+                    'ate_2': 'mean_squared_error', 'ate_3': 'mean_squared_error'}
+            loss_weights = {'output': 0.5, 'ate_0': 0.25, 'ate_1': 0.25, 
+                            'ate_2': 0.25, 'ate_3': 0.25}
+            metrics = {'output': 'accuracy', 'ate_0': 'mae', 'ate_1': 'mae', 
+                       'ate_2': 'mae', 'ate_3': 'mae'}
+        else: 
+            loss = 'categorical_crossentropy'
+            loss_weights = None
+            metrics = ['accuracy']
+
+        # Build and compile the model
+        try: model = multi_gpu_model(Model(inputs=self.inp, outputs=model))
+        except: model = Model(inputs=self.inp, outputs=model)
+
+        # Load the appropriate weights
+        model.load_weights(self.out)
+
+        return model
+
+    # Generates the confusion matrixes for train, test and validation sets
+    # n_tail refers to the amount of layers to merge the channels
+    def confusion_matrix(self, n_tail=8):
+
+        # Avoid unnecessary logs
+        warnings.simplefilter('ignore')
+
+        # Load the best model saved
+        mod = self.reconstruct(n_tail=n_tail)
+
+        # Method to build and display the confusion matrix
+        def build_matrix(prd, true, strategy, title, marker):
+
+            lab = np.unique(list(prd) + list(true))
+            cfm = confusion_matrix(true, prd)
+            cfm = pd.DataFrame(cfm, index=lab, columns=lab)
+
+            fig = plt.figure(figsize=(18,6))
+            htp = sns.heatmap(cfm, annot=True, fmt='d', linewidths=1.)
+            pth = self.out.split('/')[-1]
+            plt.title('{} | {} | Accuracy: {:.2%}'.format(title, 
+                pth, accuracy_score(true, prd)))
+            htp.yaxis.set_ticklabels(htp.yaxis.get_ticklabels(), 
+                rotation=0, ha='right', fontsize=12)
+            htp.xaxis.set_ticklabels(htp.xaxis.get_ticklabels(), 
+                rotation=45, ha='right', fontsize=12)
+            plt.ylabel('True label') 
+            plt.xlabel('Predicted label')
+            plt.show()
+
+        # Compute the predictions for validation
+        build_matrix(mod, self.evals, self.l_v, self.strategy, 'VALID', marker)
+
+    # Model evaluation
+    # n_tail refers to the amount of layers to merge the channels
+    # dropout is the dropout rate into the model
+    # marker defines where to look for the weights
+    # prebuild refers to the autoencoder if necessary
+    def scoring_dataframe(self, n_tail=5, marker='None', autoencoder=None, encoder=None):
+
+        from package.displayer import dtf_to_img
+
+        # Remove unnecessary logs
+        warnings.simplefilter('ignore')
+
+        # Load the best model saved
+        mod = self.reconstruct(n_tail=n_tail, marker=marker, autoencoder=autoencoder, encoder=encoder)
+        
+        # Intermediary extraction of predictions if necessary
+        if (self.with_enc or self.with_ate) and (self.strategy == 'multiclass' or self.strategy == 'aami'):
+            prd = mod.predict(self.evals)[0]
+        else:
+            prd = mod.predict(self.evals)
+
+        # Build the corresponding pd.DataFrame
+        if self.strategy == 'binary':
+            prd = np.round(prd).astype('int')
+            dtf = score_verbose(self.l_v, prd)
+            col = list(dtf.columns)
+            dtf['Label'] = ['A', 'N']
+            dtf = dtf[['Label'] + col]
+
+        if self.strategy == 'aami':
+            prd = [np.argmax(pbs) for pbs in prd]
+            dtf = score_verbose(self.l_v, self.lbe.inverse_transform(prd))
+            col = range(1, 6)
+            dtf['Label'] = lab
+            dtf = dtf[['Label'] + col]
+
+        if self.strategy == 'multiclass':
+            prd = [np.argmax(pbs) for pbs in prd]
+            dtf = score_verbose(self.l_v, self.lbe.inverse_transform(prd))  
+            with open('./tools/LBE_Arrhythmia.pk', 'rb') as raw: lbe = pickle.load(raw)
+            lab = lbe.inverse_transform([int(ele.split(' ')[-1]) for ele in dtf.index])
+            col = list(dtf.columns)
+            dtf['Label'] = lab
+            dtf = dtf[['Label'] + col]
+        
+            # Memory efficiency
+            del mod, lab, lbe
+
+        return dtf_to_img(dtf)
+
+    # Model evaluation for csv writing
+    # n_tail refers to the amount of layers to merge the channels
+    # dropout is the dropout rate into the model
+    # marker defines where to look for the weights
+    # prebuild refers to the autoencoder if necessary
+    def get_scores(self, n_tail=5, marker='None', autoencoder=None, encoder=None):
+
+        # Remove unnecessary logs
+        warnings.simplefilter('ignore')
+
+        # Look for the training history
+        if marker != 'None':
+            pth = '../Results/HIS_{}_{}.pk'.format(marker, self.strategy)
+        if marker == 'None':
+            pth = '../Results/HIS_{}.pk'.format(self.disease_type)
+        # Load the history
+        with open(pth, 'rb') as raw: his = pickle.load(raw)
+
+        # Load the best model saved
+        mod = self.reconstruct(n_tail=n_tail, marker=marker, autoencoder=autoencoder, encoder=encoder)
+        
+        # Intermediary extraction of predictions if necessary
+        if self.with_enc and (self.strategy == 'multiclass' or self.strategy == 'aami'):
+            prd = mod.predict(self.evals)[0]
+            acc, val = his['output_acc'], his['val_output_acc']
+        else:
+            prd = mod.predict(self.evals)
+            acc, val = his['acc'], his['val_acc']
+
+        # Look for training and testing scores
+        acc_e = max(val)
+        acc_t = acc[np.asarray(val).argmax()]
+
+        # Look for the validation score
+        if self.strategy == 'binary':
+            prd = np.round(prd).astype('int')
+            acc_v = accuracy_score(self.l_v, prd)
+
+        if self.strategy == 'multiclass' or self.strategy == 'aami':
+            prd = [np.argmax(pbs) for pbs in prd]
+            acc_v = accuracy_score(self.l_v, self.lbe.inverse_transform(prd))
+        
+        # Memory efficiency
+        del pth, his, mod, prd, acc
+
+        return acc_t, acc_e, acc_v
