@@ -570,7 +570,7 @@ class DL_Model:
         model = self.build(dropout, decrease, n_tail)
 
         # Defines the losses depending on the case
-        if self.cls['with_eeg_atc'] or self.cls['with_atd']: 
+        if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']: 
             model = [model] + self.ate
             loss = {'output': 'categorical_crossentropy', 
                     'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
