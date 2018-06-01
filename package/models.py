@@ -243,7 +243,7 @@ class DL_Model:
         while True :
             
             # Reinitialize when going too far
-            if ind > sze : ind = 0
+            if ind > sze : ind, poi = 0, sze
             # Initialization of data vector
             vec = []
 
@@ -829,7 +829,7 @@ class DL_Model:
             if (sze / batch) - int(sze / batch) == 0 : end = int(sze / batch) - 1
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
-            if ind < end :
+            if ind <= end :
                 prd += [np.argmax(pbs) for pbs in mod.predict(vec)]
                 ind += 1
             else : 
