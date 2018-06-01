@@ -228,6 +228,92 @@ class DL_Model:
 
             ind += batch
 
+    # Defines a generator (testing and validation)
+    # fmt refers to whether apply it for testing or validation
+    # batch refers to the batch size
+    def data_val(self, fmt, batch=128):
+
+        ind = 0
+
+        if fmt == 'e': sze = len(self.l_e)
+        if fmt == 'v': 
+            with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_t'].shape[0]
+
+        while True :
+            
+            # Reinitialize when going too far
+            if ind >= sze + batch : break
+            # Initialization of data vector
+            vec = []
+
+            if self.cls['with_acc_cv2']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    shp = dtb['acc_x_{}'.format(fmt)].shape
+                    tmp = np.empty((batch, 3, shp[1]))
+                    for idx, key in zip(range(3), ['x', 'y', 'z']):
+                        ann = 'acc_{}_{}'.format(key, fmt)
+                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                    vec.append(tmp)
+                    del shp, tmp, ann
+
+            if self.cls['with_acc_cv1'] or self.cls['with_acc_ls1'] or self.cls['with_acc_cvl']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['acc_x_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['acc_y_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['acc_z_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_eeg_cv2']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    shp = dtb['eeg_1_{}'.format(fmt)].shape
+                    tmp = np.empty((batch, 4, shp[1]))
+                    for idx in range(4):
+                        ann = 'eeg_{}_{}'.format(idx+1, fmt)
+                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                    vec.append(tmp)
+                    del shp, tmp, ann
+
+            boo = self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1']
+            boo = boo or self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']
+            if boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_cvl']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['eeg_2_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1'] or self.cls['with_oxy_cvl']:
+
+                 with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1'] or self.cls['with_nrm_cvl']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['norm_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_fft']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    lst = sorted([ele for ele in dtb.keys() if ele[:3] == 'fft' and ele[-1] == fmt])
+                    for key in lst: vec.append(dtb[key][ind:ind+batch])
+                    del lst
+
+            if self.cls['with_fea']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    pca = dtb['pca_{}'.format(fmt)][ind:ind+batch]
+                    fea = dtb['fea_{}'.format(fmt)][ind:ind+batch]
+                    vec.append(np.hstack((pca, fea)))
+
+            with h5py.File(self.pth, 'r') as dtb: yield(vec)
+
+            ind += batch
+
     # Adds a 2D-Convolution Channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
@@ -721,6 +807,27 @@ class DL_Model:
 
         return model
 
+    # Validate on the unseen samples
+    # fmt refers to whether apply it for testing or validation
+    # batch refers to the batch size
+    def predict(self, fmt, batch=128):
+
+        # Load the best model saved
+        mod = self.reconstruct(n_tail=n_tail)
+
+        # Defines the size of the validation set
+        if fmt == 'e': sze = len(self.l_e)
+        if fmt == 'v': 
+            with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_t'].shape[0]
+
+        # Gather the predictions
+        if sze%batch == 0: stp = sze // batch
+        else: stp = (sze // batch) + 1
+        prd = mod.predict_generator(self.data_val(fmt), steps=stp,
+                                    max_queue_size=multiprocessing.cpu_count())
+
+        return prd
+
     # Generates the confusion matrixes for train, test and validation sets
     # n_tail refers to the amount of layers to merge the channels
     def confusion_matrix(self, n_tail=8):
@@ -732,7 +839,7 @@ class DL_Model:
         mod = self.reconstruct(n_tail=n_tail)
 
         # Method to build and display the confusion matrix
-        def build_matrix(prd, true, strategy, title, marker):
+        def build_matrix(prd, true, title):
 
             lab = np.unique(list(prd) + list(true))
             cfm = confusion_matrix(true, prd)
@@ -752,57 +859,8 @@ class DL_Model:
             plt.show()
 
         # Compute the predictions for validation
-        build_matrix(mod, self.evals, self.l_v, self.strategy, 'VALID', marker)
-
-    # Model evaluation
-    # n_tail refers to the amount of layers to merge the channels
-    # dropout is the dropout rate into the model
-    # marker defines where to look for the weights
-    # prebuild refers to the autoencoder if necessary
-    def scoring_dataframe(self, n_tail=5, marker='None', autoencoder=None, encoder=None):
-
-        from package.displayer import dtf_to_img
-
-        # Remove unnecessary logs
-        warnings.simplefilter('ignore')
-
-        # Load the best model saved
-        mod = self.reconstruct(n_tail=n_tail, marker=marker, autoencoder=autoencoder, encoder=encoder)
-        
-        # Intermediary extraction of predictions if necessary
-        if (self.with_enc or self.with_ate) and (self.strategy == 'multiclass' or self.strategy == 'aami'):
-            prd = mod.predict(self.evals)[0]
-        else:
-            prd = mod.predict(self.evals)
-
-        # Build the corresponding pd.DataFrame
-        if self.strategy == 'binary':
-            prd = np.round(prd).astype('int')
-            dtf = score_verbose(self.l_v, prd)
-            col = list(dtf.columns)
-            dtf['Label'] = ['A', 'N']
-            dtf = dtf[['Label'] + col]
-
-        if self.strategy == 'aami':
-            prd = [np.argmax(pbs) for pbs in prd]
-            dtf = score_verbose(self.l_v, self.lbe.inverse_transform(prd))
-            col = range(1, 6)
-            dtf['Label'] = lab
-            dtf = dtf[['Label'] + col]
-
-        if self.strategy == 'multiclass':
-            prd = [np.argmax(pbs) for pbs in prd]
-            dtf = score_verbose(self.l_v, self.lbe.inverse_transform(prd))  
-            with open('./tools/LBE_Arrhythmia.pk', 'rb') as raw: lbe = pickle.load(raw)
-            lab = lbe.inverse_transform([int(ele.split(' ')[-1]) for ele in dtf.index])
-            col = list(dtf.columns)
-            dtf['Label'] = lab
-            dtf = dtf[['Label'] + col]
-        
-            # Memory efficiency
-            del mod, lab, lbe
-
-        return dtf_to_img(dtf)
+        prd = self.predict_test()
+        build_matrix(mod, self.evals, self.l_e, 'TEST')
 
     # Model evaluation for csv writing
     # n_tail refers to the amount of layers to merge the channels
