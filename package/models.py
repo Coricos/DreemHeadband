@@ -245,7 +245,6 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxPooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
         mod = GlobalAveragePooling2D()(mod)
 
         # Add layers to the model
@@ -273,7 +272,6 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = MaxPooling1D(pool_size=2)(mod)
         mod = GlobalAveragePooling1D()(mod)
 
         # Add model to main model
@@ -300,7 +298,7 @@ class DL_Model:
             enc = BatchNormalization()(enc2)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
-            enc3 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
+            enc3 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc3)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
@@ -326,37 +324,36 @@ class DL_Model:
 
             # Build the autoencoder model
             enc = Reshape((inp._keras_shape[1], 1))(inp)
-            enc = Conv1D(32, 128, border_mode='same', kernel_initializer='he_normal')(enc)
+            enc = Conv1D(32, 70, border_mode='same', kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
             enc = MaxPooling1D(pool_size=5)(enc)
-            enc = Conv1D(32, 8, border_mode='same', kernel_initializer='he_normal')(enc)
+            enc = Conv1D(32, 70, border_mode='same', kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
             enc = MaxPooling1D(pool_size=4)(enc)
-            
-            print('# Latent Space Dimension', enc._keras_shape)
 
-            dec = Conv1D(32, 8, border_mode='same', kernel_initializer='he_normal')(enc)
+            dec = Conv1D(32, 70, border_mode='same', kernel_initializer='he_normal')(enc)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = Dropout(0.1)(dec)
             dec = UpSampling1D(size=4)(dec)
-            dec = Conv1D(32, 128, border_mode='same', kernel_initializer='he_normal')(dec)
+            dec = Conv1D(32, 70, border_mode='same', kernel_initializer='he_normal')(dec)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = Dropout(0.1)(dec)
             dec = UpSampling1D(size=5)(dec)
-            dec = Conv1D(1, 128, border_mode='same', kernel_initializer='he_normal')(dec)
+            dec = Conv1D(1, 70, border_mode='same', kernel_initializer='he_normal')(dec)
             dec = BatchNormalization()(dec)
             dec = Activation('linear')(dec)
             arg = {'name': 'ate_{}'.format(len(self.ate))}
             dec = Reshape((dec._keras_shape[1],), **arg)(dec)
 
             # Returns the right encoder
-            enc = GlobalAveragePooling1D()(enc)
+            enc = Flatten()(enc)
+            print('# Latent Space Dimension', enc._keras_shape)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -607,8 +604,7 @@ class DL_Model:
         check = ModelCheckpoint(self.out, monitor='val_loss', **arg)
 
         # Build and compile the model
-        try: model = multi_gpu_model(Model(inputs=self.inp, outputs=model))
-        except: model = Model(inputs=self.inp, outputs=model)
+        model = Model(inputs=self.inp, outputs=model)
         arg = {'optimizer': 'adadelta'}
         model.compile(metrics=metrics, loss=loss, loss_weights=loss_weights, **arg)
         print('# Model Compiled')
@@ -718,8 +714,7 @@ class DL_Model:
             metrics = ['accuracy']
 
         # Build and compile the model
-        try: model = multi_gpu_model(Model(inputs=self.inp, outputs=model))
-        except: model = Model(inputs=self.inp, outputs=model)
+        model = Model(inputs=self.inp, outputs=model)
 
         # Load the appropriate weights
         model.load_weights(self.out)
