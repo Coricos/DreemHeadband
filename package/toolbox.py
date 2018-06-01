@@ -268,6 +268,7 @@ def compute_features(val):
     return np.asarray(res)
 
 # Needed for imbalance counter-balancing
+# lab refers to a 1D array of labels
 def sample_weight(lab) :
 
     # Defines the sample_weight
@@ -282,3 +283,34 @@ def sample_weight(lab) :
     del wei
 
     return res
+
+# Defines the scoring function
+# true refers to the true labels
+# pred refers to the predicted labels
+# weights refers to the boolean activation
+def kappa_score(true, pred, weights=None):
+
+    cfm = confusion_matrix(true, pred)
+    n_c = len(np.unique(true))
+    s_0 = np.sum(cfm, axis=0)
+    s_1 = np.sum(cfm, axis=1)
+    exp = np.outer(s_0, s_1).astype(np.double) / np.sum(s_0) 
+    mat = np.ones([n_c, n_c], dtype=np.int)
+    
+    if weights == 'linear':
+
+        mat += np.arange(n_c)
+        mat = np.abs(mat - mat.T)
+
+    elif weights == 'quadratic':
+
+        mat += np.arange(n_c)
+        mat = (mat - mat.T) ** 2
+
+    else: 
+
+        mat.flat[::n_c + 1] = 0
+
+    sco = np.sum(mat * cfm) / np.sum(mat * exp)
+    
+    return 1 - sco

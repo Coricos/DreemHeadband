@@ -778,8 +778,7 @@ class DL_Model:
     def reconstruct(self, n_tail=8):
 
         # Reinitialize attributes
-        self.input, self.merge = [], []
-        self.train, self.valid, self.evals = [], [], []
+        self.inp, self.mrg = [], []
         
         # Build the model
         model = self.build(0.0, 100, n_tail)
