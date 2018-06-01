@@ -9,9 +9,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
-import matplotlib as plt
 import scipy.signal as sg
-import matplotlib.gridspec as gd
 
 from math import log, ceil
 from hyperopt import hp
@@ -60,7 +58,7 @@ from keras.utils.training_utils import multi_gpu_model
 
 try: 
     import matplotlib.pyplot as plt
-    import matplotlib.gridspec as gs
+    import matplotlib.gridspec as gd
 except:
     pass
 
