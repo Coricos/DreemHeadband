@@ -810,7 +810,7 @@ class DL_Model:
     # Validate on the unseen samples
     # fmt refers to whether apply it for testing or validation
     # batch refers to the batch size
-    def predict(self, fmt, batch=128):
+    def predict(self, fmt, n_tail=8, batch=128):
 
         # Load the best model saved
         mod = self.reconstruct(n_tail=n_tail)
