@@ -233,11 +233,12 @@ class DL_Model:
     # batch refers to the batch size
     def data_val(self, fmt, batch=128):
 
-        ind = 0
-
-        if fmt == 'e': sze = len(self.l_e)
+        if fmt == 'e': 
+            sze = len(self.l_e)
         if fmt == 'v': 
             with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_t'].shape[0]
+
+        ind, poi = 0, sze
 
         while True :
             
@@ -250,7 +251,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['acc_x_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 3, shp[1]))
+                    tmp = np.empty((min(batch, poi), 3, shp[1]))
                     for idx, key in zip(range(3), ['x', 'y', 'z']):
                         ann = 'acc_{}_{}'.format(key, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -268,7 +269,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['eeg_1_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 4, shp[1]))
+                    tmp = np.empty((min(batch, poi), 4, shp[1]))
                     for idx in range(4):
                         ann = 'eeg_{}_{}'.format(idx+1, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -313,6 +314,7 @@ class DL_Model:
             with h5py.File(self.pth, 'r') as dtb: yield(vec)
 
             ind += batch
+            poi -= batch
 
     # Adds a 2D-Convolution Channel
     # inp refers to the defined input
@@ -828,7 +830,7 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                prd += [np.argmax(pbs) for pbs in self.model.predict(vec)]
+                prd += [np.argmax(pbs) for pbs in mod.predict(vec)]
                 ind += 1
             else : 
                 break
