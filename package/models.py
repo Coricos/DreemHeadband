@@ -190,15 +190,13 @@ class DL_Model:
                     vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
 
-            boo = self.cls['with_oxy_atc'] or self.cls['with_oxy_atd']
-            if boo or self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1'] or self.cls['with_oxy_cvl']:
+            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1'] or self.cls['with_oxy_cvl']:
 
                  with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
-            boo = self.cls['with_nrm_atc'] or self.cls['with_nrm_atd']
-            if boo or self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1'] or self.cls['with_nrm_cvl']:
+            if self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1'] or self.cls['with_nrm_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_{}'.format(fmt)][ind:ind+batch])
@@ -238,12 +236,12 @@ class DL_Model:
         # Build model
         shp = (inp._keras_shape[1], 1, inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(32, (1, 128), data_format='channels_first', kernel_initializer='he_normal')(mod)
+        mod = Convolution2D(16, (1, 128), data_format='channels_first', kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = AveragePooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
-        mod = Convolution2D(64, (1, 8), kernel_initializer='he_normal', data_format='channels_first')(mod)
+        mod = Convolution2D(32, (1, 8), kernel_initializer='he_normal', data_format='channels_first')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -270,7 +268,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = AveragePooling1D(pool_size=2)(mod)
-        mod = Conv1D(64, 2, kernel_initializer='he_normal')(mod)
+        mod = Conv1D(32, 2, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -357,22 +355,22 @@ class DL_Model:
         # Defines the LSTM layer
         mod = Reshape((5, inp._keras_shape[1] // 5))(inp)
         arg = {'return_sequences': True}
-        mod = LSTM(64, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': True}
-        mod = LSTM(64, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': True}
-        mod = LSTM(64, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': False}
-        mod = LSTM(64, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -393,24 +391,24 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = AveragePooling1D(pool_size=2)(mod)
-        mod = Conv1D(64, 8, kernel_initializer='he_normal')(mod)
+        mod = Conv1D(32, 8, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = AveragePooling1D(pool_size=2)(mod)
         # Output into LSTM network
         arg = {'return_sequences': True}
-        mod = LSTM(64, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': True}
-        mod = LSTM(64, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': False}
-        mod = LSTM(64, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -436,7 +434,7 @@ class DL_Model:
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
         s_mod = AveragePooling1D(pool_size=2)(s_mod)
-        s_mod = Conv1D(64, 4, kernel_initializer='he_normal')(s_mod)
+        s_mod = Conv1D(32, 4, kernel_initializer='he_normal')(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
@@ -520,16 +518,12 @@ class DL_Model:
                 if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp)
                 if self.cls['with_oxy_ls1']: self.add_LSTM1D(inp, self.drp)
                 if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp)
-                if self.cls['with_oxy_atd']: self.add_ENDOCE(inp, 'dense')
-                if self.cls['with_oxy_atc']: self.add_ENCODE(inp, 'convolution')
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_t'].shape[1], ))
             if self.cls['with_nrm_cv1']: self.add_LSTM1D(inp, self.drp)
             if self.cls['with_nrm_ls1']: self.add_CONV1D(inp, self.drp)
             if self.cls['with_nrm_cvl']: self.add_CVLSTM(inp, self.drp)
-            if self.cls['with_nrm_atd']: self.add_ENDOCE(inp, 'dense')
-            if self.cls['with_nrm_atc']: self.add_ENCODE(inp, 'convolution')
 
         if self.cls['with_fft']:
             with h5py.File(self.pth, 'r') as dtb:
@@ -576,7 +570,7 @@ class DL_Model:
         model = self.build(dropout, decrease, n_tail)
 
         # Defines the losses depending on the case
-        if self.cls['with_eeg_ate']: 
+        if self.cls['with_eeg_atc'] or self.cls['with_atd']: 
             model = [model] + self.ate
             loss = {'output': 'categorical_crossentropy', 
                     'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
