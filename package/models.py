@@ -675,7 +675,7 @@ class DL_Model:
         plt.plot(dic['loss'], c='orange', label='Train Loss')
         plt.plot(dic['val_loss'], c='grey', label='Test Loss')
 
-        self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
             plt.plot(dic['output_loss'], c='red', label='Train Classification Loss')
             plt.plot(dic['val_output_loss'], c='darkblue', label='Test Classification Loss')
             color_t, color_e = ['orange', 'lightblue', 'red', 'grey'], ['blue', 'yellow', 'green', 'black']
