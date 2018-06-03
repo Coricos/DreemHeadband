@@ -861,7 +861,7 @@ class DL_Model:
             acc = accuracy_score(true, prd)
             kap = kappa_score(true, prd)
             tle = '{} | {} | Accuracy: {:.2%} | Kappa: {:.2%}'
-            plt.title(tle.format(title, pth, acc, kap)
+            plt.title(tle.format(title, pth, acc, kap))
             htp.yaxis.set_ticklabels(htp.yaxis.get_ticklabels(), 
                 rotation=0, ha='right', fontsize=12)
             htp.xaxis.set_ticklabels(htp.xaxis.get_ticklabels(), 
