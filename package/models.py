@@ -369,42 +369,42 @@ class DL_Model:
     # Adds an autoencoder channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_ENCODE(self, inp, topology):
+    def add_ENCODE(self, inp, callback, topology):
 
         if topology == 'dense':
 
             # Build the autoencoder model
-            enc0 = Dense(inp._keras_shape[1] // 3, kernel_initializer='he_normal')(inp)
+            enc0 = Dense(inp._keras_shape[1] // 2, kernel_initializer='he_normal')(inp)
             enc = BatchNormalization()(enc0)
             enc = PReLU()(enc)
-            enc = Dropout(0.1)(enc)
-            enc1 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
+            enc = AdaptiveDropout(callback.prb, callback)(enc)
+            enc1 = Dense(enc._keras_shape[1] // 2, kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc1)
             enc = PReLU()(enc)
-            enc = Dropout(0.1)(enc)
+            enc = AdaptiveDropout(callback.prb, callback)(enc)
             enc2 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc2)
             enc = PReLU()(enc)
-            enc = Dropout(0.1)(enc)
-            enc3 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
+            enc = AdaptiveDropout(callback.prb, callback)(enc)
+            enc3 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc3)
             enc = PReLU()(enc)
-            enc = Dropout(0.1)(enc)
+            enc = AdaptiveDropout(callback.prb, callback)(enc)
 
             print('# Latent Space Dimension', enc._keras_shape[1])
 
             dec = Dense(enc2._keras_shape[1], kernel_initializer='he_normal')(enc)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
-            dec = Dropout(0.1)(dec)
+            dec = AdaptiveDropout(callback.prb, callback)(dec)
             dec = Dense(enc1._keras_shape[1], kernel_initializer='he_normal')(dec)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
-            dec = Dropout(0.1)(dec)
+            dec = AdaptiveDropout(callback.prb, callback)(dec)
             dec = Dense(enc0._keras_shape[1], kernel_initializer='he_normal')(dec)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
-            dec = Dropout(0.1)(dec)
+            dec = AdaptiveDropout(callback.prb, callback)(dec)
             arg = {'activation': 'linear', 'name': 'ate_{}'.format(len(self.ate))}
             dec = Dense(inp._keras_shape[1], kernel_initializer='he_normal', **arg)(dec)
 
@@ -416,23 +416,23 @@ class DL_Model:
             enc = BatchNormalization()(enc)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
-            enc = MaxPooling1D(pool_size=5)(enc)
-            enc = Conv1D(32, 70, border_mode='same', kernel_initializer='he_normal')(enc)
+            enc = MaxPooling1D(pool_size=3)(enc)
+            enc = Conv1D(64, 8, border_mode='same', kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
-            enc = MaxPooling1D(pool_size=4)(enc)
+            enc = MaxPooling1D(pool_size=3)(enc)
 
-            dec = Conv1D(32, 70, border_mode='same', kernel_initializer='he_normal')(enc)
+            dec = Conv1D(64, 8, border_mode='same', kernel_initializer='he_normal')(enc)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = Dropout(0.1)(dec)
-            dec = UpSampling1D(size=4)(dec)
+            dec = UpSampling1D(size=3)(dec)
             dec = Conv1D(32, 70, border_mode='same', kernel_initializer='he_normal')(dec)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = Dropout(0.1)(dec)
-            dec = UpSampling1D(size=5)(dec)
+            dec = UpSampling1D(size=3)(dec)
             dec = Conv1D(1, 70, border_mode='same', kernel_initializer='he_normal')(dec)
             dec = BatchNormalization()(dec)
             dec = Activation('linear')(dec)
@@ -440,7 +440,7 @@ class DL_Model:
             dec = Reshape((dec._keras_shape[1],), **arg)(dec)
 
             # Returns the right encoder
-            enc = Flatten()(enc)
+            enc = GlobalAveragePooling1D()(enc)
             print('# Latent Space Dimension', enc._keras_shape)
 
         # Add model to main model
@@ -831,12 +831,18 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                prd += [np.argmax(pbs) for pbs in mod.predict(vec)]
+                prd += list(mod.predict(vec))
                 ind += 1
             else : 
                 break
 
-        return np.asarray(prd)
+        # Change format
+        prd = np.asarray(prd)
+
+        if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']:
+            return np.asarray([np.argmax(pbs) for pbs in prd[0]])
+        else: 
+            return np.asarray([np.argmax(pbs) for pbs in prd])
 
     # Generates the confusion matrixes for train, test and validation sets
     # n_tail refers to the amount of layers to merge the channels
