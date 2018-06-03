@@ -845,9 +845,6 @@ class DL_Model:
         # Avoid unnecessary logs
         warnings.simplefilter('ignore')
 
-        # Load the best model saved
-        mod = self.reconstruct(n_tail=n_tail)
-
         # Method to build and display the confusion matrix
         def build_matrix(prd, true, title):
 
@@ -872,4 +869,4 @@ class DL_Model:
 
         # Compute the predictions for validation
         prd = self.predict('e', n_tail=n_tail, batch=256)
-        build_matrix(mod, self.evals, self.l_e, 'TEST')
+        build_matrix(prd, self.l_e, 'TEST')
