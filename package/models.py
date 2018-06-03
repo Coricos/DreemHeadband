@@ -810,6 +810,7 @@ class DL_Model:
 
     # Validate on the unseen samples
     # fmt refers to whether apply it for testing or validation
+    # n_tail refers to the marker for the model reconstruction
     # batch refers to the batch size
     def predict(self, fmt, n_tail=8, batch=256):
 
@@ -857,8 +858,10 @@ class DL_Model:
             fig = plt.figure(figsize=(18,6))
             htp = sns.heatmap(cfm, annot=True, fmt='d', linewidths=1.)
             pth = self.out.split('/')[-1]
-            plt.title('{} | {} | Accuracy: {:.2%}'.format(title, 
-                pth, accuracy_score(true, prd)))
+            acc = accuracy_score(true, prd)
+            kap = kappa_score(true, prd)
+            tle = '{} | {} | Accuracy: {:.2%} | Kappa: {:.2%}'
+            plt.title(tle.format(title, pth, acc, kap)
             htp.yaxis.set_ticklabels(htp.yaxis.get_ticklabels(), 
                 rotation=0, ha='right', fontsize=12)
             htp.xaxis.set_ticklabels(htp.xaxis.get_ticklabels(), 
