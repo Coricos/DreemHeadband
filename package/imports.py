@@ -57,6 +57,7 @@ from keras.utils.training_utils import multi_gpu_model
 # Graphical imports
 
 try: 
+    import seaborn as sns
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gd
 except:
