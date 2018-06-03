@@ -610,8 +610,8 @@ class DL_Model:
                 if self.cls['with_eeg_ls1']: self.add_LSTM1D(inp, self.drp)
                 if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp)
                 if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp)
-                if self.cls['with_eeg_atd']: self.add_ENCODE(inp, 'dense')
-                if self.cls['with_eeg_atc']: self.add_ENCODE(inp, 'convolution')                
+                if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, 'dense')
+                if self.cls['with_eeg_atc']: self.add_ENCODE(inp, self.drp, 'convolution')                
 
         with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
