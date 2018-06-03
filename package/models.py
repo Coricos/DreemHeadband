@@ -374,11 +374,11 @@ class DL_Model:
         if topology == 'dense':
 
             # Build the autoencoder model
-            enc0 = Dense(inp._keras_shape[1] // 2, kernel_initializer='he_normal')(inp)
+            enc0 = Dense(inp._keras_shape[1] // 3, kernel_initializer='he_normal')(inp)
             enc = BatchNormalization()(enc0)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc1 = Dense(enc._keras_shape[1] // 2, kernel_initializer='he_normal')(enc)
+            enc1 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc1)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
@@ -386,7 +386,7 @@ class DL_Model:
             enc = BatchNormalization()(enc2)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc3 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
+            enc3 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc3)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
@@ -831,18 +831,15 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                prd += list(mod.predict(vec))
+                if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']:
+                    prd += [np.argmax(pbs) for pbs in mod.predict(vec)[0]]
+                else:
+                    prd += [np.argmax(pbs) for pbs in mod.predict(vec)]
                 ind += 1
             else : 
                 break
 
-        # Change format
-        prd = np.asarray(prd)
-
-        if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']:
-            return np.asarray([np.argmax(pbs) for pbs in prd[0]])
-        else: 
-            return np.asarray([np.argmax(pbs) for pbs in prd])
+        return np.asarray(prd)
 
     # Generates the confusion matrixes for train, test and validation sets
     # n_tail refers to the amount of layers to merge the channels
