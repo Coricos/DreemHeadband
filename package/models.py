@@ -196,7 +196,7 @@ class DL_Model:
                  with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
-                    
+
             boo = self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1']
             if boo or self.cls['with_nrm_cvl'] or self.cls['with_nrm_dlc']:
 
@@ -814,17 +814,17 @@ class DL_Model:
 
         # Load the appropriate weights
         model.load_weights(self.out)
-
-        return model
+        self.clf = model
+        del model
 
     # Validate on the unseen samples
     # fmt refers to whether apply it for testing or validation
     # n_tail refers to the marker for the model reconstruction
     # batch refers to the batch size
-    def predict(self, fmt, n_tail=8, batch=256):
+    def predict(self, fmt, n_tail=8, batch=1024):
 
         # Load the best model saved
-        mod = self.reconstruct(n_tail=n_tail)
+        if not hasattr(self, 'clf'): self.reconstruct(n_tail=n_tail)
 
         # Defines the size of the validation set
         if fmt == 'e': sze = len(self.l_e)
@@ -841,9 +841,9 @@ class DL_Model:
             # Iterate according to the right stopping point
             if ind <= end :
                 if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']:
-                    prd += [np.argmax(pbs) for pbs in mod.predict(vec)[0]]
+                    prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)[0]]
                 else:
-                    prd += [np.argmax(pbs) for pbs in mod.predict(vec)]
+                    prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)]
                 ind += 1
             else : 
                 break
@@ -880,5 +880,23 @@ class DL_Model:
             plt.show()
 
         # Compute the predictions for validation
-        prd = self.predict('e', n_tail=n_tail, batch=256)
+        prd = self.predict('e', n_tail=n_tail)
         build_matrix(prd, self.l_e, 'TEST')
+        del prd
+
+    # Write validation to file
+    # out refers to the output path
+    # n_tail refers to the amount of layers to merge the channels
+    def write_to_file(self, out=None, n_tail=8):
+
+        # Compute the predictions for validation
+        prd = self.predict('v', n_tail=n_tail)
+        idx = np.arange(43830, 64422)
+        res = np.hstack((idx.reshape(-1,1), prd.reshape(-1,1)))
+
+        # Creates the relative dataframe
+        res = pd.DataFrame(res, columns=['id', 'label'])
+
+        # Write to csv
+        if out is None: out = './results/test_{}.csv'.format(time.time())
+        res.to_csv(out, index=False, header=True, sep=';')
