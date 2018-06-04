@@ -5,7 +5,7 @@
 # Core packages
 
 import h5py, multiprocessing, tqdm, nolds
-import pickle, warnings
+import pickle, warnings, time
 
 import numpy as np
 import pandas as pd
