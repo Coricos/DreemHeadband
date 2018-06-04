@@ -13,6 +13,7 @@ if __name__ == '__main__':
     # Initialize the arguments
     prs = argparse.ArgumentParser()
     # Mandatory arguments
+    prs.add_argument('-m', '--marker', help='Giving identity to the model', type=str, default=None)
     prs.add_argument('-b', '--batch', help='Batch size for training instance', type=int, default=64)
     prs.add_argument('-d', '--decrease', help='Number of epochs to decrease the dropout', type=int, default=50)
     prs.add_argument('-n', '--tail', help='Number of merge layers', type=int, default=10)
@@ -71,5 +72,5 @@ if __name__ == '__main__':
            }
 
     # Launch the model
-    mod = DL_Model('./dataset/DTB_Headband.h5', dic)
+    mod = DL_Model('./dataset/DTB_Headband.h5', dic, marker=prs.marker)
     mod.learn(patience=10, dropout=0.5, decrease=prs.decrease, batch=prs.batch, n_tail=prs.tail)

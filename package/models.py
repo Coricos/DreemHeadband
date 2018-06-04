@@ -539,7 +539,7 @@ class DL_Model:
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
         s_mod = AveragePooling1D(pool_size=2)(s_mod)
-        s_mod = Conv1D(32, 8, kernel_initializer='he_normal')(s_mod)
+        s_mod = Conv1D(64, 4, kernel_initializer='he_normal')(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
@@ -557,19 +557,19 @@ class DL_Model:
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
         l_mod = AveragePooling1D(pool_size=2)(l_mod)
-        l_mod = Conv1D(32, 8, kernel_initializer='he_normal')(l_mod)
+        l_mod = Conv1D(64, 8, kernel_initializer='he_normal')(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
         l_mod = AveragePooling1D(pool_size=2)(l_mod)
-        l_mod = Conv1D(64, 4, kernel_initializer='he_normal')(l_mod)
+        l_mod = Conv1D(64, 8, kernel_initializer='he_normal')(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
         l_mod = GlobalAveragePooling1D()(l_mod)
 
         # Rework through dense network
-        mod = Add()([s_mod, l_mod])
+        mod = concatenate([s_mod, l_mod])
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
