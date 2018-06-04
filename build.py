@@ -24,6 +24,8 @@ def build_dataset(storage, label_csv, vec_size, overlap, output):
     dtb.rescale()
     dtb.preprocess(output)
 
+# Main algorithm
+
 if __name__ == '__main__':
 
     # Initialize the arguments

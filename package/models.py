@@ -624,12 +624,14 @@ class DL_Model:
                 if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp)
                 if self.cls['with_oxy_ls1']: self.add_LSTM1D(inp, self.drp)
                 if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp)
+                if self.cls['with_oxy_dlc']: self.add_DUALCV(inp, self.drp)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_t'].shape[1], ))
             if self.cls['with_nrm_cv1']: self.add_LSTM1D(inp, self.drp)
             if self.cls['with_nrm_ls1']: self.add_CONV1D(inp, self.drp)
             if self.cls['with_nrm_cvl']: self.add_CVLSTM(inp, self.drp)
+            if self.cls['with_nrm_dlc']: self.add_DUALCV(inp, self.drp)
 
         if self.cls['with_fft']:
             with h5py.File(self.pth, 'r') as dtb:
