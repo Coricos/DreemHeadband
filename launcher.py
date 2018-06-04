@@ -59,7 +59,7 @@ if __name__ == '__main__':
            'with_eeg_ls1': prs.eeg_ls1 == 'T',
            'with_eeg_dlc': prs.eeg_dlc == 'T',
            'with_eeg_atd': prs.eeg_atd == 'T',
-           'with_eeg_atc': prs.eeg_ate == 'T',
+           'with_eeg_atc': prs.eeg_atc == 'T',
            'with_eeg_cvl': prs.eeg_cvl == 'T',
            'with_oxy_cv1': prs.oxy_cv1 == 'T',
            'with_oxy_ls1': prs.oxy_ls1 == 'T',
