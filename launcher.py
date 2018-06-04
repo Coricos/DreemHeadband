@@ -46,7 +46,8 @@ if __name__ == '__main__':
     prs = prs.parse_args()
 
     # Define the corresponding channels
-    dic = {'with_acc_cv2': prs.acc_cv2 == 'T',
+    dic = {
+           'with_acc_cv2': prs.acc_cv2 == 'T',
            'with_acc_cv1': prs.acc_cv1 == 'T',
            'with_acc_ls1': prs.acc_ls1 == 'T',
            'with_acc_cvl': prs.acc_cvl == 'T',
@@ -66,7 +67,8 @@ if __name__ == '__main__':
            'with_oxy_dlc': prs.oxy_dlc == 'T',
            'with_oxy_cvl': prs.oxy_cvl == 'T',
            'with_fea': prs.feature == 'T',
-           'with_fft': prs.dis_fft == 'T'}
+           'with_fft': prs.dis_fft == 'T'
+           }
 
     # Launch the model
     mod = DL_Model('./dataset/DTB_Headband.h5', dic)
