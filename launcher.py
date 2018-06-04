@@ -69,5 +69,5 @@ if __name__ == '__main__':
            'with_fft': prs.dis_fft == 'T'}
 
     # Launch the model
-	mod = DL_Model('./dataset/DTB_Headband.h5', dic)
-	mod.learn(patience=10, dropout=0.5, decrease=prs.decrease, batch=prs.batch, n_tail=prs.tail)
+    mod = DL_Model('./dataset/DTB_Headband.h5', dic)
+    mod.learn(patience=10, dropout=0.5, decrease=prs.decrease, batch=prs.batch, n_tail=prs.tail)
