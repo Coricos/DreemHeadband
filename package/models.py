@@ -202,6 +202,26 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
+            if self.cls['with_wav_cv2']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    shp = dtb['wav_1_{}'.format(fmt)].shape
+                    tmp = np.empty((batch, 4, shp[1]))
+                    for idx in range(4):
+                        ann = 'wav_{}_{}'.format(idx+1, fmt)
+                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                    vec.append(tmp)
+                    del shp, tmp, ann
+
+            boo = self.cls['with_wav_cv1'] or self.cls['with_wav_ls1']
+            if boo or self.cls['with_wav_dlc'] or self.cls['with_wav_cvl']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['wav_1_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['wav_2_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['wav_3_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['wav_4_{}'.format(fmt)][ind:ind+batch])
+
             boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
             if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
 
@@ -307,6 +327,26 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_wav_cv2']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    shp = dtb['wav_1_{}'.format(fmt)].shape
+                    tmp = np.empty((batch, 4, shp[1]))
+                    for idx in range(4):
+                        ann = 'wav_{}_{}'.format(idx+1, fmt)
+                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                    vec.append(tmp)
+                    del shp, tmp, ann
+
+            boo = self.cls['with_wav_cv1'] or self.cls['with_wav_ls1']
+            if boo or self.cls['with_wav_dlc'] or self.cls['with_wav_cvl']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['wav_1_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['wav_2_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['wav_3_{}'.format(fmt)][ind:ind+batch])
+                    vec.append(dtb['wav_4_{}'.format(fmt)][ind:ind+batch])
 
             boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
             if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
@@ -657,7 +697,18 @@ class DL_Model:
             if self.cls['with_n_e_cv1']: self.add_LSTM1D(inp, self.drp)
             if self.cls['with_n_e_ls1']: self.add_CONV1D(inp, self.drp)
             if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp)
-            if self.cls['with_n_e_dlc']: self.add_DUALCV(inp, self.drp)         
+            if self.cls['with_n_e_dlc']: self.add_DUALCV(inp, self.drp)
+
+        with h5py.File(self.pth, 'r') as dtb:
+            if self.cls['with_wav_cv2']:
+                inp = Input(shape=(4, dtb['wav_1_t'].shape[1]))
+                self.add_CONV2D(inp, self.drp)
+            for key in ['wav_1_t', 'wav_2_t', 'wav_3_t', 'wav_4_t']:
+                inp = Input(shape=(dtb[key].shape[1], ))
+                if self.cls['with_wav_cv1']: self.add_CONV1D(inp, self.drp)
+                if self.cls['with_wav_ls1']: self.add_LSTM1D(inp, self.drp)
+                if self.cls['with_wav_dlc']: self.add_DUALCV(inp, self.drp)
+                if self.cls['with_wav_cvl']: self.add_CVLSTM(inp, self.drp)
 
         with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
