@@ -138,7 +138,7 @@ class DL_Model:
     # Defines a generator (training and testing)
     # fmt refers to whether apply it for training or testing
     # batch refers to the batch size
-    def data_gen(self, fmt, batch=32):
+    def data_gen(self, fmt, batch=64):
         
         ind = 0
 
@@ -169,6 +169,12 @@ class DL_Model:
                     vec.append(dtb['acc_y_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['acc_z_{}'.format(fmt)][ind:ind+batch])
 
+            boo = self.cls['with_n_a_cv1'] or self.cls['with_n_a_ls1']
+            if boo or self.cls['with_n_a_cvl'] or self.cls['with_n_a_dlc']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['norm_acc_{}'.format(fmt)][ind:ind+batch])
+
             if self.cls['with_eeg_cv2']:
 
                 with h5py.File(self.pth, 'r') as dtb:
@@ -190,6 +196,12 @@ class DL_Model:
                     vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
 
+            boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
+            if boo or self.cls['with_n_e_cvl'] or self.cls['with_n_e_dlc']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
+
             boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
             if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
 
@@ -197,25 +209,20 @@ class DL_Model:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
-            boo = self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1']
-            if boo or self.cls['with_nrm_cvl'] or self.cls['with_nrm_dlc']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['norm_{}'.format(fmt)][ind:ind+batch])
-
             if self.cls['with_fft']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    lst = sorted([ele for ele in dtb.keys() if ele[:3] == 'fft' and ele[-1] == fmt])
-                    for key in lst: vec.append(dtb[key][ind:ind+batch])
-                    del lst
+                    vec.append(dtb['fft_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_fea']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    pca = dtb['pca_{}'.format(fmt)][ind:ind+batch]
-                    fea = dtb['fea_{}'.format(fmt)][ind:ind+batch]
-                    vec.append(np.hstack((pca, fea)))
+                    vec.append(dtb['fea_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_pca']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['pca_{}'.format(fmt)][ind:ind+batch])
 
             with h5py.File(self.pth, 'r') as dtb:
 
@@ -233,7 +240,7 @@ class DL_Model:
     # Defines a generator (testing and validation)
     # fmt refers to whether apply it for testing or validation
     # batch refers to the batch size
-    def data_val(self, fmt, batch=128):
+    def data_val(self, fmt, batch=512):
 
         if fmt == 'e': 
             sze = len(self.l_e)
@@ -249,11 +256,12 @@ class DL_Model:
             # Initialization of data vector
             vec = []
 
+
             if self.cls['with_acc_cv2']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['acc_x_{}'.format(fmt)].shape
-                    tmp = np.empty((min(batch, poi), 3, shp[1]))
+                    tmp = np.empty((batch, 3, shp[1]))
                     for idx, key in zip(range(3), ['x', 'y', 'z']):
                         ann = 'acc_{}_{}'.format(key, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -267,11 +275,17 @@ class DL_Model:
                     vec.append(dtb['acc_y_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['acc_z_{}'.format(fmt)][ind:ind+batch])
 
+            boo = self.cls['with_n_a_cv1'] or self.cls['with_n_a_ls1']
+            if boo or self.cls['with_n_a_cvl'] or self.cls['with_n_a_dlc']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['norm_acc_{}'.format(fmt)][ind:ind+batch])
+
             if self.cls['with_eeg_cv2']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['eeg_1_{}'.format(fmt)].shape
-                    tmp = np.empty((min(batch, poi), 4, shp[1]))
+                    tmp = np.empty((batch, 4, shp[1]))
                     for idx in range(4):
                         ann = 'eeg_{}_{}'.format(idx+1, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -288,6 +302,12 @@ class DL_Model:
                     vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
 
+            boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
+            if boo or self.cls['with_n_e_cvl'] or self.cls['with_n_e_dlc']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
+
             boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
             if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
 
@@ -295,25 +315,20 @@ class DL_Model:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
-            boo = self.cls['with_nrm_cv1'] or self.cls['with_nrm_ls1']
-            if boo or self.cls['with_nrm_cvl'] or self.cls['with_nrm_dlc']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['norm_{}'.format(fmt)][ind:ind+batch])
-
             if self.cls['with_fft']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    lst = sorted([ele for ele in dtb.keys() if ele[:3] == 'fft' and ele[-1] == fmt])
-                    for key in lst: vec.append(dtb[key][ind:ind+batch])
-                    del lst
+                    vec.append(dtb['fft_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_fea']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    pca = dtb['pca_{}'.format(fmt)][ind:ind+batch]
-                    fea = dtb['fea_{}'.format(fmt)][ind:ind+batch]
-                    vec.append(np.hstack((pca, fea)))
+                    vec.append(dtb['fea_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_pca']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    vec.append(dtb['pca_{}'.format(fmt)][ind:ind+batch])
 
             with h5py.File(self.pth, 'r') as dtb: yield(vec)
 
@@ -585,6 +600,14 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(inp._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(30, kernel_initializer='he_normal')(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add layers to model
         if inp not in self.inp: self.inp.append(inp)
@@ -610,6 +633,13 @@ class DL_Model:
                 if self.cls['with_acc_cvl']: self.add_CVLSTM(inp, self.drp)
 
         with h5py.File(self.pth, 'r') as dtb:
+            inp = Input(shape=(dtb['norm_acc_t'].shape[1], ))
+            if self.cls['with_n_a_cv1']: self.add_LSTM1D(inp, self.drp)
+            if self.cls['with_n_a_ls1']: self.add_CONV1D(inp, self.drp)
+            if self.cls['with_n_a_cvl']: self.add_CVLSTM(inp, self.drp)
+            if self.cls['with_n_a_dlc']: self.add_DUALCV(inp, self.drp)
+
+        with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_cv2']:
                 inp = Input(shape=(4, dtb['eeg_1_t'].shape[1]))
                 self.add_CONV2D(inp, self.drp)
@@ -620,7 +650,14 @@ class DL_Model:
                 if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp)
                 if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp)
                 if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, 'dense')
-                if self.cls['with_eeg_atc']: self.add_ENCODE(inp, self.drp, 'convolution')                
+                if self.cls['with_eeg_atc']: self.add_ENCODE(inp, self.drp, 'convolution')       
+
+        with h5py.File(self.pth, 'r') as dtb:
+            inp = Input(shape=(dtb['norm_eeg_t'].shape[1], ))
+            if self.cls['with_n_e_cv1']: self.add_LSTM1D(inp, self.drp)
+            if self.cls['with_n_e_ls1']: self.add_CONV1D(inp, self.drp)
+            if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp)
+            if self.cls['with_n_e_dlc']: self.add_DUALCV(inp, self.drp)         
 
         with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
@@ -630,23 +667,19 @@ class DL_Model:
                 if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp)
                 if self.cls['with_oxy_dlc']: self.add_DUALCV(inp, self.drp)
 
-        with h5py.File(self.pth, 'r') as dtb:
-            inp = Input(shape=(dtb['norm_t'].shape[1], ))
-            if self.cls['with_nrm_cv1']: self.add_LSTM1D(inp, self.drp)
-            if self.cls['with_nrm_ls1']: self.add_CONV1D(inp, self.drp)
-            if self.cls['with_nrm_cvl']: self.add_CVLSTM(inp, self.drp)
-            if self.cls['with_nrm_dlc']: self.add_DUALCV(inp, self.drp)
-
         if self.cls['with_fft']:
             with h5py.File(self.pth, 'r') as dtb:
-                lst = sorted([ele for ele in dtb.keys() if ele[:3] == 'fft' and ele[-1] == 't'])
-                for key in lst:
-                    inp = Input(shape=(dtb[key].shape[1],))
-                    self.add_LDENSE(inp, self.drp)
+                inp = Input(shape=(dtb['fft_t'].shape[1], ))
+                self.add_LDENSE(inp, self.drp)
 
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
-                inp = Input(shape=(dtb['pca_t'].shape[1] + dtb['fea_t'].shape[1], ))
+                inp = Input(shape=(dtb['fea_t'].shape[1], ))
+                self.add_LDENSE(inp, self.drp)
+
+        if self.cls['with_pca']:
+            with h5py.File(self.pth, 'r') as dtb:
+                inp = Input(shape=(dtb['pca_t'].shape[1], ))
                 self.add_LDENSE(inp, self.drp)
 
         # Gather all the model in one dense network
@@ -676,7 +709,7 @@ class DL_Model:
     # patience is the parameter of the EarlyStopping callback
     # max_epochs refers to the amount of epochs achievable
     # batch refers to the batch_size
-    def learn(self, dropout=0.5, decrease=50, n_tail=8, patience=3, max_epochs=100, batch=32):
+    def learn(self, dropout=0.5, decrease=50, n_tail=8, patience=3, max_epochs=100, batch=64):
 
         # Compile the model
         model = self.build(dropout, decrease, n_tail)
@@ -823,7 +856,7 @@ class DL_Model:
     # fmt refers to whether apply it for testing or validation
     # n_tail refers to the marker for the model reconstruction
     # batch refers to the batch size
-    def predict(self, fmt, n_tail=8, batch=1024):
+    def predict(self, fmt, n_tail=8, batch=512):
 
         # Load the best model saved
         if not hasattr(self, 'clf'): self.reconstruct(n_tail=n_tail)

@@ -41,7 +41,7 @@ def display(idx, storage='./dataset/valid.h5'):
 
     # Defines the figure
     plt.figure(figsize=(18,10))
-    fig = gs.GridSpec(4, 12)
+    fig = gd.GridSpec(4, 12)
     plt.subplot(fig[0, 0:4])
     plt.plot(a_x, label='Acc_X')
     plt.legend(loc='best')

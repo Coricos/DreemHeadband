@@ -192,6 +192,7 @@ class Database:
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: 
                     val = dtb['eeg_{}'.format(key)].value
+                    
                 # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                 res = np.asarray(pol.map(compute_wavelet, val))
