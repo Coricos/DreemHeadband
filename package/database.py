@@ -387,7 +387,7 @@ class Database:
         for key in tqdm.tqdm(tem):
 
             # Defines the scalers
-            mms = MinMaxScaler(feature_range=(0,1))
+            mms = MinMaxScaler(feature_range=(-1,1))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_sca, self.valid_sca]:
@@ -423,7 +423,8 @@ class Database:
         for key in tqdm.tqdm(oth):
 
             # Build the scaler
-            mms = MinMaxScaler(feature_range=(0,1))
+            mms = MinMaxScaler(feature_range=(-1,1))
+            sts = StandardScaler(with_std=False)
 
             for pth in [self.train_sca, self.valid_sca]:
                 # Partial fit for both training and validation
@@ -431,9 +432,16 @@ class Database:
                     mms.partial_fit(dtb[key].value)
 
             for pth in [self.train_sca, self.valid_sca]:
+                # Partial fit for both training and validation
+                with h5py.File(pth, 'r') as dtb:
+                    sts.partial_fit(mms.transform(dtb[key].value))
+
+            pip = Pipeline([('mms', mms), ('sts', sts)])
+
+            for pth in [self.train_sca, self.valid_sca]:
                 # Transformation for both training and validation
                 with h5py.File(pth, 'a') as dtb:
-                    dtb[key][...] = mms.transform(dtb[key].value)
+                    dtb[key][...] = pip.transform(dtb[key].value)
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database
