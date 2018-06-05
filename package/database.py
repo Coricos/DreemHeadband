@@ -190,18 +190,19 @@ class Database:
             for key in tqdm.tqdm(range(1, 5)):
 
                 # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb['eeg_{}'.format(key)].value
+                with h5py.File(pth, 'r') as dtb: 
+                    val = dtb['eeg_{}'.format(key)].value
                 # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                 res = np.asarray(pol.map(compute_wavelet, val))
                 pol.close()
                 pol.join()
 
-            # Serialize the output
-            with h5py.File(pth, 'a') as dtb:
-                key = 'wav_{}'.format(key)
-                if dtb.get(key): del dtb[key]
-                dtb.create_dataset(key, data=res)
+                # Serialize the output
+                with h5py.File(pth, 'a') as dtb:
+                    key = 'wav_{}'.format(key)
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=res)
 
     # Build the features for each channel
     def add_features(self):
