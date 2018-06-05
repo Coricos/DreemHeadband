@@ -17,7 +17,6 @@ class ML_Model:
         # Attributes
         self.input = path
         self.njobs = threads
-        self.train
 
         # Clearer definition
         msk_labels = list(np.unique(msk_labels))
@@ -26,45 +25,23 @@ class ML_Model:
         # Apply on the data
         with h5py.File(self.inp, 'r') as dtb:
             # Load the labels and initialize training and testing sets
-            self.m_t = get_mask(dtb['t_lab'].value, lab_to_del=msk_labels)
-            self.m_e = get_mask(dtb['e_lab'].value, lab_to_del=msk_labels)
-            self.m_v = get_mask(dtb['v_lab'].value, lab_to_del=msk_labels)
-            self.l_t = dtb['t_lab'].value[self.m_t]
-            self.l_e = dtb['e_lab'].value[self.m_e]
-            self.l_v = dtb['v_lab'].value[self.m_v]
+            self.m_t = get_mask(dtb['lab_t'].value, lab_to_del=msk_labels)
+            self.m_e = get_mask(dtb['lab_e'].value, lab_to_del=msk_labels)
+            self.l_t = dtb['lab_t'].value[self.m_t]
+            self.l_e = dtb['lab_e'].value[self.m_e]
             # Memory efficiency
             del msk_labels
-
-        # Suppress the missing labels for categorical learning
-        self.lbe = LabelEncoder()
-        tmp = np.unique(list(self.l_t) + list(self.l_e) + list(self.l_v))
-        self.lbe.fit(tmp)
-        self.l_t = self.lbe.transform(self.l_t)
-        self.l_e = self.lbe.transform(self.l_e)
-        self.l_v = self.lbe.transform(self.l_v)
+        
         # Define the specific anomaly issue
-        self.num_classes = len(tmp)
-        # Memory efficiency
-        del tmp
-
-        if strategy == 'binary':
-            # Defines the index relative to the normal beats
-            self.n_idx = self.lbe.transform(self.abs.transform(['N']))[0]
-            # Defines the binary issue
-            self.l_t = np_utils.to_categorical(self.l_t, num_classes=self.num_classes)
-            self.l_t = self.l_t[:,self.n_idx].astype('int')
-            self.l_e = np_utils.to_categorical(self.l_e, num_classes=self.num_classes)
-            self.l_e = self.l_e[:,self.n_idx].astype('int')
-            self.l_v = np_utils.to_categorical(self.l_v, num_classes=self.num_classes)
-            self.l_v = self.l_v[:,self.n_idx].astype('int')
+        self.n_c = len(np.unique(list(self.l_t) + list(self.l_e)))
 
         # Load the data
         with h5py.File(self.inp, 'r') as dtb:
-            tmp = np.hstack((dtb['t_fea'].value, dtb['t_fft'].value))
+            tmp = np.hstack((dtb['pca_t'].value, dtb['fea_t'].value))
             self.train = tmp[self.m_t]
-            tmp = np.hstack((dtb['e_fea'].value, dtb['e_fft'].value))
+            tmp = np.hstack((dtb['pca_e'].value, dtb['fea_e'].value))
             self.valid = tmp[self.m_e]
-            tmp = np.hstack((dtb['v_fea'].value, dtb['v_fft'].value))
+            tmp = np.hstack((dtb['pca_v'].value, dtb['fea_v'].value))
             self.evals = tmp[self.m_v]
 
         # Defines the different folds on which to apply the Hyperband
@@ -383,15 +360,19 @@ class DL_Model:
         # Build model
         shp = (inp._keras_shape[1], 1, inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(16, (1, 128), data_format='channels_first', kernel_initializer='he_normal')(mod)
+        mod = Convolution2D(64, (shp[0], 210), data_format='channels_first', kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling2D(pool_size=(1, 2), data_format='channels_first')(mod)
-        mod = Convolution2D(32, (1, 8), kernel_initializer='he_normal', data_format='channels_first')(mod)
+        mod = Convolution2D(128, (1, 8), kernel_initializer='he_normal', data_format='channels_first')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Convolution2D(128, (1, 8), kernel_initializer='he_normal', data_format='channels_first')(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization(axis=1)(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling2D(pool_size=(1, 4), data_format='channels_first')(mod)
         mod = GlobalAveragePooling2D()(mod)
 
         # Add layers to the model
@@ -405,20 +386,19 @@ class DL_Model:
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(16, 240, kernel_initializer='he_normal')(mod)
+        mod = Conv1D(64, 210, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=2)(mod)
-        mod = Conv1D(32, 8, kernel_initializer='he_normal')(mod)
+        mod = Conv1D(128, 8, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=2)(mod)
-        mod = Conv1D(32, 2, kernel_initializer='he_normal')(mod)
+        mod = Conv1D(128, 8, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling1D(pool_size=4)(mod)
         mod = GlobalAveragePooling1D()(mod)
 
         # Add model to main model
@@ -437,7 +417,7 @@ class DL_Model:
             enc = BatchNormalization()(enc0)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc1 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_normal')(enc)
+            enc1 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_normal')(enc)
             enc = BatchNormalization()(enc1)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
@@ -513,24 +493,24 @@ class DL_Model:
     def add_LSTM1D(self, inp, callback):
 
         # Defines the LSTM layer
-        mod = Reshape((5, inp._keras_shape[1] // 5))(inp)
+        mod = Reshape((3, inp._keras_shape[1] // 3))(inp)
         arg = {'return_sequences': True}
-        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': True}
-        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': True}
-        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         arg = {'return_sequences': False}
-        mod = LSTM(32, kernel_initializer='he_normal', **arg)(mod)
+        mod = LSTM(128, kernel_initializer='he_normal', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -546,16 +526,14 @@ class DL_Model:
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 70, kernel_initializer='he_normal')(mod)
+        mod = Conv1D(64, 210, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=2)(mod)
         mod = Conv1D(128, 8, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=2)(mod)
         mod = Conv1D(128, 8, kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
@@ -589,38 +567,36 @@ class DL_Model:
 
         # Build the channel for small patterns
         s_mod = Reshape((inp._keras_shape[1], 1))(inp)
-        s_mod = Conv1D(16, 70, kernel_initializer='he_normal')(s_mod)
+        s_mod = Conv1D(64, 70, kernel_initializer='he_normal')(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = AveragePooling1D(pool_size=2)(s_mod)
-        s_mod = Conv1D(64, 4, kernel_initializer='he_normal')(s_mod)
+        s_mod = Conv1D(128, 8, kernel_initializer='he_normal')(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = AveragePooling1D(pool_size=2)(s_mod)
-        s_mod = Conv1D(64, 4, kernel_initializer='he_normal')(s_mod)
+        s_mod = Conv1D(128, 8, kernel_initializer='he_normal')(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
+        s_mod = AveragePooling1D(pool_size=4)(s_mod)
         s_mod = GlobalAveragePooling1D()(s_mod)
 
         # Build the channel for longer patterns
         l_mod = Reshape((inp._keras_shape[1], 1))(inp)
-        l_mod = Conv1D(16, 210, kernel_initializer='he_normal')(l_mod)
+        l_mod = Conv1D(64, 210, kernel_initializer='he_normal')(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = AveragePooling1D(pool_size=2)(l_mod)
-        l_mod = Conv1D(64, 8, kernel_initializer='he_normal')(l_mod)
+        l_mod = Conv1D(128, 8, kernel_initializer='he_normal')(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = AveragePooling1D(pool_size=2)(l_mod)
-        l_mod = Conv1D(64, 8, kernel_initializer='he_normal')(l_mod)
+        l_mod = Conv1D(128, 8, kernel_initializer='he_normal')(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
+        l_mod = AveragePooling1D(pool_size=4)(l_mod)
         l_mod = GlobalAveragePooling1D()(l_mod)
 
         # Rework through dense network
@@ -637,14 +613,6 @@ class DL_Model:
 
         # Build the model
         mod = Dense(inp._keras_shape[1], kernel_initializer='he_normal')(inp)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(inp._keras_shape[1] // 2, kernel_initializer='he_normal')(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(30, kernel_initializer='he_normal')(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
