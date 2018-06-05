@@ -344,7 +344,7 @@ class Database:
                 # Apply the transformation
                 m_x = max(np.max(v_t), np.max(v_v))
                 coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
-                coe = np.percentile(np.asarray(coe), 90)
+                coe = np.percentile(np.asarray(coe), 50)
 
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                 fun = partial(envelope, m_x=m_x, coeff=coe)
@@ -353,18 +353,8 @@ class Database:
                 pol.join()
 
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                v_t = np.asarray(pol.map(reset_mean, v_t))
-                pol.close()
-                pol.join()
-
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                 fun = partial(envelope, m_x=m_x, coeff=coe)
                 v_v = np.asarray(pol.map(fun, v_v))
-                pol.close()
-                pol.join()
-
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                v_v = np.asarray(pol.map(reset_mean, v_v))
                 pol.close()
                 pol.join()
 
