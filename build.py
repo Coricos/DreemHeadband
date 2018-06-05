@@ -13,7 +13,8 @@ def build_dataset(storage, label_csv, vec_size, overlap, output):
     dtb = Database(storage=storage)
     dtb.build(out_storage=storage)
     dtb.load_labels(label_csv)
-    dtb.add_norm()
+    dtb.add_norm_acc()
+    dtb.add_norm_eeg()
     
     if vec_size != 0: dtb.slice(vec_size=vec_size, overlap=overlap)
 

@@ -314,3 +314,9 @@ def kappa_score(true, pred, weights=None):
     sco = np.sum(mat * cfm) / np.sum(mat * exp)
     
     return 1 - sco
+
+# Reset the mean of independent vectors
+# vec refers to a 1D array
+def reset_mean(vec):
+
+    return StandardScaler(with_std=False).fit_transform(vec.reshape(-1,1)).ravel()

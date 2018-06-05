@@ -14,6 +14,8 @@ class Database:
         self.valid_pth = '{}/valid.h5'.format(storage)
         self.train_out = '{}/dts_train.h5'.format(storage)
         self.valid_out = '{}/dts_valid.h5'.format(storage)
+        self.train_sca = '{}/sca_train.h5'.format(storage)
+        self.valid_sca = '{}/sca_valid.h5'.format(storage)
 
         self.storage = storage
         self.sets_size = []
@@ -33,6 +35,7 @@ class Database:
         fil = {'po_r': True, 'po_ir': True,
                'acc_x': False, 'acc_y': False, 'acc_z': False,
                'eeg_1': True, 'eeg_2': True, 'eeg_3': True, 'eeg_4': True}
+
         dic = {'eeg_1': (4, 20), 'eeg_2': (4, 20), 'eeg_3': (4, 20),
                'eeg_4': (4, 20), 'po_ir': (3, 5), 'po_r': (3, 5)}
 
@@ -80,7 +83,7 @@ class Database:
             dtb.create_dataset('lab', data=lab.values)
 
     # Build the norm of the accelerometers
-    def add_norm(self):
+    def add_norm_acc(self):
 
         # Iterates over both the training and validation sets
         for pth in [self.train_out, self.valid_out]:
@@ -95,8 +98,31 @@ class Database:
             # Serialize the result
             with h5py.File(pth, 'a') as dtb:
 
-                if dtb.get('norm'): del dtb['norm']
-                dtb.create_dataset('norm', data=np.sqrt(tmp))
+                if dtb.get('norm_acc'): del dtb['norm_acc']
+                dtb.create_dataset('norm_acc', data=np.sqrt(tmp))
+
+            # Memory efficiency
+            del tmp
+
+    # Build the norml of the ECGs
+    def add_norm_eeg(self):
+
+        # Iterates over both the training and validation sets
+        for pth in [self.train_out, self.valid_out]:
+
+            with h5py.File(pth, 'r') as dtb:
+
+                # Aggregates the values
+                tmp = np.square(dtb['eeg_1'].value)
+                tmp += np.square(dtb['eeg_2'].value)
+                tmp += np.square(dtb['eeg_3'].value)
+                tmp += np.square(dtb['eeg_4'].value)
+
+            # Serialize the result
+            with h5py.File(pth, 'a') as dtb:
+
+                if dtb.get('norm_eeg'): del dtb['norm_eeg']
+                dtb.create_dataset('norm_eeg', data=np.sqrt(tmp))
 
             # Memory efficiency
             del tmp
@@ -157,7 +183,7 @@ class Database:
     # Build the features for each channel
     def add_features(self):
 
-        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        lst = ['norm_acc', 'norm_eeg', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
         for pth in [self.train_out, self.valid_out]:
 
@@ -182,7 +208,7 @@ class Database:
     # n_components refers to the amount of components to extract
     def add_pca(self, n_components=5):
 
-        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        lst = ['norm_acc', 'norm_eeg', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
         train_pca, valid_pca = [], []
 
         # Iterates over the keys
@@ -211,38 +237,43 @@ class Database:
             dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
     # Add the discrete FFT components
-    # n_components refers to the amount of harmonics to keep
-    def add_fft(self, n_components=300):
+    def add_fft(self):
 
-        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        lst = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
         # Iterates over both training and validation
         for pth in [self.train_out, self.valid_out]:
+
+            fft = []
 
             # Defines the keys fft may give better insights
             for key in tqdm.tqdm(lst):
 
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+                n_components = val.shape[1] // 2
                 # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                 fun = partial(compute_fft, n_components=n_components)
-                fft = pol.map(fun, val)
+                fft.append(pol.map(fun, val))
                 pol.close()
                 pol.join()
 
-                # Output serialization
-                with h5py.File(pth, 'a') as dtb:
-                    if dtb.get('fft_{}'.format(key)): del dtb['fft_{}'.format(key)]
-                    dtb.create_dataset('fft_{}'.format(key), data=fft)
+            # Regather the FFT results
+            fft = np.hstack(tuple(fft))
 
-                # Memory efficiency
-                del pol, fun, fft, val
+            # Output serialization
+            with h5py.File(pth, 'a') as dtb:
+                if dtb.get('fft'.format(key)): del dtb['fft'.format(key)]
+                dtb.create_dataset('fft'.format(key), data=fft)
+
+            # Memory efficiency
+            del pol, fun, fft, val
 
     # Apply the chaos theory features on the different vectors
     def add_chaos(self):
 
-        lst = ['norm', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        lst = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
         for pth in [self.train_out, self.valid_out]:
 
@@ -267,43 +298,74 @@ class Database:
     def rescale(self):
 
         with h5py.File(self.train_out, 'r') as dtb:
-            tem = ['acc_x', 'acc_y', 'acc_z', 'norm', 'eeg_1', 
-                   'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
+            tem = ['acc_x', 'acc_y', 'acc_z', 'norm_acc', 'norm_eeg', 
+                   'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
             env = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
-            oth = [key for key in list(dtb.keys()) if key not in tem + ['lab']]
+            lst = list(dtb.keys())
+            oth = [key for key in lst if key not in tem + ['lab']]
 
         # Apply the logarithmic envelope
-        for key in tqdm.tqdm(env):
+        for key in lst:
 
-            # Load the data from both the training and validation sets
-            with h5py.File(self.train_out, 'r') as dtb:
-                v_t = dtb[key].value
-            with h5py.File(self.valid_out, 'r') as dtb:
-                v_v = dtb[key].value
+            if key in env:
 
-            # Apply the transformation
-            m_x = max(max(np.abs(v_t).ravel()), max(np.abs(v_v).ravel()))
+                # Load the data from both the training and validation sets
+                with h5py.File(self.train_out, 'r') as dtb:
+                    v_t = dtb[key].value
+                with h5py.File(self.valid_out, 'r') as dtb:
+                    v_v = dtb[key].value
 
-            pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-            fun = partial(envelope, m_x=m_x, coeff=m_x)
-            v_t = np.asarray(pol.map(fun, v_t))
-            pol.close()
-            pol.join()
+                # Apply the transformation
+                m_x = max(np.max(v_t), np.max(v_v))
+                coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
+                coe = np.median(np.asarray(coe))
 
-            pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-            fun = partial(envelope, m_x=m_x, coeff=m_x)
-            v_v = np.asarray(pol.map(fun, v_v))
-            pol.close()
-            pol.join()
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                fun = partial(envelope, m_x=m_x, coeff=coe)
+                v_t = np.asarray(pol.map(fun, v_t))
+                pol.close()
+                pol.join()
 
-            # Serialize and replace
-            with h5py.File(self.train_out, 'a') as dtb:
-                dtb[key][...] = v_t
-            with h5py.File(self.valid_out, 'a') as dtb:
-                dtb[key][...] = v_v
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                v_t = np.asarray(pol.map(reset_mean, v_t))
+                pol.close()
+                pol.join()
 
-            # Memory efficiency
-            del v_t, v_v
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                fun = partial(envelope, m_x=m_x, coeff=coe)
+                v_v = np.asarray(pol.map(fun, v_v))
+                pol.close()
+                pol.join()
+
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                v_v = np.asarray(pol.map(reset_mean, v_v))
+                pol.close()
+                pol.join()
+
+                # Serialize and replace
+                with h5py.File(self.train_sca, 'a') as dtb:
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=v_t)
+                with h5py.File(self.valid_sca, 'a') as dtb:
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=v_v)
+
+                # Memory efficiency
+                del v_t, v_v
+
+            else:
+
+                with h5py.File(self.train_sca, 'a') as dtb:
+                    if dtb.get(key): del dtb[key]
+                    with h5py.File(self.train_out, 'r') as inp:
+                        dtb.create_dataset(key, data=inp[key].value)
+
+                if key != 'lab':
+
+                    with h5py.File(self.valid_sca, 'a') as dtb:
+                    if dtb.get(key): del dtb[key]
+                    with h5py.File(self.valid_out, 'r') as inp:
+                        dtb.create_dataset(key, data=inp[key].value)
 
         # Specific scaling for temporal units
         for key in tqdm.tqdm(tem):
@@ -312,12 +374,12 @@ class Database:
             mms = MinMaxScaler(feature_range=(0,1))
             sts = StandardScaler(with_std=False)
 
-            for pth in [self.train_out, self.valid_out]:
+            for pth in [self.train_sca, self.valid_sca]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-            for pth in [self.train_out, self.valid_out]:
+            for pth in [self.train_sca, self.valid_sca]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
@@ -327,7 +389,7 @@ class Database:
             # Concatenate the pipeline of scalers
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
-            for pth in [self.train_out, self.valid_out]:
+            for pth in [self.train_sca, self.valid_sca]:
                 # Apply transformation
                 with h5py.File(pth, 'a') as dtb:
                     shp = dtb[key].shape
@@ -346,24 +408,16 @@ class Database:
 
             # Build the scaler
             mms = MinMaxScaler(feature_range=(0,1))
-            sts = StandardScaler(with_std=False)
 
-            for pth in [self.train_out, self.valid_out]:
+            for pth in [self.train_sca, self.valid_sca]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(dtb[key].value)
 
-            for pth in [self.train_out, self.valid_out]:
-                # Partial fit for both training and validation
-                with h5py.File(pth, 'r') as dtb:
-                    sts.partial_fit(mms.transform(dtb[key].value))
-
-            pip = Pipeline([('mms', mms), ('sts', sts)])
-
-            for pth in [self.train_out, self.valid_out]:
+            for pth in [self.train_sca, self.valid_sca]:
                 # Transformation for both training and validation
                 with h5py.File(pth, 'a') as dtb:
-                    dtb[key][...] = pip.transform(dtb[key].value)
+                    dtb[key][...] = mms.transform(dtb[key].value)
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database
