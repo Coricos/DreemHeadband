@@ -424,7 +424,7 @@ class Database:
     # size refers to the amount of vectors to keep
     def truncate(self, output, size=3000):
 
-        with h5py.File(self.train_pth, 'r') as inp:
+        with h5py.File(self.train_sca, 'r') as inp:
 
             # Defines the indexes for extraction
             arg = {'size': size, 'replace': False}
@@ -439,10 +439,10 @@ class Database:
     # Defines both training and testing instances
     # output refers to where to put the data
     # test refers to the test_size
-    def preprocess(self, output, test=0.4):
+    def preprocess(self, output, test=0.3):
 
         # Split the training set into both training and testing
-        with h5py.File(self.train_out, 'r') as dtb:
+        with h5py.File(self.train_sca, 'r') as dtb:
 
             idx = np.arange(dtb['lab'].shape[0])
             arg = {'test_size': test, 'shuffle': True}
@@ -461,7 +461,7 @@ class Database:
                     out.create_dataset(lab_e, data=dtb[key].value[i_e])
 
         # Adds the validation set into the output database
-        with h5py.File(self.valid_out, 'r') as dtb:
+        with h5py.File(self.valid_sca, 'r') as dtb:
 
             for key in tqdm.tqdm(list(dtb.keys())):
 
