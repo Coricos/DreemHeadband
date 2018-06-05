@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # Basic channels
     prs.add_argument('--feature', help='Features | Method DENSE', type=str, default='T')
     prs.add_argument('--dis_fft', help='FFT | Method DENSE', type=str, default='T')
-    prs.add_argument('--dis_fft', help='PCA | Method DENSE', type=str, default='T')
+    prs.add_argument('--dis_pca', help='PCA | Method DENSE', type=str, default='T')
     # Parse the arguments
     prs = prs.parse_args()
 
