@@ -18,6 +18,7 @@ def build_dataset(storage, label_csv, vec_size, overlap, output):
     
     if vec_size != 0: dtb.slice(vec_size=vec_size, overlap=overlap)
 
+    dtb.add_wavelets()
     dtb.add_features()
     dtb.add_fft()
     dtb.add_pca()

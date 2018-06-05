@@ -180,6 +180,29 @@ class Database:
         self.train_out = train_out
         self.valid_out = valid_out
 
+    # Adds the wavelet transformations
+    def add_wavelets(self):
+
+        for pth in [self.train_out, self.valid_out]:
+
+            res = []
+            # Iterates over the keys
+            for key in tqdm.tqdm(range(1, 5)):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: val = dtb['eeg_{}'.format(key)].value
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                res = np.asarray(pol.map(compute_wavelet, val))
+                pol.close()
+                pol.join()
+
+            # Serialize the output
+            with h5py.File(pth, 'a') as dtb:
+                key = 'wav_{}'.format(key)
+                if dtb.get(key): del dtb[key]
+                dtb.create_dataset(key, data=res)
+
     # Build the features for each channel
     def add_features(self):
 
@@ -299,7 +322,8 @@ class Database:
 
         with h5py.File(self.train_out, 'r') as dtb:
             tem = ['acc_x', 'acc_y', 'acc_z', 'norm_acc', 'norm_eeg', 
-                   'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
+                   'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir',
+                   'wav_1', 'wav_2', 'wav_3', 'wav_4']
             env = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
             lst = list(dtb.keys())
             oth = [key for key in lst if key not in tem + ['lab']]

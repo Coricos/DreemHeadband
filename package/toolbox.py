@@ -206,22 +206,6 @@ def vectorization(val, vec_size, overlap):
 # val refers to a 1D array
 def compute_features(val):
 
-    # Defines a way to characterize inactivity
-    def inactivity(val, threshold=1e-5, sze=100):
-
-        cnt, res = 0, []
-
-        for ind in range(len(val)):
-            if np.abs(val[ind]) < threshold: res.append(ind)
-
-        res = np.asarray(res)
-        res = np.split(res, np.where(np.diff(res) != 1)[0] + 1)
-
-        for ele in res: 
-            if len(ele) > sze: cnt += len(ele)
-
-        return cnt
-    
     # Defines the amount of crossing-overs
     def crossing_over(val):
         
@@ -253,7 +237,30 @@ def compute_features(val):
     res.append(np.std(val))
     res.append(min(val))
     res.append(max(val))
-    res.append(np.sum(np.abs(np.fft.rfft(val))))
+    # Frequential features
+    fft = np.abs(np.fft.rfft(val))
+    res.append(np.trapz(fft))
+    for per in [25, 50, 75]: res.append(np.percentile(fft, per))
+    f,s = sg.periodogram(val, fs=len(val)/30)
+    idx = np.argsort(s)[::-1]
+    res += list(f[idx][:10])
+    res += list(s[idx][:10])
+    c,_ = pywt.cwt(val, np.arange(1, 64), 'cmor', 30)
+    coe = (np.square(np.abs(c))).mean(axis=0)
+    res.append(np.trapz(coe))
+    for per in [25, 50, 75]: res.append(np.percentile(coe, per))
+    hil = sg.hilbert(val)
+    i_p = np.unwrap(np.angle(hil))
+    i_f = np.diff(i_p) / (2 * np.pi * 130)
+    res.append(np.trapz(np.abs(hil)))
+    res.append(max(np.abs(hil)))
+    for per in [25, 50, 75]: res.append(np.percentile(np.abs(hil), per))
+    res.append(np.trapz(i_f))
+    res.append(max(i_f))
+    res.append(min(i_f))
+    res.append(np.std(i_f))
+    for per in [25, 50, 75]: res.append(np.percentile(np.abs(i_f), per))
+    # Statistical features
     res.append(kurtosis(val))
     res.append(skew(val))
     res.append(crossing_over(val))
@@ -263,7 +270,9 @@ def compute_features(val):
     res.append(np.std(grd))
     res.append(min(grd))
     res.append(max(grd))
-    del grd
+
+    # Memory efficiency
+    del grd, fft, f, s, c, coe, hil, i_p, i_f
 
     return np.asarray(res)
 
@@ -320,3 +329,11 @@ def kappa_score(true, pred, weights=None):
 def reset_mean(vec):
 
     return StandardScaler(with_std=False).fit_transform(vec.reshape(-1,1)).ravel()
+
+# Compute the wavelet spectrum of the signal
+# vec refers to a 1D array
+def compute_wavelet(vec):
+
+    coe,_ = pywt.cwt(vec, np.arange(1, 128), 'cmor', 30)
+    
+    return (np.square(np.abs(coe))).mean(axis=0)
