@@ -363,9 +363,9 @@ class Database:
                 if key != 'lab':
 
                     with h5py.File(self.valid_sca, 'a') as dtb:
-                    if dtb.get(key): del dtb[key]
-                    with h5py.File(self.valid_out, 'r') as inp:
-                        dtb.create_dataset(key, data=inp[key].value)
+                        if dtb.get(key): del dtb[key]
+                        with h5py.File(self.valid_out, 'r') as inp:
+                            dtb.create_dataset(key, data=inp[key].value)
 
         # Specific scaling for temporal units
         for key in tqdm.tqdm(tem):
