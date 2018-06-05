@@ -358,9 +358,9 @@ class DL_Model:
     def add_CONV2D(self, inp, callback):
 
         # Build model
-        shp = (inp._keras_shape[1], 1, inp._keras_shape[2])
+        shp = (1, inp._keras_shape[1], inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(64, (shp[0], 210), data_format='channels_first', kernel_initializer='he_normal')(mod)
+        mod = Convolution2D(64, (shp[1], 210), data_format='channels_first', kernel_initializer='he_normal')(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
