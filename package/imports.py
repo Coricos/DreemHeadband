@@ -49,7 +49,8 @@ from keras.layers import BatchNormalization, GlobalAveragePooling2D, Add
 from keras.layers import GlobalMaxPooling1D, MaxoutDense, PReLU, LSTM
 from keras.layers.core import Dense, Dropout, Activation, Reshape
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
-from keras.optimizers import SGD, RMSprop
+from keras.optimizers import Adadelta
+from keras.constraints import max_norm
 from keras.layers.merge import concatenate
 from keras.engine.topology import Layer
 from keras.utils.training_utils import multi_gpu_model
