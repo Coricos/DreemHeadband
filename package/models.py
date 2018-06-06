@@ -67,8 +67,8 @@ class ML_Model:
         # Refit the best model
         mod.fit(val['x_train'], val['y_train'], sample_weight=val['w_train'])
         # Serialize the best obtained model
-        if marker is None: self.mod = '../models/{}.pk'.format(nme)
-        else: self.mod = '../models/{}_{}.pk'.format(nme, marker)
+        if marker is None: self.mod = './models/{}.pk'.format(nme)
+        else: self.mod = './models/{}_{}.pk'.format(nme, marker)
         joblib.dump(mod, self.mod)
 
 # Defines the multi-channel networks
