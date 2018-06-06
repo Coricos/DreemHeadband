@@ -59,7 +59,7 @@ class ML_Model:
         if nme == 'GBT':
             mod = GradientBoostingClassifier(**res['params'])
         if nme == 'LGB':
-            mod = lgb.LGBMClassifier(objective=self.strategy, **res['params'])
+            mod = lgb.LGBMClassifier(objective='multiclass', **res['params'])
         if nme == 'XGB':
             mod = xgb.XGBClassifier(**res['params'])
         if nme == 'SGD':
