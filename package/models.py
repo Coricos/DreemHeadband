@@ -5,6 +5,8 @@
 from package.database import *
 from package.callback import *
 
+from hyperband.optimizer import *
+
 # Defines a structure for the machine-learning models
 
 class ML_Model:
@@ -21,8 +23,8 @@ class ML_Model:
         # Apply on the data
         with h5py.File(self.input, 'r') as dtb:
             # Load the labels and initialize training and testing sets
-            self.l_t = dtb['lab_t'].value
-            self.l_e = dtb['lab_e'].value
+            self.l_t = dtb['lab_t'].value.ravel()
+            self.l_e = dtb['lab_e'].value.ravel()
             # Define the specific anomaly issue
             self.n_c = len(np.unique(list(self.l_t) + list(self.l_e)))
             # Defines the vectors
@@ -48,8 +50,8 @@ class ML_Model:
         val['y_valid'] = self.l_e
         val['w_valid'] = sample_weight(self.l_e)
         # Defines the random search through cross-validation
-        hyp = Hyperband(get_params, try_params, max_iter=max_iter, n_jobs=self.threads)
-        res = hyp.run(nme, val, self.strategy, skip_last=1)
+        hyp = Hyperband(get_params, try_params, max_iter=max_iter, n_jobs=self.njobs)
+        res = hyp.run(nme, val, skip_last=1)
         res = sorted(res, key = lambda x: x[key])[0]
         # Extract the best estimator
         if nme == 'RFS':

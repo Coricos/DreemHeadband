@@ -260,7 +260,7 @@ def get_params(key):
     return handle_integers(params)
 
 # Launch the discretisation of possibilities
-def try_params(params, key, data, objective):
+def try_params(params, key, data):
 
     # Defines the new model
     if key == 'RFS':
@@ -268,7 +268,7 @@ def try_params(params, key, data, objective):
     if key == 'GBT':
         mod = GradientBoostingClassifier(**params)
     if key == 'LGB':
-        mod = lgb.LGBMClassifier(n_jobs=1, verbose=-1, objective=objective, **params)
+        mod = lgb.LGBMClassifier(n_jobs=1, verbose=-1, objective='multiclass', **params)
     if key == 'ETS':
         mod = ExtraTreesClassifier(**params)
     if key == 'XGB':
