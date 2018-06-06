@@ -50,11 +50,11 @@ def train_and_eval_classifier(clf, data):
     if 'w_valid' in data.keys():
         f1s = f1_score(y_valid, prd, sample_weight=data['w_valid'], average='weighted')
         acc = accuracy_score(y_valid, prd, sample_weight=data['w_valid'])
-        kap = kappa_score(y_train, prd)
+        kap = kappa_score(y_valid, prd)
     else:
         f1s = f1_score(y_valid, prd, average='weighted')
         acc = accuracy_score(y_valid, prd)
-        kap = kappa_score(y_train, prd)
+        kap = kappa_score(y_valid, prd)
 
     print('# Testing  | kappa: {:.2%}, f1-score: {:.2%}, accuracy: {:.2%}'.format(kap, f1s, acc))
     
