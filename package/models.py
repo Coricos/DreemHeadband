@@ -11,16 +11,12 @@ class ML_Model:
 
     # Initialization
     # path refers to the absolute path towards the datasets
-    # marker refers to the identity of the model
     # threads refers to the amount of affordable threads
-    def __init__(self, path, marker=None, threads=multiprocessing.cpu_count()):
+    def __init__(self, path, threads=multiprocessing.cpu_count()):
 
         # Attributes
         self.input = path
         self.njobs = threads
-        # Defines the name of the model
-        if marker is None: self.mod = '../models/{}.pk'.format(nme)
-        else: self.mod = '../models/{}_{}.pk'.format(nme, marker)
 
         # Apply on the data
         with h5py.File(self.input, 'r') as dtb:
@@ -39,8 +35,9 @@ class ML_Model:
 
     # Application of the ML models
     # nme refers to the type of model to use
+    # marker refers to the identity of the model
     # max_iter refers to the amount of iterations with the hyperband algorithm
-    def learn(self, nme, max_iter=100):
+    def learn(self, nme, marker=None, max_iter=100):
 
         # Defines the data representation folder
         val = dict()
@@ -68,6 +65,8 @@ class ML_Model:
         # Refit the best model
         mod.fit(val['x_train'], val['y_train'], sample_weight=val['w_train'])
         # Serialize the best obtained model
+        if marker is None: self.mod = '../models/{}.pk'.format(nme)
+        else: self.mod = '../models/{}_{}.pk'.format(nme, marker)
         joblib.dump(mod, self.mod)
 
 # Defines the multi-channel networks
