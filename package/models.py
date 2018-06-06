@@ -11,47 +11,36 @@ class ML_Model:
 
     # Initialization
     # path refers to the absolute path towards the datasets
+    # marker refers to the identity of the model
     # threads refers to the amount of affordable threads
-    def __init__(self, path, threads=multiprocessing.cpu_count()):
+    def __init__(self, path, marker=None, threads=multiprocessing.cpu_count()):
 
         # Attributes
         self.input = path
         self.njobs = threads
-
-        # Clearer definition
-        msk_labels = list(np.unique(msk_labels))
-        print('# Mask {} during training'.format(msk_labels))
+        # Defines the name of the model
+        if marker is None: self.mod = '../models/{}.pk'.format(nme)
+        else: self.mod = '../models/{}_{}.pk'.format(nme, marker)
 
         # Apply on the data
-        with h5py.File(self.inp, 'r') as dtb:
+        with h5py.File(self.input, 'r') as dtb:
             # Load the labels and initialize training and testing sets
-            self.m_t = get_mask(dtb['lab_t'].value, lab_to_del=msk_labels)
-            self.m_e = get_mask(dtb['lab_e'].value, lab_to_del=msk_labels)
-            self.l_t = dtb['lab_t'].value[self.m_t]
-            self.l_e = dtb['lab_e'].value[self.m_e]
-            # Memory efficiency
-            del msk_labels
-        
-        # Define the specific anomaly issue
-        self.n_c = len(np.unique(list(self.l_t) + list(self.l_e)))
-
-        # Load the data
-        with h5py.File(self.inp, 'r') as dtb:
-            tmp = np.hstack((dtb['pca_t'].value, dtb['fea_t'].value))
-            self.train = tmp[self.m_t]
-            tmp = np.hstack((dtb['pca_e'].value, dtb['fea_e'].value))
-            self.valid = tmp[self.m_e]
-            tmp = np.hstack((dtb['pca_v'].value, dtb['fea_v'].value))
-            self.evals = tmp[self.m_v]
+            self.l_t = dtb['lab_t'].value
+            self.l_e = dtb['lab_e'].value
+            # Define the specific anomaly issue
+            self.n_c = len(np.unique(list(self.l_t) + list(self.l_e)))
+            # Defines the vectors
+            self.train = np.hstack((dtb['pca_t'].value, dtb['fea_t'].value))
+            self.valid = np.hstack((dtb['pca_e'].value, dtb['fea_e'].value))
+            self.evals = np.hstack((dtb['pca_v'].value, dtb['fea_v'].value))
 
         # Defines the different folds on which to apply the Hyperband
         self.folds = KFold(n_splits=5, shuffle=True)
 
     # Application of the ML models
     # nme refers to the type of model to use
-    # marker allows specific learning instance
     # max_iter refers to the amount of iterations with the hyperband algorithm
-    def learn(self, nme, marker='None', max_iter=100):
+    def learn(self, nme, max_iter=100):
 
         # Defines the data representation folder
         val = dict()
@@ -72,8 +61,6 @@ class ML_Model:
             mod = GradientBoostingClassifier(**res['params'])
         if nme == 'LGB':
             mod = lgb.LGBMClassifier(objective=self.strategy, **res['params'])
-        if nme == 'ETS':
-            mod = ExtraTreesClassifier(**res['params'])
         if nme == 'XGB':
             mod = xgb.XGBClassifier(**res['params'])
         if nme == 'SGD':
@@ -81,9 +68,7 @@ class ML_Model:
         # Refit the best model
         mod.fit(val['x_train'], val['y_train'], sample_weight=val['w_train'])
         # Serialize the best obtained model
-        if marker == 'None': pth = '../Results/{}_{}.pk'.format(nme, self.strategy)
-        else: pth = '../Results/{}_{}_{}.pk'.format(nme, marker, self.strategy)
-        joblib.dump(mod, pth)
+        joblib.dump(mod, self.mod)
 
 # Defines the multi-channel networks
 
