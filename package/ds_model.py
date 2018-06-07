@@ -184,7 +184,7 @@ class DS_Model:
         # Layers arguments
         drp = DecreaseDropout(ini_dropout, decrease)
         ear = EarlyStopping(monitor='val_loss', min_delta=1e-5, patience=10, verbose=0)
-        chk = ModelCheckpoint(self.spc, monitor='val_loss', save_best_only=True, save_weights_only=True)
+        chk = ModelCheckpoint(self.out, monitor='val_loss', save_best_only=True, save_weights_only=True)
 
         # Build the input
         inp = Input(shape=(self.train.shape[1], ))
@@ -199,4 +199,4 @@ class DS_Model:
                         class_weight=class_weight(self.l_t.ravel()), batch_size=batch, shuffle=True)
 
         # Serialize the learning history
-        with open(self.his, 'wb') as raw: pickle.dump(his, raw)
+        with open(self.his, 'wb') as raw: pickle.dump(his.history, raw)
