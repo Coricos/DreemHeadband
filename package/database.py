@@ -27,9 +27,9 @@ class Database:
             self.sets_size.append(dtb['po_r'].shape[0])
 
     # Apply filtering and interpolation on the samples
-    # vec_size refers to the sought size of all vectors
+    # sampling_freq refers to the desired sampling frequency
     # out_storage refers to where to put the newly build datasets
-    def build(self, vec_size=2100, out_storage='/mnt/Storage'):
+    def build(self, sampling_freq=100, out_storage='/mnt/Storage'):
 
         # Defines the parameters for each key
         fil = {'po_r': True, 'po_ir': True,
@@ -58,7 +58,7 @@ class Database:
 
                 # Adapt the size of the vectors
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                fun = partial(interpolate, size=vec_size)
+                fun = partial(interpolate, size=30*sampling_freq)
                 val = np.asarray(pol.map(fun, val))
                 pol.close()
                 pol.join()
@@ -128,12 +128,16 @@ class Database:
             del tmp
 
     # Apply a slicing over the signal to reduce their time period
-    # vec_size refers to the size of the output signal
+    # time_window refers to the sliding window process
+    # sampling_freq refers to the desired sampling frequency
     # overlap refers to the amount of overlap between two signals
-    def slice(self, vec_size=700, overlap=0.5):
+    def slice(self, time_window=10, sampling_freq=100, overlap=0.5):
 
-        train_out = '{}/dts_train_{}.h5'.format(vec_size)
-        valid_out = '{}/dts_valid_{}.h5'.format(vec_size)
+        train_out = '{}/dts_train_{}.h5'.format(time_window)
+        valid_out = '{}/dts_valid_{}.h5'.format(time_window)
+
+        # Defines the corresponding vec_size
+        vec_size = time_window * sampling_freq
 
         with h5py.File(self.train_out, 'r') as dtb:
             # Check whether the labels are loaded for synchronization

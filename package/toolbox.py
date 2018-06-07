@@ -334,6 +334,6 @@ def reset_mean(vec):
 # vec refers to a 1D array
 def compute_wavelet(vec):
 
-    coe,_ = pywt.cwt(vec, np.arange(1, 128), 'cmor', 30)
+    coe,_ = pywt.cwt(vec, np.arange(1, 64), 'cmor', 30)
     
     return (np.square(np.abs(coe))).mean(axis=0)

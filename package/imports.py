@@ -32,9 +32,10 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.utils.class_weight import compute_class_weight
 
+from imblearn.over_sampling import RandomOverSampler
+
 import xgboost as xgb
 import lightgbm as lgb
-
 
 import tensorflow as tf
 
@@ -47,9 +48,10 @@ from keras.layers import Conv1D, Input, MaxPooling1D, GlobalAveragePooling1D
 from keras.layers import AveragePooling1D, AveragePooling2D, UpSampling1D
 from keras.layers import BatchNormalization, GlobalAveragePooling2D, Add
 from keras.layers import GlobalMaxPooling1D, MaxoutDense, PReLU, LSTM
+from keras.layers import Bidirectional
 from keras.layers.core import Dense, Dropout, Activation, Reshape
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
-from keras.optimizers import Adadelta
+from keras.optimizers import Adadelta, Adam
 from keras.constraints import max_norm
 from keras.layers.merge import concatenate
 from keras.engine.topology import Layer
