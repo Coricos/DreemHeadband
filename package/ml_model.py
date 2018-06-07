@@ -132,5 +132,5 @@ class ML_Model:
         res = pd.DataFrame(res, columns=['id', 'label'])
 
         # Write to csv
-        if out is None: out = './results/test_{}.csv'.format(np.round(time.time()))
+        if out is None: out = './results/test_{}.csv'.format(int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
