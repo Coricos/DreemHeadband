@@ -99,7 +99,7 @@ class DS_Model:
     # batch refers to the batch_size
     # ini_dropout refers to the initialization of the annealing dropout
     # decrease refers to the amount of epochs before annealation of the dropout
-    def train_spatial(self, epochs=100, batch=64, ini_dropout=0.5, decrease=50):
+    def train_spatial(self, epochs=200, batch=64, ini_dropout=0.5, decrease=50):
 
         # Prepares the data, which will be balanced through oversampling
         ros = RandomOverSampler()
@@ -137,6 +137,7 @@ class DS_Model:
 
         # Load the spatial model
         space = self.build_spatial(inp, drp)
+        space = Model(inputs=inp, outputs=space)
         space.load_weights(self.spc)
         space = Model(inputs=space.input, outputs=space.layers[-3].output)
         for layer in space.layers: layer.trainable = False
@@ -178,7 +179,7 @@ class DS_Model:
     # batch refers to the batch_size
     # ini_dropout refers to the initialization of the annealing dropout
     # decrease refers to the amount of epochs before annealation of the dropout
-    def train_temporal(self, epochs=100, batch=64, ini_dropout=0.5, decrease=50):
+    def train_temporal(self, epochs=200, batch=64, ini_dropout=0.5, decrease=50):
 
         # Layers arguments
         drp = DecreaseDropout(ini_dropout, decrease)
@@ -194,7 +195,7 @@ class DS_Model:
         optim = Adam(lr=1e-4, clipnorm=0.25)
         model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer=optim)
         his = model.fit(self.train, np_utils.to_categorical(self.l_t), verbose=1, epochs=epochs,
-                        callbacks=[early, check], validation_data=(self.valid, np_utils.to_categorical(self.l_e)),
+                        callbacks=[ear, chk], validation_data=(self.valid, np_utils.to_categorical(self.l_e)),
                         class_weight=class_weight(self.l_t.ravel()), batch_size=batch, shuffle=True)
 
         # Serialize the learning history
