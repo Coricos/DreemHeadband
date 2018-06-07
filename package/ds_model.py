@@ -200,3 +200,49 @@ class DS_Model:
 
         # Serialize the learning history
         with open(self.his, 'wb') as raw: pickle.dump(his.history, raw)
+
+    # Generates figure of training history
+    def generate_figure(self):
+
+        # Load model history
+        with open(self.his, 'rb') as raw: dic = pickle.load(raw)
+
+        # Generates the plot
+        plt.figure(figsize=(18,4))
+        fig = gd.GridSpec(2,2)
+
+        plt.subplot(fig[:,0])
+        acc, val = dic['acc'], dic['val_acc']
+        plt.title('Accuracy Evolution - Classification')
+        plt.plot(range(len(acc)), acc, c='orange', label='Train')
+        plt.scatter(range(len(val)), val, marker='x', s=50, c='grey', label='Test')
+        plt.legend(loc='best')
+        plt.grid()
+        plt.xlabel('Epochs')
+        plt.ylabel('Accuracy')
+
+        plt.subplot(fig[:,1])
+        plt.title('Losses Evolution')
+        plt.plot(dic['loss'], c='orange', label='Train Loss')
+        plt.plot(dic['val_loss'], c='grey', label='Test Loss')
+
+        plt.legend(loc='best')
+        plt.grid()
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+
+        plt.tight_layout()
+        plt.show()
+
+    # Rebuild the tensorflow graph for temporal learning
+    # inp refers to the tensorflow input
+    # drp refers to the annealing dropout callback
+    def load_model(self, inp, drp):
+
+        # Build, select and truncate the temporal model
+        model = self.build_temporal(inp, drp)
+        model = Model(inputs=inp, outputs=model)
+        model.load_weights(self.out)
+        model = Model(inputs=model.input, outputs=model.layers[-5].output)
+
+        return model
