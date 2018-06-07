@@ -99,7 +99,7 @@ class DS_Model:
     # batch refers to the batch_size
     # ini_dropout refers to the initialization of the annealing dropout
     # decrease refers to the amount of epochs before annealation of the dropout
-    def train_spatial(self, epochs=200, batch=64, ini_dropout=0.5, decrease=50):
+    def train_spatial(self, epochs=200, batch=128, ini_dropout=0.5, decrease=200):
 
         # Prepares the data, which will be balanced through oversampling
         ros = RandomOverSampler()
@@ -116,7 +116,7 @@ class DS_Model:
 
         # Launch the learning process
         model = Model(inputs=inp, outputs=model)
-        optim = Adadelta(clipnorm=0.1)
+        optim = Adam(lr=1e-4, clipnorm=0.5)
         model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer=optim)
         model.fit(vec, np_utils.to_categorical(lab), verbose=1, epochs=epochs,
                   callbacks=[drp, ear, chk], shuffle=True, validation_split=0.0,
@@ -179,7 +179,7 @@ class DS_Model:
     # batch refers to the batch_size
     # ini_dropout refers to the initialization of the annealing dropout
     # decrease refers to the amount of epochs before annealation of the dropout
-    def train_temporal(self, epochs=200, batch=64, ini_dropout=0.5, decrease=50):
+    def train_temporal(self, epochs=200, batch=32, ini_dropout=0.5, decrease=100):
 
         # Layers arguments
         drp = DecreaseDropout(ini_dropout, decrease)
@@ -195,7 +195,7 @@ class DS_Model:
         optim = Adam(lr=1e-4, clipnorm=0.25)
         model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer=optim)
         his = model.fit(self.train, np_utils.to_categorical(self.l_t), verbose=1, epochs=epochs,
-                        callbacks=[ear, chk], validation_data=(self.valid, np_utils.to_categorical(self.l_e)),
+                        callbacks=[drp, ear, chk], validation_data=(self.valid, np_utils.to_categorical(self.l_e)),
                         class_weight=class_weight(self.l_t.ravel()), batch_size=batch, shuffle=True)
 
         # Serialize the learning history
