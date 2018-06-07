@@ -113,7 +113,7 @@ class ML_Model:
     # out refers to the output path
     # nme refers to a new path if necessary
     # marker allows specific redirection
-    def write_to_file(self, out=None, nme, marker=None):
+    def write_to_file(self, nme, out=None, marker=None):
 
         # Avoid unnecessary logs
         warnings.simplefilter('ignore')
