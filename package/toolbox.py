@@ -2,7 +2,7 @@
 # May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
-from package.imports import *
+from package.topology import *
 
 # Defines a function to rename the datasets for clearer management
 # storage refers to where to pick the dataset
@@ -337,3 +337,14 @@ def compute_wavelet(vec):
     coe,_ = pywt.cwt(vec, np.arange(1, 64), 'cmor', 30)
     
     return (np.square(np.abs(coe))).mean(axis=0)
+
+# Compute the Betti curves of a signal
+# vec refers to a 1D array
+def compute_betti_curves(vec):
+
+    fil = Levels(val)
+    try: v,w = fil.betti_curves(num_points=100)
+    except: v,w = np.zeros(100), np.zeros(100)
+    del fil
+    
+    return np.vstack((v,w))

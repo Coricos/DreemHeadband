@@ -104,7 +104,7 @@ class Database:
             # Memory efficiency
             del tmp
 
-    # Build the norml of the ECGs
+    # Build the norm of the ECGs
     def add_norm_eeg(self):
 
         # Iterates over both the training and validation sets
@@ -127,62 +127,32 @@ class Database:
             # Memory efficiency
             del tmp
 
-    # Apply a slicing over the signal to reduce their time period
-    # time_window refers to the sliding window process
-    # sampling_freq refers to the desired sampling frequency
-    # overlap refers to the amount of overlap between two signals
-    def slice(self, time_window=10, sampling_freq=100, overlap=0.5):
+    def add_betti_curves(self):
 
-        train_out = '{}/dts_train_{}.h5'.format(time_window)
-        valid_out = '{}/dts_valid_{}.h5'.format(time_window)
+        for pth in [self.train_out, self.valid_out]:
 
-        # Defines the corresponding vec_size
-        vec_size = time_window * sampling_freq
+            res = []
+            # Iterates over the keys
+            for key in tqdm.tqdm(range(1, 5)):
 
-        with h5py.File(self.train_out, 'r') as dtb:
-            # Check whether the labels are loaded for synchronization
-            if not dtb.get('lab'): 
-                print('! Labels needed')
-                return
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: 
+                    val = dtb['eeg_{}'.format(key)].value
+                    
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                res = np.asarray(pol.map(compute_betti_curves, val))
+                pol.close()
+                pol.join()
 
-        with h5py.File(self.train_out, 'r') as dtb:
-
-            # Deals with the labels
-            lab = dtb['lab'].value
-            sze = dtb['acc_x'].shape[1]
-            sze = len(vectorization(np.zeros(sze), vec_size, overlap))
-            lab = np.hstack(tuple([lab.reshape(-1,1) for i in range(sze)])).ravel()
-
-            # Serialize in output database
-            with h5py.File(train_out, 'a') as out:
-                if out.get('lab'): del out['lab']
-                out.create_dataset('lab', data=lab)
-
-        for out, pth in zip([train_out, valid_out], [self.train_out, self.valid_out]):
-
-            with h5py.File(pth, 'r') as dtb:
-
-                # Iterates over all the keys
-                for key in ['norm', 'acc_x', 'acc_y', 'acc_z', 'po_ir', 
-                            'po_r', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
-
-                    # Multiprocessed sliding window
-                    val = dtb[key].value
-                    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                    fun = partial(vectorization, vec_size=vec_size, overlap=overlap)
-                    val = np.vstack(tuple(pol.map(fun, val)))
-                    pol.close()
-                    pol.join()
-                    # Clear and replace
-                    with h5py.File(out, 'a') as out:
-                        if out.get(key): del out[key]
-                        out.create_dataset(key, data=val)
-                    # Memory efficiency
-                    del pol, fun, val
-
-        # Redirecting the database
-        self.train_out = train_out
-        self.valid_out = valid_out
+                # Serialize the output
+                with h5py.File(pth, 'a') as dtb:
+                    key = 'bup_{}'.format(key)
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=res[:,0,:])
+                    key = 'bdw_{}'.format(key)
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=res[:,1,:])
 
     # Adds the wavelet transformations
     def add_wavelets(self):
@@ -235,7 +205,7 @@ class Database:
 
     # Add the PCA construction of all the vectors
     # n_components refers to the amount of components to extract
-    def add_pca(self, n_components=5):
+    def add_pca(self, n_components=10):
 
         lst = ['norm_acc', 'norm_eeg', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
         train_pca, valid_pca = [], []
@@ -265,40 +235,6 @@ class Database:
             if dtb.get('pca'): del dtb[pca]
             dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
-    # Add the discrete FFT components
-    def add_fft(self):
-
-        lst = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
-
-        # Iterates over both training and validation
-        for pth in [self.train_out, self.valid_out]:
-
-            fft = []
-
-            # Defines the keys fft may give better insights
-            for key in tqdm.tqdm(lst):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-                n_components = val.shape[1] // 2
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                fun = partial(compute_fft, n_components=n_components)
-                fft.append(pol.map(fun, val))
-                pol.close()
-                pol.join()
-
-            # Regather the FFT results
-            fft = np.hstack(tuple(fft))
-
-            # Output serialization
-            with h5py.File(pth, 'a') as dtb:
-                if dtb.get('fft'.format(key)): del dtb['fft'.format(key)]
-                dtb.create_dataset('fft'.format(key), data=fft)
-
-            # Memory efficiency
-            del pol, fun, fft, val
-
     # Apply the chaos theory features on the different vectors
     def add_chaos(self):
 
@@ -327,9 +263,13 @@ class Database:
     def rescale(self):
 
         with h5py.File(self.train_out, 'r') as dtb:
-            tem = ['acc_x', 'acc_y', 'acc_z', 'norm_acc', 'norm_eeg', 
-                   'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir',
-                   'wav_1', 'wav_2', 'wav_3', 'wav_4']
+            tem = ['acc_x', 'acc_y', 'acc_z', 
+                   'norm_acc', 'norm_eeg', 
+                   'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 
+                   'po_r', 'po_ir',
+                   'wav_1', 'wav_2', 'wav_3', 'wav_4',
+                   'bup_1', 'bup_2', 'bup_3', 'bup_4',
+                   'bdw_1', 'bdw_2', 'bdw_3', 'bdw_4']
             env = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
             lst = list(dtb.keys())
             oth = [key for key in lst if key not in tem + ['lab']]
@@ -348,7 +288,7 @@ class Database:
                 # Apply the transformation
                 m_x = max(np.max(v_t), np.max(v_v))
                 coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
-                coe = np.percentile(np.asarray(coe), 25)
+                coe = np.median(np.asarray(coe))
 
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                 fun = partial(envelope, m_x=m_x, coeff=coe)
@@ -391,7 +331,7 @@ class Database:
         for key in tqdm.tqdm(tem):
 
             # Defines the scalers
-            mms = MinMaxScaler(feature_range=(-1,1))
+            mms = MinMaxScaler(feature_range=(0,1))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_sca, self.valid_sca]:
