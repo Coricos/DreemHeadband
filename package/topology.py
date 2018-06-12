@@ -2,6 +2,8 @@
 # May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
+from package.imports import *
+
 # Defines a way to deal with 1-D signals
 
 class Levels:
