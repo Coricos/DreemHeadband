@@ -93,7 +93,7 @@ class Levels:
         del val_up, val_dw, u, d
 
         if graph:
-            plt.figure(figsize=(18,4))
+            plt.figure(figsize=(18,2))
             plt.subplot(1,2,1)
             plt.plot(v)
             plt.subplot(1,2,2)
@@ -147,7 +147,7 @@ class Levels:
 
         # Display landscapes if necessary
         if graph:
-            plt.figure(figsize=(18,4))
+            plt.figure(figsize=(18,2))
             plt.subplot(1,2,1)
             for ele in l_u: plt.plot(ele)
             plt.subplot(1,2,2)
