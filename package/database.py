@@ -229,11 +229,11 @@ class Database:
 
         # Serialization for the training results
         with h5py.File(self.train_out, 'a') as dtb:
-            if dtb.get('pca'): del dtb[pca]
+            if dtb.get('pca'): del dtb['pca']
             dtb.create_dataset('pca', data=np.hstack(tuple(train_pca)))
         # Serialization for the validation results
         with h5py.File(self.valid_out, 'a') as dtb:
-            if dtb.get('pca'): del dtb[pca]
+            if dtb.get('pca'): del dtb['pca']
             dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
 
     # Apply the chaos theory features on the different vectors
