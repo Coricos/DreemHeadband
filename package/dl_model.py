@@ -589,11 +589,15 @@ class DL_Model:
     def add_LDENSE(self, inp, callback, arg):
 
         # Build the model
-        mod = Dense(inp._keras_shape[1] // 2, **arg)(inp)
+        mod = Dense(inp._keras_shape[1], **arg)(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(20, **arg)(inp)
+        mod = Dense(mod._keras_shape[1] // 3, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 3, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -710,7 +714,7 @@ class DL_Model:
 
         # Last layer for probabilities
         arg = {'activation': 'softmax', 'name': 'output'}
-        model = Dense(self.n_c, kernel_initializer='he_uniform', **arg)(model)
+        model = Dense(self.n_c, kernel_initializer='he_normal', **arg)(model)
 
         return model
 
@@ -749,8 +753,7 @@ class DL_Model:
 
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=model)
-        opt = Adadelta(clipnorm=1.0)
-        arg = {'loss': loss, 'optimizer': opt}
+        arg = {'loss': loss, 'optimizer': 'adadelta'}
         model.compile(metrics=metrics, loss_weights=loss_weights, **arg)
         print('# Model Compiled')
         
