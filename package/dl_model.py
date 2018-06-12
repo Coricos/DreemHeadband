@@ -52,7 +52,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['acc_x_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 3, shp[1]))
+                    tmp = np.empty((min(poi, batch), 3, shp[1]))
                     for idx, key in zip(range(3), ['x', 'y', 'z']):
                         ann = 'acc_{}_{}'.format(key, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -62,9 +62,8 @@ class DL_Model:
             if self.cls['with_acc_cv1'] or self.cls['with_acc_ls1'] or self.cls['with_acc_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['acc_x_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['acc_y_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['acc_z_{}'.format(fmt)][ind:ind+batch])
+                    for key in ['acc_x', 'acc_y', 'acc_z']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_a_cv1'] or self.cls['with_n_a_ls1']
             if boo or self.cls['with_n_a_cvl'] or self.cls['with_n_a_dlc']:
@@ -76,7 +75,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['eeg_1_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 4, shp[1]))
+                    tmp = np.empty((min(poi, batch), 4, shp[1]))
                     for idx in range(4):
                         ann = 'eeg_{}_{}'.format(idx+1, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -88,10 +87,14 @@ class DL_Model:
             if boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['eeg_2_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
+                    for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
+
+            if self.cls['with_eeg_tda']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    for key in ['bup_1', 'bdw_1', 'bup_2', 'bdw_2', 'bup_3', 'bdw_3', 'bup_4', 'bdw_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
             if boo or self.cls['with_n_e_cvl'] or self.cls['with_n_e_dlc']:
@@ -103,7 +106,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['wav_1_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 4, shp[1]))
+                    tmp = np.empty((min(poi, batch), 4, shp[1]))
                     for idx in range(4):
                         ann = 'wav_{}_{}'.format(idx+1, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -114,10 +117,8 @@ class DL_Model:
             if boo or self.cls['with_wav_dlc'] or self.cls['with_wav_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['wav_1_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['wav_2_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['wav_3_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['wav_4_{}'.format(fmt)][ind:ind+batch])
+                    for key in ['wav_1', 'wav_2', 'wav_3', 'wav_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
             if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
@@ -188,9 +189,8 @@ class DL_Model:
             if self.cls['with_acc_cv1'] or self.cls['with_acc_ls1'] or self.cls['with_acc_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['acc_x_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['acc_y_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['acc_z_{}'.format(fmt)][ind:ind+batch])
+                    for key in ['acc_x', 'acc_y', 'acc_z']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_a_cv1'] or self.cls['with_n_a_ls1']
             if boo or self.cls['with_n_a_cvl'] or self.cls['with_n_a_dlc']:
@@ -214,10 +214,14 @@ class DL_Model:
             if boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['eeg_1_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['eeg_2_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['eeg_3_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['eeg_4_{}'.format(fmt)][ind:ind+batch])
+                    for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
+
+            if self.cls['with_eeg_tda']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    for key in ['bup_1', 'bdw_1', 'bup_2', 'bdw_2', 'bup_3', 'bdw_3', 'bup_4', 'bdw_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
             if boo or self.cls['with_n_e_cvl'] or self.cls['with_n_e_dlc']:
@@ -240,10 +244,8 @@ class DL_Model:
             if boo or self.cls['with_wav_dlc'] or self.cls['with_wav_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['wav_1_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['wav_2_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['wav_3_{}'.format(fmt)][ind:ind+batch])
-                    vec.append(dtb['wav_4_{}'.format(fmt)][ind:ind+batch])
+                    for key in ['wav_1', 'wav_2', 'wav_3', 'wav_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
             if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
@@ -275,29 +277,61 @@ class DL_Model:
     # Adds a 2D-Convolution Channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_CONV2D(self, inp, callback):
+    # arg refers to arguments for layer initalization
+    def add_CONV2D(self, inp, callback, arg):
 
         # Build model
         shp = (1, inp._keras_shape[1], inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(64, (shp[1], 210), data_format='channels_first', kernel_initializer='he_uniform')(mod)
+        mod = Convolution2D(64, (shp[1], 210), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(128, (1, 8), kernel_initializer='he_uniform', data_format='channels_first')(mod)
+        mod = Convolution2D(128, (1, 8), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(128, (1, 8), kernel_initializer='he_uniform', data_format='channels_first')(mod)
+        mod = Convolution2D(128, (1, 8), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(128, (1, 8), kernel_initializer='he_uniform', data_format='channels_first')(mod)
+        mod = Convolution2D(128, (1, 8), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling2D(pool_size=(1, 8), strides=(1, 4), data_format='channels_first')(mod)
+        mod = AveragePooling2D(pool_size=(1, 8), strides=(1, 4), data_format='channels_first', **arg)(mod)
         mod = GlobalAveragePooling2D()(mod)
+
+        # Add layers to the model
+        if inp not in self.inp: self.inp.append(inp)
+        self.mrg.append(mod)
+
+    # 1D CNN channel designed for the TDA betti curves
+    # inp refers to the defined input
+    # callback refers to the annealing dropout
+    # arg refers to arguments for layer initalization
+    def add_TDAC1(self, inp, callback, arg):
+
+        # Build model
+        mod = Reshape((inp._keras_shape[1], 1))(inp)
+        mod = Conv1D(64, 10, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 4, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 4, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 4, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling1D(pool_size=2)(mod)
+        mod = GlobalAveragePooling1D()(mod)
 
         # Add layers to the model
         if inp not in self.inp: self.inp.append(inp)
@@ -306,19 +340,20 @@ class DL_Model:
     # Adds a 1D-Convolution Channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_CONV1D(self, inp, callback):
+    # arg refers to arguments for layer initalization
+    def add_CONV1D(self, inp, callback, arg):
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 105, kernel_initializer='he_uniform')(mod)
+        mod = Conv1D(64, 105, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, kernel_initializer='he_uniform')(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, kernel_initializer='he_uniform')(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -332,39 +367,40 @@ class DL_Model:
     # Adds an autoencoder channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_ENCODE(self, inp, callback, topology):
+    # arg refers to arguments for layer initalization
+    def add_ENCODE(self, inp, callback, topology, arg):
 
         if topology == 'dense':
 
             # Build the autoencoder model
-            enc0 = Dense(inp._keras_shape[1] // 3, kernel_initializer='he_uniform')(inp)
+            enc0 = Dense(inp._keras_shape[1] // 3, **arg)(inp)
             enc = BatchNormalization()(enc0)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc1 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_uniform')(enc)
+            enc1 = Dense(enc._keras_shape[1] // 4, **arg)(enc)
             enc = BatchNormalization()(enc1)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc2 = Dense(enc._keras_shape[1] // 3, kernel_initializer='he_uniform')(enc)
+            enc2 = Dense(enc._keras_shape[1] // 3, **arg)(enc)
             enc = BatchNormalization()(enc2)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc3 = Dense(enc._keras_shape[1] // 4, kernel_initializer='he_uniform')(enc)
+            enc3 = Dense(enc._keras_shape[1] // 4, **arg)(enc)
             enc = BatchNormalization()(enc3)
             enc = PReLU()(enc)
             enc = AdaptiveDropout(callback.prb, callback)(enc)
 
             print('# Latent Space Dimension', enc._keras_shape[1])
 
-            dec = Dense(enc2._keras_shape[1], kernel_initializer='he_uniform')(enc)
+            dec = Dense(enc2._keras_shape[1], **arg)(enc)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = AdaptiveDropout(callback.prb, callback)(dec)
-            dec = Dense(enc1._keras_shape[1], kernel_initializer='he_uniform')(dec)
+            dec = Dense(enc1._keras_shape[1], **arg)(dec)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = AdaptiveDropout(callback.prb, callback)(dec)
-            dec = Dense(enc0._keras_shape[1], kernel_initializer='he_uniform')(dec)
+            dec = Dense(enc0._keras_shape[1], **arg)(dec)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = AdaptiveDropout(callback.prb, callback)(dec)
@@ -375,28 +411,28 @@ class DL_Model:
 
             # Build the autoencoder model
             enc = Reshape((inp._keras_shape[1], 1))(inp)
-            enc = Conv1D(32, 70, border_mode='same', kernel_initializer='he_uniform')(enc)
+            enc = Conv1D(32, 70, border_mode='same', **arg)(enc)
             enc = BatchNormalization()(enc)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
             enc = MaxPooling1D(pool_size=3)(enc)
-            enc = Conv1D(64, 8, border_mode='same', kernel_initializer='he_uniform')(enc)
+            enc = Conv1D(64, 8, border_mode='same', **arg)(enc)
             enc = BatchNormalization()(enc)
             enc = PReLU()(enc)
             enc = Dropout(0.1)(enc)
             enc = MaxPooling1D(pool_size=3)(enc)
 
-            dec = Conv1D(64, 8, border_mode='same', kernel_initializer='he_uniform')(enc)
+            dec = Conv1D(64, 8, border_mode='same', **arg)(enc)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = Dropout(0.1)(dec)
             dec = UpSampling1D(size=3)(dec)
-            dec = Conv1D(32, 70, border_mode='same', kernel_initializer='he_uniform')(dec)
+            dec = Conv1D(32, 70, border_mode='same', **arg)(dec)
             dec = BatchNormalization()(dec)
             dec = PReLU()(dec)
             dec = Dropout(0.1)(dec)
             dec = UpSampling1D(size=3)(dec)
-            dec = Conv1D(1, 70, border_mode='same', kernel_initializer='he_uniform')(dec)
+            dec = Conv1D(1, 70, border_mode='same', **arg)(dec)
             dec = BatchNormalization()(dec)
             dec = Activation('linear')(dec)
             arg = {'name': 'ate_{}'.format(len(self.ate))}
@@ -414,27 +450,24 @@ class DL_Model:
     # Adds a 1D-LSTM Channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_LSTM1D(self, inp, callback):
+    # arg refers to arguments for layer initalization
+    def add_LSTM1D(self, inp, callback, arg):
 
         # Defines the LSTM layer
         mod = Reshape((3, inp._keras_shape[1] // 3))(inp)
-        arg = {'return_sequences': True}
-        mod = LSTM(128, kernel_initializer='he_uniform', **arg)(mod)
+        mod = LSTM(128, 'return_sequences': True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        arg = {'return_sequences': True}
-        mod = LSTM(128, kernel_initializer='he_uniform', **arg)(mod)
+        mod = LSTM(128, 'return_sequences': True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        arg = {'return_sequences': True}
-        mod = LSTM(128, kernel_initializer='he_uniform', **arg)(mod)
+        mod = LSTM(128, 'return_sequences': True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        arg = {'return_sequences': False}
-        mod = LSTM(128, kernel_initializer='he_uniform', **arg)(mod)
+        mod = LSTM(128, 'return_sequences': False, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -446,40 +479,42 @@ class DL_Model:
     # Defines a channel combining CONV and LSTM structures
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_CVLSTM(self, inp, callback):
+    # arg refers to arguments for layer initalization
+    def add_CVLSTM(self, inp, callback, arg):
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 210, kernel_initializer='he_uniform')(mod)
+        mod = Conv1D(64, 210, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, kernel_initializer='he_uniform')(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, kernel_initializer='he_uniform')(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, kernel_initializer='he_uniform')(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = AveragePooling1D(pool_size=8, strides=4)(mod)
         # Output into LSTM network
-        arg = {'return_sequences': True}
-        mod = LSTM(128, kernel_initializer='he_uniform', **arg)(mod)
+        mod = LSTM(128, 'return_sequences': True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        arg = {'return_sequences': True}
-        mod = LSTM(128, kernel_initializer='he_uniform', **arg)(mod)
+        mod = LSTM(128, 'return_sequences': True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        arg = {'return_sequences': False}
-        mod = LSTM(128, kernel_initializer='he_uniform', **arg)(mod)
+        mod = LSTM(128, 'return_sequences': True, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = LSTM(128, 'return_sequences': False, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -491,23 +526,24 @@ class DL_Model:
     # Aims at representing both short and long patterns
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_DUALCV(self, inp, callback):
+    # arg refers to arguments for layer initalization
+    def add_DUALCV(self, inp, callback, arg):
 
         # Build the channel for small patterns
         s_mod = Reshape((inp._keras_shape[1], 1))(inp)
-        s_mod = Conv1D(64, 70, kernel_initializer='he_uniform')(s_mod)
+        s_mod = Conv1D(64, 70, **arg)(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = Conv1D(128, 8, kernel_initializer='he_uniform')(s_mod)
+        s_mod = Conv1D(128, 8, **arg)(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = Conv1D(128, 8, kernel_initializer='he_uniform')(s_mod)
+        s_mod = Conv1D(128, 8, **arg)(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = Conv1D(128, 8, kernel_initializer='he_uniform')(s_mod)
+        s_mod = Conv1D(128, 8, **arg)(s_mod)
         s_mod = PReLU()(s_mod)
         s_mod = BatchNormalization()(s_mod)
         s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
@@ -516,19 +552,19 @@ class DL_Model:
 
         # Build the channel for longer patterns
         l_mod = Reshape((inp._keras_shape[1], 1))(inp)
-        l_mod = Conv1D(64, 210, kernel_initializer='he_uniform')(l_mod)
+        l_mod = Conv1D(64, 210, **arg)(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = Conv1D(128, 8, kernel_initializer='he_uniform')(l_mod)
+        l_mod = Conv1D(128, 8, **arg)(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = Conv1D(128, 8, kernel_initializer='he_uniform')(l_mod)
+        l_mod = Conv1D(128, 8, **arg)(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = Conv1D(128, 8, kernel_initializer='he_uniform')(l_mod)
+        l_mod = Conv1D(128, 8, **arg)(l_mod)
         l_mod = PReLU()(l_mod)
         l_mod = BatchNormalization()(l_mod)
         l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
@@ -545,14 +581,15 @@ class DL_Model:
     # Adds a locally connected dense channel
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
-    def add_LDENSE(self, inp, callback):
+    # arg refers to arguments for layer initalization
+    def add_LDENSE(self, inp, callback, arg):
 
         # Build the model
-        mod = Dense(100, kernel_initializer='he_uniform')(inp)
+        mod = Dense(inp._keras_shape[1], **arg)(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(100, kernel_initializer='he_uniform')(inp)
+        mod = Dense(mod._keras_shape[1] // 2, **arg)(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -569,77 +606,87 @@ class DL_Model:
 
         # Defines the dropout callback
         self.drp = DecreaseDropout(dropout, decrease)
+        # Layer arguments
+        arg = {'kernel_initializer': 'he_uniform', 
+               'kernel_constraint': max_norm(5.0),
+               'kernel_regularizer': regularizers.l2(1e-3)}
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_acc_cv2']:
                 inp = Input(shape=(3, dtb['acc_x_t'].shape[1]))
-                self.add_CONV2D(inp, self.drp)
+                self.add_CONV2D(inp, self.drp, arg)
             for key in ['acc_x_t', 'acc_y_t', 'acc_z_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_acc_cv1']: self.add_CONV1D(inp, self.drp)
-                if self.cls['with_acc_ls1']: self.add_LSTM1D(inp, self.drp)
-                if self.cls['with_acc_cvl']: self.add_CVLSTM(inp, self.drp)
+                if self.cls['with_acc_cv1']: self.add_CONV1D(inp, self.drp, arg)
+                if self.cls['with_acc_ls1']: self.add_LSTM1D(inp, self.drp, arg)
+                if self.cls['with_acc_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_acc_t'].shape[1], ))
-            if self.cls['with_n_a_cv1']: self.add_LSTM1D(inp, self.drp)
-            if self.cls['with_n_a_ls1']: self.add_CONV1D(inp, self.drp)
-            if self.cls['with_n_a_cvl']: self.add_CVLSTM(inp, self.drp)
-            if self.cls['with_n_a_dlc']: self.add_DUALCV(inp, self.drp)
+            if self.cls['with_n_a_cv1']: self.add_LSTM1D(inp, self.drp, arg)
+            if self.cls['with_n_a_ls1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_n_a_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+            if self.cls['with_n_a_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_cv2']:
                 inp = Input(shape=(4, dtb['eeg_1_t'].shape[1]))
-                self.add_CONV2D(inp, self.drp)
+                self.add_CONV2D(inp, self.drp, arg)
             for key in ['eeg_1_t', 'eeg_2_t', 'eeg_3_t', 'eeg_4_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, self.drp)
-                if self.cls['with_eeg_ls1']: self.add_LSTM1D(inp, self.drp)
-                if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp)
-                if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp)
-                if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, 'dense')
-                if self.cls['with_eeg_atc']: self.add_ENCODE(inp, self.drp, 'convolution')       
+                if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, self.drp, arg)
+                if self.cls['with_eeg_ls1']: self.add_LSTM1D(inp, self.drp, arg)
+                if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp, arg)
+                if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+                if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, 'dense', arg)
+                if self.cls['with_eeg_atc']: self.add_ENCODE(inp, self.drp, 'convolution', arg)
+
+        with h5py.File(self.pth, 'r') as dtb:
+            if self.cls['with_eeg_tda']:
+                for key in ['bup_1_t', 'bdw_1_t', 'bup_2_t', 'bdw_2_t', 'bup_3_t', 'bdw_3_t', 'bup_4_t', 'bdw_4_t']:
+                    inp = Input(shape=(dtb[key].shape[1], ))
+                    self.add_TDAC1(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_eeg_t'].shape[1], ))
-            if self.cls['with_n_e_cv1']: self.add_LSTM1D(inp, self.drp)
-            if self.cls['with_n_e_ls1']: self.add_CONV1D(inp, self.drp)
-            if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp)
-            if self.cls['with_n_e_dlc']: self.add_DUALCV(inp, self.drp)
+            if self.cls['with_n_e_cv1']: self.add_LSTM1D(inp, self.drp, arg)
+            if self.cls['with_n_e_ls1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+            if self.cls['with_n_e_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_wav_cv2']:
                 inp = Input(shape=(4, dtb['wav_1_t'].shape[1]))
-                self.add_CONV2D(inp, self.drp)
+                self.add_CONV2D(inp, self.drp, arg)
             for key in ['wav_1_t', 'wav_2_t', 'wav_3_t', 'wav_4_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_wav_cv1']: self.add_CONV1D(inp, self.drp)
-                if self.cls['with_wav_ls1']: self.add_LSTM1D(inp, self.drp)
-                if self.cls['with_wav_dlc']: self.add_DUALCV(inp, self.drp)
-                if self.cls['with_wav_cvl']: self.add_CVLSTM(inp, self.drp)
+                if self.cls['with_wav_cv1']: self.add_CONV1D(inp, self.drp, arg)
+                if self.cls['with_wav_ls1']: self.add_LSTM1D(inp, self.drp, arg)
+                if self.cls['with_wav_dlc']: self.add_DUALCV(inp, self.drp, arg)
+                if self.cls['with_wav_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp)
-                if self.cls['with_oxy_ls1']: self.add_LSTM1D(inp, self.drp)
-                if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp)
-                if self.cls['with_oxy_dlc']: self.add_DUALCV(inp, self.drp)
+                if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp, arg)
+                if self.cls['with_oxy_ls1']: self.add_LSTM1D(inp, self.drp, arg)
+                if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+                if self.cls['with_oxy_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
         if self.cls['with_fft']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['fft_t'].shape[1], ))
-                self.add_LDENSE(inp, self.drp)
+                self.add_LDENSE(inp, self.drp, arg)
 
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['fea_t'].shape[1], ))
-                self.add_LDENSE(inp, self.drp)
+                self.add_LDENSE(inp, self.drp, arg)
 
         if self.cls['with_pca']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['pca_t'].shape[1], ))
-                self.add_LDENSE(inp, self.drp)
+                self.add_LDENSE(inp, self.drp, arg)
 
         # Gather all the model in one dense network
         print('# Ns Channels: ', len(self.mrg))
@@ -650,9 +697,6 @@ class DL_Model:
         tails = np.linspace(2*self.n_c, model._keras_shape[1], num=n_tail)
 
         for idx in range(n_tail):
-            arg = {'kernel_initializer': 'he_uniform', 
-                   'kernel_constraint': max_norm(5.0),
-                   'kernel_regularizer': regularizers.l1_l2(0.01)}
             # Build intermediate layers
             model = Dense(int(tails[n_tail - 1 - idx]), **arg)(model)
             model = BatchNormalization()(model)
