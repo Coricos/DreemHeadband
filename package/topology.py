@@ -58,7 +58,8 @@ class Levels:
     # mnu, mnd refer to the minimal value for discretization
     # mxu, mxd refers to the maximal value for discretization
     # num_points refers to the amount of points to get as output
-    def betti_curves(self, mnu=None, mxu=None, mnd=None, mxd=None, num_points=100):
+    # graph refers whether to display a graph or not
+    def betti_curves(self, mnu=None, mxu=None, mnd=None, mxd=None, num_points=100, graph=False):
 
         # Aims at barcode discretization
         def functionize(val, descriptor):
@@ -74,7 +75,7 @@ class Levels:
 
         # Compute persistence
         v,w = np.zeros(num_points), np.zeros(num_points)
-        u,d = self.get_persistence()
+        u,d = self.get_persistence(graph=graph)
 
         if mnu and mxu and mnd and mxd:
             val_up = np.linspace(mnu, mxu, num=num_points)
@@ -91,4 +92,68 @@ class Levels:
         # Memory efficiency
         del val_up, val_dw, u, d
 
+        if graph:
+            plt.figure(figsize=(18,4))
+            plt.subplot(1,2,1)
+            plt.plot(v)
+            plt.subplot(1,2,2)
+            plt.plot(w)
+            plt.show()
+
         return v, w
+
+    # Defines the persistent landscapes of the diagrams
+    # mnu, mnd refer to the minimal value for discretization
+    # mxu, mxd refers to the maximal value for discretization
+    # nb_landscapes refers to the amount of landscapes to build
+    # num_points refers to the amount of points to get as output
+    # graph refers whether to display a graph or not
+    def landscapes(self, mnu=None, mxu=None, mnd=None, mxd=None, nb_landscapes=10, num_points=100, graph=False):
+
+        # Automated construction of the landscapes
+        # n_landscapes refers to the amount of landscapes to build
+        # num_points refers to the amount of points to get as output
+        # m_n, m_x refer to the extrema for discretization
+        def build_landscapes(dig, nb_landscapes, num_points, m_n, m_x):
+
+            # Prepares the discretization
+            lcd = np.zeros((nb_landscapes, num_points))
+
+            # Observe whether absolute or relative
+            if m_n and m_x:
+                stp = np.linspace(m_n, m_x, num=num_points)
+            else:
+                m_n, m_x = np.min(dig), np.max(dig)
+                stp = np.linspace(m_n, m_x, num=num_points)
+
+            # Use the triangular functions
+            for idx, ele in enumerate(stp):
+                val = []
+                for pair in dig:
+                    b, d = pair[0], pair[1]
+                    if (d+b)/2.0 <= ele <= d: val.append(d - ele)
+                    elif  b <= ele <= (d+b)/2.0: val.append(ele - b)
+                val.sort(reverse=True)
+                val = np.asarray(val)
+                for j in range(nb_landscapes):
+                    if (j < len(val)): lcd[j, idx] = val[j]
+
+            return lcd
+        
+        # Computes the persistent landscapes for both diagrams
+        u,d = self.get_persistence(graph=graph)
+        l_u = build_landscapes(u, nb_landscapes, num_points, mnu, mxu)
+        l_d = build_landscapes(d, nb_landscapes, num_points, mnd, mxd)
+
+        # Display landscapes if necessary
+        if graph:
+            plt.figure(figsize=(18,4))
+            plt.subplot(1,2,1)
+            for ele in l_u: plt.plot(ele)
+            plt.subplot(1,2,2)
+            for ele in l_d: plt.plot(ele)
+            plt.show()
+
+        return l_u, l_d
+
+        
