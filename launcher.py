@@ -4,7 +4,7 @@
 
 import argparse, warnings
 
-from package.models import *
+from package.dl_model import *
 
 # Main algorithm
 

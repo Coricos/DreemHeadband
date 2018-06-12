@@ -607,9 +607,10 @@ class DL_Model:
         # Defines the dropout callback
         self.drp = DecreaseDropout(dropout, decrease)
         # Layer arguments
-        arg = {'kernel_initializer': 'he_uniform', 
+        arg = {'kernel_initializer': 'he_normal', 
                'kernel_constraint': max_norm(5.0),
-               'kernel_regularizer': regularizers.l2(1e-3)}
+               # 'kernel_regularizer': regularizers.l2(1e-3)
+              }
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_acc_cv2']:
@@ -744,7 +745,7 @@ class DL_Model:
 
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=model)
-        opt = Adadelta(decay=1e-4, clipvalue=0.5)
+        opt = Adadelta(clipnorm=1.0)
         arg = {'loss': loss, 'optimizer': opt}
         model.compile(metrics=metrics, loss_weights=loss_weights, **arg)
         print('# Model Compiled')
