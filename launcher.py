@@ -35,6 +35,7 @@ if __name__ == '__main__':
     prs.add_argument('--eeg_atd', help='Electroencephalograms | Method ENCODE', type=str, default='F')
     prs.add_argument('--eeg_atc', help='Electroencephalograms | Method ENCODE', type=str, default='F')
     prs.add_argument('--eeg_cvl', help='Electroencephalograms | Method CVLSTM', type=str, default='F')
+    prs.add_argument('--eeg_tda', help='Electroencephalograms | Method TDACV1', type=str, default='F')
     # Channels norm electroencephalograms
     prs.add_argument('--n_e_cv1', help='Norm EEG | Method CONV1D', type=str, default='F')
     prs.add_argument('--n_e_ls1', help='Norm EEG | Method LSTM1D', type=str, default='F')
@@ -75,6 +76,7 @@ if __name__ == '__main__':
            'with_eeg_atd': prs.eeg_atd == 'T',
            'with_eeg_atc': prs.eeg_atc == 'T',
            'with_eeg_cvl': prs.eeg_cvl == 'T',
+           'with_eeg_tda': prs.eeg_tda == 'T',
            'with_n_e_cv1': prs.n_e_cv1 == 'T',
            'with_n_e_ls1': prs.n_e_ls1 == 'T',
            'with_n_e_cvl': prs.n_e_cvl == 'T',
