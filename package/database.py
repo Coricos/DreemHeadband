@@ -148,12 +148,12 @@ class Database:
 
                 # Serialize the output
                 with h5py.File(pth, 'a') as dtb:
-                    key = 'bup_{}'.format(key)
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=res[:,0,:])
-                    key = 'bdw_{}'.format(key)
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=res[:,1,:])
+                    new = 'bup_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,0,:])
+                    new = 'bdw_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,1,:])
 
     # Adds the wavelet transformations
     def add_wavelets(self):
