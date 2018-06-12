@@ -93,7 +93,7 @@ class DL_Model:
             if self.cls['with_eeg_tda']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    for key in ['bup_1', 'bdw_1', 'bup_2', 'bdw_2', 'bup_3', 'bdw_3', 'bup_4', 'bdw_4']:
+                    for key in ['bup_1_t', 'bup_2_t', 'bup_3_t', 'bup_4_t']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
@@ -220,7 +220,7 @@ class DL_Model:
             if self.cls['with_eeg_tda']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    for key in ['bup_1', 'bdw_1', 'bup_2', 'bdw_2', 'bup_3', 'bdw_3', 'bup_4', 'bdw_4']:
+                    for key in ['bup_1_t', 'bup_2_t', 'bup_3_t', 'bup_4_t']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
@@ -648,7 +648,7 @@ class DL_Model:
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_tda']:
-                for key in ['bup_1_t', 'bdw_1_t', 'bup_2_t', 'bdw_2_t', 'bup_3_t', 'bdw_3_t', 'bup_4_t', 'bdw_4_t']:
+                for key in ['bup_1_t', 'bup_2_t', 'bup_3_t', 'bup_4_t']:
                     inp = Input(shape=(dtb[key].shape[1], ))
                     self.add_TDAC1(inp, self.drp, arg)
 
