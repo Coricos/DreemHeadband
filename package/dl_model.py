@@ -299,7 +299,7 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling2D(pool_size=(1, 8), strides=(1, 4), data_format='channels_first', **arg)(mod)
+        mod = AveragePooling2D(pool_size=(1, 8), strides=(1, 4), data_format='channels_first')(mod)
         mod = GlobalAveragePooling2D()(mod)
 
         # Add layers to the model
