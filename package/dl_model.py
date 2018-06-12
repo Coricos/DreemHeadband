@@ -52,7 +52,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['acc_x_{}'.format(fmt)].shape
-                    tmp = np.empty(batch, 3, shp[1])
+                    tmp = np.empty((batch, 3, shp[1]))
                     for idx, key in zip(range(3), ['x', 'y', 'z']):
                         ann = 'acc_{}_{}'.format(key, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -75,7 +75,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['eeg_1_{}'.format(fmt)].shape
-                    tmp = np.empty(batch, 4, shp[1])
+                    tmp = np.empty((batch, 4, shp[1]))
                     for idx in range(4):
                         ann = 'eeg_{}_{}'.format(idx+1, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
@@ -106,7 +106,7 @@ class DL_Model:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['wav_1_{}'.format(fmt)].shape
-                    tmp = np.empty(batch, 4, shp[1])
+                    tmp = np.empty((batch, 4, shp[1]))
                     for idx in range(4):
                         ann = 'wav_{}_{}'.format(idx+1, fmt)
                         tmp[:,idx,:] = dtb[ann][ind:ind+batch]
