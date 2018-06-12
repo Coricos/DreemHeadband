@@ -342,7 +342,7 @@ def compute_wavelet(vec):
 # vec refers to a 1D array
 def compute_betti_curves(vec):
 
-    fil = Levels(val)
+    fil = Levels(vec)
     try: v,w = fil.betti_curves(num_points=100)
     except: v,w = np.zeros(100), np.zeros(100)
     del fil

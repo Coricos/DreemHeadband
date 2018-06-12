@@ -127,6 +127,7 @@ class Database:
             # Memory efficiency
             del tmp
 
+    # Build the Betti curves corresponding to the EEGs
     def add_betti_curves(self):
 
         for pth in [self.train_out, self.valid_out]:
