@@ -58,7 +58,7 @@ class Levels:
     # mnu, mnd refer to the minimal value for discretization
     # mxu, mxd refers to the maximal value for discretization
     # num_points refers to the amount of points to get as output
-    def betti_curves(self, mnu, mxu, mnd, mxd, num_points=100):
+    def betti_curves(self, mnu=None, mxu=None, mnd=None, mxd=None, num_points=100):
 
         # Aims at barcode discretization
         def functionize(val, descriptor):
@@ -72,10 +72,18 @@ class Levels:
 
             return fun(val)
 
-        val_up = np.linspace(mnu, mxu, num=num_points)
-        val_dw = np.linspace(mnd, mxd, num=num_points)
+        # Compute persistence
         v,w = np.zeros(num_points), np.zeros(num_points)
         u,d = self.get_persistence()
+
+        if mnu and mxu and mnd and mxd:
+            val_up = np.linspace(mnu, mxu, num=num_points)
+            val_dw = np.linspace(mnd, mxd, num=num_points)
+        else:
+            mnu, mxu = np.min(u), np.max(u)
+            mnd, mxd = np.min(d), np.max(d)
+            val_up = np.linspace(mnu, mxu, num=num_points)
+            val_dw = np.linspace(mnd, mxd, num=num_points)
 
         for ele in u: v += functionize(val_up, ele)
         for ele in d: w += functionize(val_dw, ele)
