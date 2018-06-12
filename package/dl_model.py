@@ -330,7 +330,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=2)(mod)
+        mod = AveragePooling1D(pool_size=4, strides=4)(mod)
         mod = GlobalAveragePooling1D()(mod)
 
         # Add layers to the model
@@ -348,7 +348,7 @@ class DL_Model:
         mod = Conv1D(64, 210, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
-        mod = AveragePooling1D(pool_size=4, strides=2)(mod)
+        mod = AveragePooling1D(pool_size=4, strides=4)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Conv1D(128, 8, **arg)(mod)
         mod = PReLU()(mod)
@@ -362,7 +362,7 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=8, strides=4)(mod)
+        mod = AveragePooling1D(pool_size=8, strides=8)(mod)
         mod = GlobalAveragePooling1D()(mod)
 
         # Add model to main model
@@ -612,8 +612,8 @@ class DL_Model:
         # Defines the dropout callback
         self.drp = DecreaseDropout(dropout, decrease)
         # Layer arguments
-        arg = {'kernel_initializer': 'he_normal', 
-               'kernel_constraint': max_norm(5.0),
+        arg = {'kernel_initializer': 'he_uniform', 
+               # 'kernel_constraint': max_norm(5.0),
                # 'kernel_regularizer': regularizers.l2(1e-3)
               }
 
