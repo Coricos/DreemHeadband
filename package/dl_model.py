@@ -345,19 +345,24 @@ class DL_Model:
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 105, **arg)(mod)
+        mod = Conv1D(64, 210, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, **arg)(mod)
-        mod = PReLU()(mod)
-        mod = BatchNormalization()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, **arg)(mod)
-        mod = PReLU()(mod)
-        mod = BatchNormalization()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = AveragePooling1D(pool_size=4, strides=2)(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 8, **arg)(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling1D(pool_size=8, strides=4)(mod)
         mod = GlobalAveragePooling1D()(mod)
 
         # Add model to main model
@@ -585,11 +590,11 @@ class DL_Model:
     def add_LDENSE(self, inp, callback, arg):
 
         # Build the model
-        mod = Dense(inp._keras_shape[1], **arg)(inp)
+        mod = Dense(inp._keras_shape[1] // 2, **arg)(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 2, **arg)(inp)
+        mod = Dense(20, **arg)(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
