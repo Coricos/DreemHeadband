@@ -93,7 +93,7 @@ class DL_Model:
             if self.cls['with_eeg_tda']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    for key in ['bup_1_t', 'bup_2_t', 'bup_3_t', 'bup_4_t']:
+                    for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
@@ -220,7 +220,7 @@ class DL_Model:
             if self.cls['with_eeg_tda']:
 
                 with h5py.File(self.pth, 'r') as dtb:
-                    for key in ['bup_1_t', 'bup_2_t', 'bup_3_t', 'bup_4_t']:
+                    for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
             boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
