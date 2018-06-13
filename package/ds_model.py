@@ -32,9 +32,9 @@ class DS_Model:
             self.n_c = len(np.unique(self.l_t))
         # Load the needed data
         with h5py.File(self.pth, 'r') as dtb:
-            self.train = dtb['eeg_{}_t'.format(self.cls)].value
-            self.valid = dtb['eeg_{}_e'.format(self.cls)].value
-            self.evals = dtb['eeg_{}_v'.format(self.cls)].value
+            self.train = dtb['{}_t'.format(self.cls)].value
+            self.valid = dtb['{}_e'.format(self.cls)].value
+            self.evals = dtb['{}_v'.format(self.cls)].value
             self.sfreq = self.train.shape[1] // 30
 
         # Apply shuffling
@@ -46,7 +46,7 @@ class DS_Model:
     def build_spatial(self, inp, drp):
 
         # Layers arguments
-        arg = {'kernel_initializer': 'he_normal'}
+        arg = {'kernel_initializer': 'he_uniform'}
 
         # Build the channel aimed at small patterns
         s_mod = Reshape((inp._keras_shape[1], 1))(inp)
@@ -109,6 +109,7 @@ class DS_Model:
         drp = DecreaseDropout(ini_dropout, decrease)
         ear = EarlyStopping(monitor='loss', min_delta=1e-5, patience=10, verbose=0)
         chk = ModelCheckpoint(self.spc, monitor='loss', save_best_only=True, save_weights_only=True)
+        shf = DataShuffler(self.pth)
 
         # Build the model
         inp = Input(shape=(vec.shape[1], ))
@@ -119,7 +120,7 @@ class DS_Model:
         optim = Adam(lr=1e-4, clipnorm=0.5)
         model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer=optim)
         model.fit(vec, np_utils.to_categorical(lab), verbose=1, epochs=epochs,
-                  callbacks=[drp, ear, chk], shuffle=True, validation_split=0.0,
+                  callbacks=[drp, ear, chk, shf], shuffle=True, validation_split=0.0,
                   class_weight=class_weight(lab.ravel()), batch_size=batch)
 
         # Memory efficiency
@@ -131,7 +132,7 @@ class DS_Model:
     def build_temporal(self, inp, drp):
 
         # Layers argument
-        arg = {'kernel_initializer': 'he_normal',
+        arg = {'kernel_initializer': 'he_uniform',
                'kernel_constraint': max_norm(5.0),
                'kernel_regularizer': regularizers.l2(1e-3)}
 
@@ -146,29 +147,22 @@ class DS_Model:
         model = Reshape((inp._keras_shape[1], 1))(inp)
         model = space(model)
 
-        tempo = Bidirectional(LSTM(256, return_sequences=True, **arg))(model)
+        tempo = Bidirectional(LSTM(512, return_sequences=True, **arg))(model)
         tempo = BatchNormalization()(tempo)
         tempo = PReLU()(tempo)
         tempo = AdaptiveDropout(drp.prb, drp)(tempo)
-        tempo = Bidirectional(LSTM(256, return_sequences=False, **arg))(tempo)
+        tempo = Bidirectional(LSTM(512, return_sequences=False, **arg))(tempo)
         tempo = BatchNormalization()(tempo)
         tempo = PReLU()(tempo)
         tempo = AdaptiveDropout(drp.prb, drp)(tempo)
 
         # Residual fully connected layer
         resid = GlobalMaxPooling1D()(model)
-        resid = Dense(512, **arg)(resid)
+        resid = Dense(1024, **arg)(resid)
         resid = BatchNormalization()(resid)
         resid = PReLU()(resid)
 
         model = Add()([tempo, resid])
-        model = Dense(model._keras_shape[1] // 2, **arg)(model)
-        model = BatchNormalization()(model)
-        model = PReLU()(model)
-        model = AdaptiveDropout(drp.prb, drp)(model)
-        model = Dense(model._keras_shape[1] // 2, **arg)(model)
-        model = BatchNormalization()(model)
-        model = PReLU()(model)
         model = AdaptiveDropout(drp.prb, drp)(model)
         model = Dense(self.n_c, activation='softmax', **arg)(model)
 
@@ -185,6 +179,7 @@ class DS_Model:
         drp = DecreaseDropout(ini_dropout, decrease)
         ear = EarlyStopping(monitor='val_loss', min_delta=1e-5, patience=10, verbose=0)
         chk = ModelCheckpoint(self.out, monitor='val_loss', save_best_only=True, save_weights_only=True)
+        shf = DataShuffler(self.pth)
 
         # Build the input
         inp = Input(shape=(self.train.shape[1], ))
