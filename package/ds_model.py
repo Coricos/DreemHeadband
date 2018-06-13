@@ -109,7 +109,6 @@ class DS_Model:
         drp = DecreaseDropout(ini_dropout, decrease)
         ear = EarlyStopping(monitor='loss', min_delta=1e-5, patience=10, verbose=0)
         chk = ModelCheckpoint(self.spc, monitor='loss', save_best_only=True, save_weights_only=True)
-        shf = DataShuffler(self.pth)
 
         # Build the model
         inp = Input(shape=(vec.shape[1], ))
@@ -120,7 +119,7 @@ class DS_Model:
         optim = Adam(lr=1e-4, clipnorm=0.5)
         model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer=optim)
         model.fit(vec, np_utils.to_categorical(lab), verbose=1, epochs=epochs,
-                  callbacks=[drp, ear, chk, shf], shuffle=True, validation_split=0.0,
+                  callbacks=[drp, ear, chk], shuffle=True, validation_split=0.0,
                   class_weight=class_weight(lab.ravel()), batch_size=batch)
 
         # Memory efficiency
@@ -179,8 +178,7 @@ class DS_Model:
         drp = DecreaseDropout(ini_dropout, decrease)
         ear = EarlyStopping(monitor='val_loss', min_delta=1e-5, patience=10, verbose=0)
         chk = ModelCheckpoint(self.out, monitor='val_loss', save_best_only=True, save_weights_only=True)
-        shf = DataShuffler(self.pth)
-
+        
         # Build the input
         inp = Input(shape=(self.train.shape[1], ))
         model = self.build_temporal(inp, drp)
