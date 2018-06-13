@@ -150,7 +150,8 @@ class DL_Model:
                 if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']:
                     lab = [lab]
                     for i in range(1, 5): lab.append(dtb['eeg_{}_{}'.format(i, fmt)][ind:ind+batch])
-                yield(vec, lab)
+                res = shuffle((lab, *vec))
+                yield(res[1:], res[0])
                 del lab, vec
 
             ind += batch
@@ -751,6 +752,9 @@ class DL_Model:
         arg = {'save_best_only': True, 'save_weights_only': True}
         check = ModelCheckpoint(self.out, monitor='val_loss', **arg)
 
+        # Implements the data shuffler
+        shuff = DataShuffler(self.pth)
+
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=model)
         arg = {'loss': loss, 'optimizer': 'adadelta'}
@@ -760,7 +764,7 @@ class DL_Model:
         # Fit the model
         his = model.fit_generator(self.data_gen('t', batch=batch),
                     steps_per_epoch=len(self.l_t)//batch, verbose=1, 
-                    epochs=max_epochs, callbacks=[self.drp, early, check],
+                    epochs=max_epochs, callbacks=[self.drp, early, check, shuff],
                     shuffle=True, validation_steps=len(self.l_e)//batch,
                     validation_data=self.data_gen('e', batch=batch), 
                     class_weight=class_weight(self.l_t))

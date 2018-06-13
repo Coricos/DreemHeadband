@@ -53,3 +53,26 @@ class AdaptiveDropout(Layer):
         base_config = super(AdaptiveDropout, self).get_config()
 
         return dict(list(base_config.items()) + list(config.items()))
+
+# Aims at shuffling the data for better generalization
+
+class DataShuffler(Callback):
+
+    # Initialization
+    def __init__(self, dtb_path):
+
+        super(Callback, self).__init__()
+
+        self.pth = dtb_path
+
+    # Shuffles the data at each end of epoch
+    def on_epoch_end(self, epoch, logs=None):
+
+        with h5py.File(self.pth, 'a') as dtb:
+
+            i_t = shuffle(np.arange(dtb['lab_t'].shape[0]))
+
+            for key in [ele for ele in dtb.keys() if ele[-1] == 't']:
+
+                dtb[key][...] = dtb[key].value[i_t]
+
