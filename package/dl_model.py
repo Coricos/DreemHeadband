@@ -150,8 +150,7 @@ class DL_Model:
                 if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']:
                     lab = [lab]
                     for i in range(1, 5): lab.append(dtb['eeg_{}_{}'.format(i, fmt)][ind:ind+batch])
-                res = shuffle((lab, *vec))
-                yield(res[1:], res[0])
+                yield(vec, lab)
                 del lab, vec
 
             ind += batch
