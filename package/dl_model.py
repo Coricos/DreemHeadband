@@ -59,14 +59,13 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            if self.cls['with_acc_cv1'] or self.cls['with_acc_ls1'] or self.cls['with_acc_cvl']:
+            if self.cls['with_acc_cv1'] or self.cls['with_acc_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['acc_x', 'acc_y', 'acc_z']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
-            boo = self.cls['with_n_a_cv1'] or self.cls['with_n_a_ls1']
-            if boo or self.cls['with_n_a_cvl'] or self.cls['with_n_a_dlc']:
+            if self.cls['with_n_a_cv1'] or self.cls['with_n_a_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_acc_{}'.format(fmt)][ind:ind+batch])
@@ -82,9 +81,7 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            boo = self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1']
-            boo = boo or self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']
-            if boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_cvl']:
+            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
@@ -96,58 +93,28 @@ class DL_Model:
                     for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
-            boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
-            if boo or self.cls['with_n_e_cvl'] or self.cls['with_n_e_dlc']:
+           if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_wav_cv2']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    shp = dtb['wav_1_{}'.format(fmt)].shape
-                    tmp = np.empty((batch, 4, shp[1]))
-                    for idx in range(4):
-                        ann = 'wav_{}_{}'.format(idx+1, fmt)
-                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
-                    vec.append(tmp)
-                    del shp, tmp, ann
-
-            boo = self.cls['with_wav_cv1'] or self.cls['with_wav_ls1']
-            if boo or self.cls['with_wav_dlc'] or self.cls['with_wav_cvl']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    for key in ['wav_1', 'wav_2', 'wav_3', 'wav_4']:
-                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
-
-            boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
-            if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
+            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_cvl']:
 
                  with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
-
-            if self.cls['with_fft']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['fft_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_fea']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['fea_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_pca']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['pca_{}'.format(fmt)][ind:ind+batch])
-
             with h5py.File(self.pth, 'r') as dtb:
 
                 # Defines the labels
                 lab = dtb['lab_{}'.format(fmt)][ind:ind+batch]
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
-                if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']:
+                if self.cls['with_eeg_atc']:
                     lab = [lab]
                     for i in range(1, 5): lab.append(dtb['eeg_{}_{}'.format(i, fmt)][ind:ind+batch])
             
@@ -164,7 +131,7 @@ class DL_Model:
         if fmt == 'e': 
             sze = len(self.l_e)
         if fmt == 'v': 
-            with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_t'].shape[0]
+            with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_v'].shape[0]
 
         ind, poi = 0, sze
 
@@ -174,7 +141,6 @@ class DL_Model:
             if ind > sze : ind, poi = 0, sze
             # Initialization of data vector
             vec = []
-
 
             if self.cls['with_acc_cv2']:
 
@@ -187,14 +153,13 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            if self.cls['with_acc_cv1'] or self.cls['with_acc_ls1'] or self.cls['with_acc_cvl']:
+            if self.cls['with_acc_cv1'] or self.cls['with_acc_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['acc_x', 'acc_y', 'acc_z']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
-            boo = self.cls['with_n_a_cv1'] or self.cls['with_n_a_ls1']
-            if boo or self.cls['with_n_a_cvl'] or self.cls['with_n_a_dlc']:
+            if self.cls['with_n_a_cv1'] or self.cls['with_n_a_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_acc_{}'.format(fmt)][ind:ind+batch])
@@ -210,9 +175,7 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            boo = self.cls['with_eeg_cv1'] or self.cls['with_eeg_ls1']
-            boo = boo or self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']
-            if boo or self.cls['with_eeg_dlc'] or self.cls['with_eeg_cvl']:
+            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
@@ -224,51 +187,21 @@ class DL_Model:
                     for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
-            boo = self.cls['with_n_e_cv1'] or self.cls['with_n_e_ls1']
-            if boo or self.cls['with_n_e_cvl'] or self.cls['with_n_e_dlc']:
+           if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_wav_cv2']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    shp = dtb['wav_1_{}'.format(fmt)].shape
-                    tmp = np.empty((min(poi, batch), 4, shp[1]))
-                    for idx in range(4):
-                        ann = 'wav_{}_{}'.format(idx+1, fmt)
-                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
-                    vec.append(tmp)
-                    del shp, tmp, ann
-
-            boo = self.cls['with_wav_cv1'] or self.cls['with_wav_ls1']
-            if boo or self.cls['with_wav_dlc'] or self.cls['with_wav_cvl']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    for key in ['wav_1', 'wav_2', 'wav_3', 'wav_4']:
-                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
-
-            boo = self.cls['with_oxy_cv1'] or self.cls['with_oxy_ls1']
-            if boo or self.cls['with_oxy_cvl'] or self.cls['with_oxy_dlc']:
+            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_cvl']:
 
                  with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_fft']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['fft_{}'.format(fmt)][ind:ind+batch])
-
             if self.cls['with_fea']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['fea_{}'.format(fmt)][ind:ind+batch])
-
-            if self.cls['with_pca']:
-
-                with h5py.File(self.pth, 'r') as dtb:
-                    vec.append(dtb['pca_{}'.format(fmt)][ind:ind+batch])
 
             with h5py.File(self.pth, 'r') as dtb: yield(vec)
 
@@ -300,7 +233,7 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling2D(pool_size=(1, 8), strides=(1, 4), data_format='channels_first')(mod)
+        mod = AveragePooling2D(pool_size=(1, 8), data_format='channels_first')(mod)
         mod = GlobalAveragePooling2D()(mod)
 
         # Add layers to the model
@@ -373,113 +306,47 @@ class DL_Model:
     # inp refers to the defined input
     # callback refers to the callback managing the dropout rate 
     # arg refers to arguments for layer initalization
-    def add_ENCODE(self, inp, callback, topology, arg):
+    def add_ENCODE(self, inp, callback, arg):
 
-        if topology == 'dense':
+        # Build the autoencoder model
+        enc0 = Dense(inp._keras_shape[1] // 3, **arg)(inp)
+        enc = BatchNormalization()(enc0)
+        enc = PReLU()(enc)
+        enc = AdaptiveDropout(callback.prb, callback)(enc)
+        enc1 = Dense(enc._keras_shape[1] // 3, **arg)(enc)
+        enc = BatchNormalization()(enc1)
+        enc = PReLU()(enc)
+        enc = AdaptiveDropout(callback.prb, callback)(enc)
+        enc2 = Dense(enc._keras_shape[1] // 3, **arg)(enc)
+        enc = BatchNormalization()(enc2)
+        enc = PReLU()(enc)
+        enc = AdaptiveDropout(callback.prb, callback)(enc)
+        enc3 = Dense(enc._keras_shape[1] // 4, **arg)(enc)
+        enc = BatchNormalization()(enc3)
+        enc = PReLU()(enc)
+        enc = AdaptiveDropout(callback.prb, callback)(enc)
 
-            # Build the autoencoder model
-            enc0 = Dense(inp._keras_shape[1] // 3, **arg)(inp)
-            enc = BatchNormalization()(enc0)
-            enc = PReLU()(enc)
-            enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc1 = Dense(enc._keras_shape[1] // 4, **arg)(enc)
-            enc = BatchNormalization()(enc1)
-            enc = PReLU()(enc)
-            enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc2 = Dense(enc._keras_shape[1] // 3, **arg)(enc)
-            enc = BatchNormalization()(enc2)
-            enc = PReLU()(enc)
-            enc = AdaptiveDropout(callback.prb, callback)(enc)
-            enc3 = Dense(enc._keras_shape[1] // 4, **arg)(enc)
-            enc = BatchNormalization()(enc3)
-            enc = PReLU()(enc)
-            enc = AdaptiveDropout(callback.prb, callback)(enc)
+        print('# Latent Space Dimension', enc._keras_shape[1])
 
-            print('# Latent Space Dimension', enc._keras_shape[1])
-
-            dec = Dense(enc2._keras_shape[1], **arg)(enc)
-            dec = BatchNormalization()(dec)
-            dec = PReLU()(dec)
-            dec = AdaptiveDropout(callback.prb, callback)(dec)
-            dec = Dense(enc1._keras_shape[1], **arg)(dec)
-            dec = BatchNormalization()(dec)
-            dec = PReLU()(dec)
-            dec = AdaptiveDropout(callback.prb, callback)(dec)
-            dec = Dense(enc0._keras_shape[1], **arg)(dec)
-            dec = BatchNormalization()(dec)
-            dec = PReLU()(dec)
-            dec = AdaptiveDropout(callback.prb, callback)(dec)
-            arg = {'activation': 'linear', 'name': 'ate_{}'.format(len(self.ate))}
-            dec = Dense(inp._keras_shape[1], kernel_initializer='he_uniform', **arg)(dec)
-
-        if topology == 'convolution':
-
-            # Build the autoencoder model
-            enc = Reshape((inp._keras_shape[1], 1))(inp)
-            enc = Conv1D(32, 70, border_mode='same', **arg)(enc)
-            enc = BatchNormalization()(enc)
-            enc = PReLU()(enc)
-            enc = Dropout(0.1)(enc)
-            enc = MaxPooling1D(pool_size=3)(enc)
-            enc = Conv1D(64, 8, border_mode='same', **arg)(enc)
-            enc = BatchNormalization()(enc)
-            enc = PReLU()(enc)
-            enc = Dropout(0.1)(enc)
-            enc = MaxPooling1D(pool_size=3)(enc)
-
-            dec = Conv1D(64, 8, border_mode='same', **arg)(enc)
-            dec = BatchNormalization()(dec)
-            dec = PReLU()(dec)
-            dec = Dropout(0.1)(dec)
-            dec = UpSampling1D(size=3)(dec)
-            dec = Conv1D(32, 70, border_mode='same', **arg)(dec)
-            dec = BatchNormalization()(dec)
-            dec = PReLU()(dec)
-            dec = Dropout(0.1)(dec)
-            dec = UpSampling1D(size=3)(dec)
-            dec = Conv1D(1, 70, border_mode='same', **arg)(dec)
-            dec = BatchNormalization()(dec)
-            dec = Activation('linear')(dec)
-            arg = {'name': 'ate_{}'.format(len(self.ate))}
-            dec = Reshape((dec._keras_shape[1],), **arg)(dec)
-
-            # Returns the right encoder
-            enc = GlobalAveragePooling1D()(enc)
-            print('# Latent Space Dimension', enc._keras_shape)
+        dec = Dense(enc2._keras_shape[1], **arg)(enc)
+        dec = BatchNormalization()(dec)
+        dec = PReLU()(dec)
+        dec = AdaptiveDropout(callback.prb, callback)(dec)
+        dec = Dense(enc1._keras_shape[1], **arg)(dec)
+        dec = BatchNormalization()(dec)
+        dec = PReLU()(dec)
+        dec = AdaptiveDropout(callback.prb, callback)(dec)
+        dec = Dense(enc0._keras_shape[1], **arg)(dec)
+        dec = BatchNormalization()(dec)
+        dec = PReLU()(dec)
+        dec = AdaptiveDropout(callback.prb, callback)(dec)
+        arg = {'activation': 'linear', 'name': 'ate_{}'.format(len(self.ate))}
+        dec = Dense(inp._keras_shape[1], kernel_initializer='he_uniform', **arg)(dec)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
         self.ate.append(dec)
         self.mrg.append(enc)
-
-    # Adds a 1D-LSTM Channel
-    # inp refers to the defined input
-    # callback refers to the callback managing the dropout rate 
-    # arg refers to arguments for layer initalization
-    def add_LSTM1D(self, inp, callback, arg):
-
-        # Defines the LSTM layer
-        mod = Reshape((3, inp._keras_shape[1] // 3))(inp)
-        mod = LSTM(128, return_sequences=True, **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = LSTM(128, return_sequences=True, **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = LSTM(128, return_sequences=True, **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = LSTM(128, return_sequences=False, **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-
-        # Add model to main model
-        if inp not in self.inp: self.inp.append(inp)
-        self.mrg.append(mod)
 
     # Defines a channel combining CONV and LSTM structures
     # inp refers to the defined input
@@ -505,79 +372,24 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=8, strides=4)(mod)
+        mod = AveragePooling1D(pool_size=8)(mod)
         # Output into LSTM network
-        mod = LSTM(128, return_sequences=True, **arg)(mod)
+        mod = LSTM(64, return_sequences=True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = LSTM(128, return_sequences=True, **arg)(mod)
+        mod = LSTM(64, return_sequences=True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = LSTM(128, return_sequences=True, **arg)(mod)
+        mod = LSTM(64, return_sequences=True, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = LSTM(128, return_sequences=False, **arg)(mod)
+        mod = LSTM(64, return_sequences=False, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-
-        # Add model to main model
-        if inp not in self.inp: self.inp.append(inp)
-        self.mrg.append(mod)
-
-    # Aims at representing both short and long patterns
-    # inp refers to the defined input
-    # callback refers to the callback managing the dropout rate 
-    # arg refers to arguments for layer initalization
-    def add_DUALCV(self, inp, callback, arg):
-
-        # Build the channel for small patterns
-        s_mod = Reshape((inp._keras_shape[1], 1))(inp)
-        s_mod = Conv1D(64, 70, **arg)(s_mod)
-        s_mod = PReLU()(s_mod)
-        s_mod = BatchNormalization()(s_mod)
-        s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = Conv1D(128, 8, **arg)(s_mod)
-        s_mod = PReLU()(s_mod)
-        s_mod = BatchNormalization()(s_mod)
-        s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = Conv1D(128, 8, **arg)(s_mod)
-        s_mod = PReLU()(s_mod)
-        s_mod = BatchNormalization()(s_mod)
-        s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = Conv1D(128, 8, **arg)(s_mod)
-        s_mod = PReLU()(s_mod)
-        s_mod = BatchNormalization()(s_mod)
-        s_mod = AdaptiveDropout(callback.prb, callback)(s_mod)
-        s_mod = AveragePooling1D(pool_size=8, strides=4)(s_mod)
-        s_mod = GlobalAveragePooling1D()(s_mod)
-
-        # Build the channel for longer patterns
-        l_mod = Reshape((inp._keras_shape[1], 1))(inp)
-        l_mod = Conv1D(64, 210, **arg)(l_mod)
-        l_mod = PReLU()(l_mod)
-        l_mod = BatchNormalization()(l_mod)
-        l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = Conv1D(128, 8, **arg)(l_mod)
-        l_mod = PReLU()(l_mod)
-        l_mod = BatchNormalization()(l_mod)
-        l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = Conv1D(128, 8, **arg)(l_mod)
-        l_mod = PReLU()(l_mod)
-        l_mod = BatchNormalization()(l_mod)
-        l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = Conv1D(128, 8, **arg)(l_mod)
-        l_mod = PReLU()(l_mod)
-        l_mod = BatchNormalization()(l_mod)
-        l_mod = AdaptiveDropout(callback.prb, callback)(l_mod)
-        l_mod = AveragePooling1D(pool_size=8, strides=4)(l_mod)
-        l_mod = GlobalAveragePooling1D()(l_mod)
-
-        # Rework through dense network
-        mod = concatenate([s_mod, l_mod])
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -590,15 +402,15 @@ class DL_Model:
     def add_LDENSE(self, inp, callback, arg):
 
         # Build the model
-        mod = Dense(inp._keras_shape[1], **arg)(inp)
+        mod = Dense(inp._keras_shape[1] // 2, **arg)(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 3, **arg)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 3, **arg)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -617,7 +429,7 @@ class DL_Model:
         self.drp = DecreaseDropout(dropout, decrease)
         # Layer arguments
         arg = {'kernel_initializer': 'he_uniform', 
-               # 'kernel_constraint': max_norm(5.0),
+               'kernel_constraint': max_norm(5.0),
                # 'kernel_regularizer': regularizers.l2(1e-3)
               }
 
@@ -648,8 +460,7 @@ class DL_Model:
                 if self.cls['with_eeg_ls1']: self.add_LSTM1D(inp, self.drp, arg)
                 if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp, arg)
                 if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp, arg)
-                if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, 'dense', arg)
-                if self.cls['with_eeg_atc']: self.add_ENCODE(inp, self.drp, 'convolution', arg)
+                if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_tda']:
@@ -665,17 +476,6 @@ class DL_Model:
             if self.cls['with_n_e_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
-            if self.cls['with_wav_cv2']:
-                inp = Input(shape=(4, dtb['wav_1_t'].shape[1]))
-                self.add_CONV2D(inp, self.drp, arg)
-            for key in ['wav_1_t', 'wav_2_t', 'wav_3_t', 'wav_4_t']:
-                inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_wav_cv1']: self.add_CONV1D(inp, self.drp, arg)
-                if self.cls['with_wav_ls1']: self.add_LSTM1D(inp, self.drp, arg)
-                if self.cls['with_wav_dlc']: self.add_DUALCV(inp, self.drp, arg)
-                if self.cls['with_wav_cvl']: self.add_CVLSTM(inp, self.drp, arg)
-
-        with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp, arg)
@@ -683,19 +483,9 @@ class DL_Model:
                 if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp, arg)
                 if self.cls['with_oxy_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
-        if self.cls['with_fft']:
-            with h5py.File(self.pth, 'r') as dtb:
-                inp = Input(shape=(dtb['fft_t'].shape[1], ))
-                self.add_LDENSE(inp, self.drp, arg)
-
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
                 inp = Input(shape=(dtb['fea_t'].shape[1], ))
-                self.add_LDENSE(inp, self.drp, arg)
-
-        if self.cls['with_pca']:
-            with h5py.File(self.pth, 'r') as dtb:
-                inp = Input(shape=(dtb['pca_t'].shape[1], ))
                 self.add_LDENSE(inp, self.drp, arg)
 
         # Gather all the model in one dense network
@@ -732,7 +522,7 @@ class DL_Model:
         model = self.build(dropout, decrease, n_tail)
 
         # Defines the losses depending on the case
-        if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']: 
+        if self.cls['with_eeg_atd']: 
             model = [model] + self.ate
             loss = {'output': 'categorical_crossentropy', 
                     'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
@@ -748,16 +538,17 @@ class DL_Model:
 
         # Implements the model and its callbacks
         arg = {'patience': patience, 'verbose': 0}
-        early = EarlyStopping(monitor='val_loss', min_delta=1e-5, **arg)
+        early = EarlyStopping(monitor='val_output_acc', min_delta=1e-5, **arg)
         arg = {'save_best_only': True, 'save_weights_only': True}
-        check = ModelCheckpoint(self.out, monitor='val_loss', **arg)
+        check = ModelCheckpoint(self.out, monitor='val_output_acc', **arg)
 
         # Implements the data shuffler
         shuff = DataShuffler(self.pth)
 
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=model)
-        arg = {'loss': loss, 'optimizer': 'adadelta'}
+        optim = Adadelta(clip_norm=1.0)
+        arg = {'loss': loss, 'optimizer': optim}
         model.compile(metrics=metrics, loss_weights=loss_weights, **arg)
         print('# Model Compiled')
         
@@ -779,14 +570,14 @@ class DL_Model:
         with open(self.his, 'rb') as raw: dic = pickle.load(raw)
 
         # Generates the plot
-        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+        if self.cls['with_eeg_atd']: 
             plt.figure(figsize=(18,8))
         else:
             plt.figure(figsize=(18,4))
         
         fig = gd.GridSpec(2,2)
 
-        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+        if self.cls['with_eeg_atd']: 
             plt.subplot(fig[0,0])
             acc, val = dic['output_acc'], dic['val_output_acc']
         else:
@@ -801,7 +592,7 @@ class DL_Model:
         plt.xlabel('Epochs')
         plt.ylabel('Accuracy')
 
-        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+        if self.cls['with_eeg_atd']: 
             plt.subplot(fig[0,1])
             plt.title('Score Evolution - AutoEncoder')
             color_t, color_e = ['orange', 'lightblue', 'red', 'grey'], ['blue', 'yellow', 'green', 'black']
@@ -814,7 +605,7 @@ class DL_Model:
             plt.xlabel('Epochs')
             plt.ylabel('MAE')
 
-        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+        if self.cls['with_eeg_atd']: 
             plt.subplot(fig[1,:])
         else: 
             plt.subplot(fig[:,1])
@@ -823,7 +614,7 @@ class DL_Model:
         plt.plot(dic['loss'], c='orange', label='Train Loss')
         plt.plot(dic['val_loss'], c='grey', label='Test Loss')
 
-        if self.cls['with_eeg_atd'] or self.cls['with_eeg_atc']: 
+        if self.cls['with_eeg_atd']: 
             plt.plot(dic['output_loss'], c='red', label='Train Classification Loss')
             plt.plot(dic['val_output_loss'], c='darkblue', label='Test Classification Loss')
             color_t, color_e = ['orange', 'lightblue', 'red', 'grey'], ['blue', 'yellow', 'green', 'black']
@@ -850,7 +641,7 @@ class DL_Model:
         model = self.build(0.0, 100, n_tail)
 
         # Defines the losses depending on the case
-        if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']: 
+        if self.cls['with_eeg_atd']: 
             model = [model] + self.ate
             loss = {'output': 'categorical_crossentropy', 
                     'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
@@ -884,7 +675,7 @@ class DL_Model:
         # Defines the size of the validation set
         if fmt == 'e': sze = len(self.l_e)
         if fmt == 'v': 
-            with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_t'].shape[0]
+            with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_v'].shape[0]
 
         # Defines the tools for prediction
         gen, ind, prd = self.data_val(fmt, batch=batch), 0, []
@@ -895,7 +686,7 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                if self.cls['with_eeg_atc'] or self.cls['with_eeg_atd']:
+                if self.cls['with_eeg_atd']:
                     prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)[0]]
                 else:
                     prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)]

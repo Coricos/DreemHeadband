@@ -155,35 +155,10 @@ class Database:
                     if dtb.get(new): del dtb[new]
                     dtb.create_dataset(new, data=res[:,1,:])
 
-    # Adds the wavelet transformations
-    def add_wavelets(self):
-
-        for pth in [self.train_out, self.valid_out]:
-
-            res = []
-            # Iterates over the keys
-            for key in tqdm.tqdm(range(1, 5)):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: 
-                    val = dtb['eeg_{}'.format(key)].value
-                    
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                res = np.asarray(pol.map(compute_wavelet, val))
-                pol.close()
-                pol.join()
-
-                # Serialize the output
-                with h5py.File(pth, 'a') as dtb:
-                    key = 'wav_{}'.format(key)
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=res)
-
     # Build the features for each channel
     def add_features(self):
 
-        lst = ['norm_acc', 'norm_eeg', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        lst = ['norm_acc', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
         for pth in [self.train_out, self.valid_out]:
 
@@ -203,12 +178,9 @@ class Database:
             with h5py.File(pth, 'a') as dtb:
                 if dtb.get('fea'): del dtb['fea']
                 dtb.create_dataset('fea', data=np.hstack(tuple(res)))
+                del res
 
-    # Add the PCA construction of all the vectors
-    # n_components refers to the amount of components to extract
-    def add_pca(self, n_components=10):
-
-        lst = ['norm_acc', 'norm_eeg', 'po_r', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+        # Build the features relative to their PCA reduction
         train_pca, valid_pca = [], []
 
         # Iterates over the keys
@@ -229,36 +201,19 @@ class Database:
 
         # Serialization for the training results
         with h5py.File(self.train_out, 'a') as dtb:
-            if dtb.get('pca'): del dtb['pca']
-            dtb.create_dataset('pca', data=np.hstack(tuple(train_pca)))
+            fea, pca = dtb['fea'].value, np.hstack(tuple(train_pca))
+            del dtb['fea'].value
+            dtb.create_dataset('fea', data=np.hstack((fea, pca)))
+            del fea, pca
         # Serialization for the validation results
         with h5py.File(self.valid_out, 'a') as dtb:
-            if dtb.get('pca'): del dtb['pca']
-            dtb.create_dataset('pca', data=np.hstack(tuple(valid_pca)))
+            fea, pca = dtb['fea'].value, np.hstack(tuple(valid_pca))
+            del dtb['fea'].value
+            dtb.create_dataset('fea', data=np.hstack((fea, pca)))
+            del fea, pca
 
-    # Apply the chaos theory features on the different vectors
-    def add_chaos(self):
-
-        lst = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
-
-        for pth in [self.train_out, self.valid_out]:
-
-            res = []
-            # Iterates over the keys
-            for key in tqdm.tqdm(lst):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                res.append(np.asarray(pol.map(compute_chaos, val)))
-                pol.close()
-                pol.join()
-
-            # Serialize the output
-            with h5py.File(pth, 'a') as dtb:
-                if dtb.get('chaos'): del dtb['chaos']
-                dtb.create_dataset('chaos', data=np.hstack(tuple(res)))
+        # Memory efficiency
+        del train_pca, valid_pca, lst
 
     # Rescale the datasets considering both training and validation
     def rescale(self):
