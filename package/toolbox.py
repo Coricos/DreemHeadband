@@ -146,8 +146,8 @@ def interpolate(val, size=2000):
         return f(o)
 
 # Compute the fft components
-# val refers to a 1D array
-def compute_spectrogram(val):
+# vec refers to a 1D array
+def compute_spectrogram(vec):
 
     _,_,S = sg.spectrogram(vec, fs=70.0, return_onesided=True)
     m_x = np.max(S[1:15,:], axis=0)
