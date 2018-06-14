@@ -160,11 +160,16 @@ def compute_spectrogram(vec):
 def compute_chaos(val):
 
     res = []
-    res.append(nolds.sampen(val))
-    res.append(nolds.dfa(val))
-    res.append(nolds.hurst_rs(val))
-    res.append(nolds.lyap_r(val))
-    res += list(nolds.lyap_e(val))
+    try: res.append(nolds.sampen(val))
+    except: res.append(0.0)
+    try: res.append(nolds.dfa(val))
+    except: res.append(0.0)
+    try: res.append(nolds.hurst_rs(val))
+    except: res.append(0.0)
+    try: res.append(nolds.lyap_r(val))
+    except: res.append(0.0)
+    try: res += list(nolds.lyap_e(val))
+    except: res += list(np.zeros(4))
 
     return np.asarray(res)
 
