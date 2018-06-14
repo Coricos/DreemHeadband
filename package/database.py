@@ -29,7 +29,7 @@ class Database:
     # Apply filtering and interpolation on the samples
     # sampling_freq refers to the desired sampling frequency
     # out_storage refers to where to put the newly build datasets
-    def build(self, sampling_freq=100, out_storage='/mnt/Storage'):
+    def build(self, sampling_freq=50, out_storage='/mnt/Storage'):
 
         # Defines the parameters for each key
         fil = {'po_r': True, 'po_ir': True,
@@ -363,7 +363,7 @@ class Database:
     # Defines both training and testing instances
     # output refers to where to put the data
     # test refers to the test_size
-    def preprocess(self, output, test=0.3):
+    def preprocess(self, output, test=0.1):
 
         # Split the training set into both training and testing
         with h5py.File(self.train_sca, 'r') as dtb:
