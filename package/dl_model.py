@@ -93,14 +93,14 @@ class DL_Model:
                     for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
-           if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
+            if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_oxy_cv1'] or self.cls['with_oxy_cvl']:
 
-                 with h5py.File(self.pth, 'r') as dtb:
+                with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
@@ -187,14 +187,14 @@ class DL_Model:
                     for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
-           if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
+            if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_oxy_cv1'] or self.cls['with_oxy_cvl']:
 
-                 with h5py.File(self.pth, 'r') as dtb:
+                with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
