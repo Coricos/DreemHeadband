@@ -156,7 +156,7 @@ class Database:
                     dtb.create_dataset(new, data=res[:,1,:])
 
     # Build the features for each channel
-    def add_features(self, n_components=10):
+    def add_features(self, n_components=5):
 
         lst = ['norm_acc', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
@@ -202,13 +202,13 @@ class Database:
         # Serialization for the training results
         with h5py.File(self.train_out, 'a') as dtb:
             fea, pca = dtb['fea'].value, np.hstack(tuple(train_pca))
-            del dtb['fea'].value
+            del dtb['fea']
             dtb.create_dataset('fea', data=np.hstack((fea, pca)))
             del fea, pca
         # Serialization for the validation results
         with h5py.File(self.valid_out, 'a') as dtb:
             fea, pca = dtb['fea'].value, np.hstack(tuple(valid_pca))
-            del dtb['fea'].value
+            del dtb['fea']
             dtb.create_dataset('fea', data=np.hstack((fea, pca)))
             del fea, pca
 
