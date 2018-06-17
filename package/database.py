@@ -156,29 +156,29 @@ class Database:
                     dtb.create_dataset(new, data=res[:,1,:])
 
     # Build the features for each channel
-    def add_features(self):
+    def add_features(self, n_components=10):
 
         lst = ['norm_acc', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
 
-        for pth in [self.train_out, self.valid_out]:
+        # for pth in [self.train_out, self.valid_out]:
 
-            res = []
-            # Iterates over the keys
-            for key in tqdm.tqdm(lst):
+        #     res = []
+        #     # Iterates over the keys
+        #     for key in tqdm.tqdm(lst):
 
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                res.append(np.asarray(pol.map(compute_features, val)))
-                pol.close()
-                pol.join()
+        #         # Load the corresponding values
+        #         with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+        #         # Multiprocessed computation
+        #         pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        #         res.append(np.asarray(pol.map(compute_features, val)))
+        #         pol.close()
+        #         pol.join()
 
-            # Serialize the output
-            with h5py.File(pth, 'a') as dtb:
-                if dtb.get('fea'): del dtb['fea']
-                dtb.create_dataset('fea', data=np.hstack(tuple(res)))
-                del res
+        #     # Serialize the output
+        #     with h5py.File(pth, 'a') as dtb:
+        #         if dtb.get('fea'): del dtb['fea']
+        #         dtb.create_dataset('fea', data=np.hstack(tuple(res)))
+        #         del res
 
         # Build the features relative to their PCA reduction
         train_pca, valid_pca = [], []
