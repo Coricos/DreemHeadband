@@ -26,10 +26,10 @@ class ML_Model:
             # Define the specific anomaly issue
             self.n_c = len(np.unique(list(self.l_t) + list(self.l_e)))
             # Defines the vectors
-            self.train = np.hstack((dtb['pca_t'].value, dtb['fea_t'].value))
-            self.valid = np.hstack((dtb['pca_e'].value, dtb['fea_e'].value))
-            self.evals = np.hstack((dtb['pca_v'].value, dtb['fea_v'].value))
-
+            self.train = dtb['fea_t'].value
+            self.valid = dtb['fea_e'].value
+            self.evals = dtb['fea_v'].value
+            
         # Defines the different folds on which to apply the Hyperband
         self.folds = KFold(n_splits=5, shuffle=True)
 
