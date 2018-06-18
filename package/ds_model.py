@@ -32,7 +32,7 @@ class DS_Model:
             self.n_c = len(np.unique(self.l_t))
         # Load the needed data
         with h5py.File(self.pth, 'r') as dtb:
-            self.train = [dtb['eeg_{}_t'.format(self.cls)].value, dtb['eeg_{}_t'.format(self.cls)].value]
+            self.train = dtb['eeg_{}_t'.format(self.cls)].value
             self.valid = dtb['eeg_{}_e'.format(self.cls)].value
             self.evals = dtb['eeg_{}_v'.format(self.cls)].value
             self.sfreq = self.train.shape[1] // 30
