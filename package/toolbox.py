@@ -393,9 +393,9 @@ def generate_channels(turn_on):
            'with_eeg_cvl': False,
            'with_eeg_tda': False,
            'with_n_e_cv1': False,
-           'with_n_e_ls1': False,
+           'with_n_e_cvl': False,
            'with_oxy_cv1': False,
-           'with_oxy_ls1': False,
+           'with_oxy_cvl': False,
            'with_fea': True,
            }
     

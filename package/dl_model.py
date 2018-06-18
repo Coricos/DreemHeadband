@@ -53,11 +53,11 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['acc_x_{}'.format(fmt)].shape
                     tmp = np.empty((batch, 3, shp[1]))
-                    for idx, key in zip(range(3), ['x', 'y', 'z']):
-                        ann = 'acc_{}_{}'.format(key, fmt)
-                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                    for idx, mkr in zip(range(3), ['x', 'y', 'z']):
+                        key = 'acc_{}_{}'.format(mkr, fmt)
+                        tmp[:,idx,:] = dtb[key][ind:ind+batch]
                     vec.append(tmp)
-                    del shp, tmp, ann
+                    del shp, tmp, key
 
             if self.cls['with_acc_cv1'] or self.cls['with_acc_cvl']:
 
@@ -76,10 +76,10 @@ class DL_Model:
                     shp = dtb['eeg_1_{}'.format(fmt)].shape
                     tmp = np.empty((batch, 4, shp[1]))
                     for idx in range(4):
-                        ann = 'eeg_{}_{}'.format(idx+1, fmt)
-                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                        key = 'eeg_{}_{}'.format(idx+1, fmt)
+                        tmp[:,idx,:] = dtb[key][ind:ind+batch]
                     vec.append(tmp)
-                    del shp, tmp, ann
+                    del shp, tmp, key
 
             if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl']:
 
@@ -147,11 +147,11 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     shp = dtb['acc_x_{}'.format(fmt)].shape
                     tmp = np.empty((min(poi, batch), 3, shp[1]))
-                    for idx, key in zip(range(3), ['x', 'y', 'z']):
-                        ann = 'acc_{}_{}'.format(key, fmt)
-                        tmp[:,idx,:] = dtb[ann][ind:ind+batch]
+                    for idx, mkr in zip(range(3), ['x', 'y', 'z']):
+                        key = 'acc_{}_{}'.format(mkr, fmt)
+                        tmp[:,idx,:] = dtb[key][ind:ind+batch]
                     vec.append(tmp)
-                    del shp, tmp, ann
+                    del shp, tmp, key
 
             if self.cls['with_acc_cv1'] or self.cls['with_acc_cvl']:
 
@@ -203,7 +203,7 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['fea_{}'.format(fmt)][ind:ind+batch])
 
-            with h5py.File(self.pth, 'r') as dtb: yield(vec)
+            yield(vec)
 
             ind += batch
             poi -= batch
@@ -440,15 +440,12 @@ class DL_Model:
             for key in ['acc_x_t', 'acc_y_t', 'acc_z_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_acc_cv1']: self.add_CONV1D(inp, self.drp, arg)
-                if self.cls['with_acc_ls1']: self.add_LSTM1D(inp, self.drp, arg)
                 if self.cls['with_acc_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_acc_t'].shape[1], ))
             if self.cls['with_n_a_cv1']: self.add_LSTM1D(inp, self.drp, arg)
-            if self.cls['with_n_a_ls1']: self.add_CONV1D(inp, self.drp, arg)
             if self.cls['with_n_a_cvl']: self.add_CVLSTM(inp, self.drp, arg)
-            if self.cls['with_n_a_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_cv2']:
@@ -457,8 +454,6 @@ class DL_Model:
             for key in ['eeg_1_t', 'eeg_2_t', 'eeg_3_t', 'eeg_4_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, self.drp, arg)
-                if self.cls['with_eeg_ls1']: self.add_LSTM1D(inp, self.drp, arg)
-                if self.cls['with_eeg_dlc']: self.add_DUALCV(inp, self.drp, arg)
                 if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp, arg)
                 if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, arg)
 
@@ -471,17 +466,13 @@ class DL_Model:
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_eeg_t'].shape[1], ))
             if self.cls['with_n_e_cv1']: self.add_LSTM1D(inp, self.drp, arg)
-            if self.cls['with_n_e_ls1']: self.add_CONV1D(inp, self.drp, arg)
             if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp, arg)
-            if self.cls['with_n_e_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             for key in ['po_r_t', 'po_ir_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp, arg)
-                if self.cls['with_oxy_ls1']: self.add_LSTM1D(inp, self.drp, arg)
                 if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp, arg)
-                if self.cls['with_oxy_dlc']: self.add_DUALCV(inp, self.drp, arg)
 
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
