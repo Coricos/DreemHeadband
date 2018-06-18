@@ -423,3 +423,29 @@ def remove_out_with_mean(arr):
         arr[ind,idx] = mea
         
     return arr
+
+# Defines features out of wavelet decomposition
+# vec refers to a 1D array
+def compute_band_features(vec):
+    
+    cA_5, cD_5, cD_4, cD_3, _, _ = pywt.wavedec(vec, 'db4', level=5)
+    
+    res = []
+    
+    for sig in [cA_5, cD_5, cD_4, cD_3]:
+        res += [np.min(sig), np.max(sig), np.sum(np.square(sig)), np.mean(sig), np.std(sig)]
+        
+    sgn = np.sign(vec)
+    sgn = np.split(sgn, np.where(np.diff(sgn) != 0)[0]+1)
+    sgn = np.asarray([len(ele) for ele in sgn])
+    res += [np.mean(sgn), np.std(sgn)]
+    
+    sgn = np.asarray([0] + list(sgn))
+    ine = 0.0
+    for idx in range(len(sgn)-1):
+        ine += (sgn[idx+1] - sgn[idx])*np.trapz(np.abs(vec[np.sum(sgn[:idx]):np.sum(sgn[:idx+1])]))
+    res.append(ine)
+
+    del sgn, ine, cA_5, cD_5, cD_4, cD_3
+        
+    return np.asarray(res)
