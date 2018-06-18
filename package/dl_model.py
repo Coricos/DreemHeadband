@@ -538,7 +538,7 @@ class DL_Model:
 
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=model)
-        optim = Adadelta(clip_norm=1.0)
+        optim = Adadelta(clipnorm=1.0)
         arg = {'loss': loss, 'optimizer': optim}
         model.compile(metrics=metrics, loss_weights=loss_weights, **arg)
         print('# Model Compiled')
