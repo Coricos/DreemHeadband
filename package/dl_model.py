@@ -114,7 +114,7 @@ class DL_Model:
                 # Defines the labels
                 lab = dtb['lab_{}'.format(fmt)][ind:ind+batch]
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
-                if self.cls['with_eeg_atc']:
+                if self.cls['with_eeg_atd']:
                     lab = [lab]
                     for i in range(1, 5): lab.append(dtb['eeg_{}_{}'.format(i, fmt)][ind:ind+batch])
             
