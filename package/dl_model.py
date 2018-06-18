@@ -452,7 +452,7 @@ class DL_Model:
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_acc_t'].shape[1], ))
-            if self.cls['with_n_a_cv1']: self.add_LSTM1D(inp, self.drp, arg)
+            if self.cls['with_n_a_cv1']: self.add_CONV1D(inp, self.drp, arg)
             if self.cls['with_n_a_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
@@ -473,7 +473,7 @@ class DL_Model:
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_eeg_t'].shape[1], ))
-            if self.cls['with_n_e_cv1']: self.add_LSTM1D(inp, self.drp, arg)
+            if self.cls['with_n_e_cv1']: self.add_CONV1D(inp, self.drp, arg)
             if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
