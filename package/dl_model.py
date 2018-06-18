@@ -530,16 +530,18 @@ class DL_Model:
                             'ate_2': 0.25, 'ate_3': 0.25}
             metrics = {'output': 'accuracy', 'ate_0': 'mae', 'ate_1': 'mae', 
                        'ate_2': 'mae', 'ate_3': 'mae'}
+            monitor = 'val_output_acc'
         else: 
             loss = 'categorical_crossentropy'
             loss_weights = None
             metrics = ['accuracy']
+            monitor = 'val_acc'
 
         # Implements the model and its callbacks
         arg = {'patience': patience, 'verbose': 0}
-        early = EarlyStopping(monitor='val_output_acc', min_delta=1e-5, **arg)
+        early = EarlyStopping(monitor=monitor, min_delta=1e-5, **arg)
         arg = {'save_best_only': True, 'save_weights_only': True}
-        check = ModelCheckpoint(self.out, monitor='val_output_acc', **arg)
+        check = ModelCheckpoint(self.out, monitor=monitor, **arg)
 
         # Implements the data shuffler
         shuff = DataShuffler(self.pth)
