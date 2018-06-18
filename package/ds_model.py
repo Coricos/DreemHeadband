@@ -43,7 +43,7 @@ class DS_Model:
     def build_spatial(self, inp, drp):
 
         # Layers arguments
-        arg = {'kernel_initializer': 'he_uniform'}
+        arg = {'kernel_initializer': 'he_normal'}
 
         # Build the channel aimed at small patterns
         s_mod = Reshape((inp._keras_shape[1], 1))(inp)
@@ -96,7 +96,7 @@ class DS_Model:
     # batch refers to the batch_size
     # ini_dropout refers to the initialization of the annealing dropout
     # decrease refers to the amount of epochs before annealation of the dropout
-    def train_spatial(self, epochs=200, batch=128, ini_dropout=0.5, decrease=200):
+    def train_spatial(self, epochs=200, batch=128, ini_dropout=0.5, decrease=100):
 
         # Prepares the data, which will be balanced through oversampling
         ros = RandomOverSampler()
@@ -113,7 +113,7 @@ class DS_Model:
 
         # Launch the learning process
         model = Model(inputs=inp, outputs=model)
-        optim = Adam(lr=1e-4, clipnorm=0.5)
+        optim = Adadelta(clipnorm=1.0)
         model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer=optim)
         model.fit(vec, np_utils.to_categorical(lab), verbose=1, epochs=epochs,
                   callbacks=[drp, ear, chk], shuffle=True, validation_split=0.0,
@@ -128,8 +128,7 @@ class DS_Model:
     def build_temporal(self, inp, drp):
 
         # Layers argument
-        arg = {'kernel_initializer': 'he_uniform',
-               'kernel_constraint': max_norm(5.0),
+        arg = {'kernel_initializer': 'he_normal',
                'kernel_regularizer': regularizers.l2(1e-3)}
 
         # Load the spatial model
@@ -137,7 +136,6 @@ class DS_Model:
         space = Model(inputs=inp, outputs=space)
         space.load_weights(self.spc)
         space = Model(inputs=space.input, outputs=space.layers[-3].output)
-        for layer in space.layers: layer.trainable = False
         
         # Intialize the new model
         model = Reshape((inp._keras_shape[1], 1))(inp)
@@ -169,7 +167,11 @@ class DS_Model:
     # batch refers to the batch_size
     # ini_dropout refers to the initialization of the annealing dropout
     # decrease refers to the amount of epochs before annealation of the dropout
-    def train_temporal(self, epochs=200, batch=32, ini_dropout=0.5, decrease=100):
+    def train_temporal(self, epochs=200, batch=32, ini_dropout=0.5, decrease=50):
+
+        # Prepares the data, which will be balanced through oversampling
+        ros = RandomOverSampler()
+        vec, lab = shuffle(*ros.fit_sample(self.train, self.l_t))
 
         # Layers arguments
         drp = DecreaseDropout(ini_dropout, decrease)
@@ -182,7 +184,7 @@ class DS_Model:
 
         # Launch the learning process
         model = Model(inputs=inp, outputs=model)
-        optim = Adam(lr=1e-4, clipnorm=0.25)
+        optim = Adam(lr=1e-4, clipnorm=1.0)
         model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer=optim)
         his = model.fit(self.train, np_utils.to_categorical(self.l_t), verbose=1, epochs=epochs,
                         callbacks=[drp, ear, chk], validation_data=(self.valid, np_utils.to_categorical(self.l_e)),
