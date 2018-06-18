@@ -45,6 +45,7 @@ if __name__ == '__main__':
     dic = {
            'with_acc_cv2': prs.acc_cv2 == 'T',
            'with_acc_cv1': prs.acc_cv1 == 'T',
+           'with_acc_cvl': prs.acc_cvl == 'T',
            'with_n_a_cv1': prs.n_a_cv1 == 'T',
            'with_n_a_cvl': prs.n_a_cvl == 'T',
            'with_eeg_cv2': prs.eeg_cv2 == 'T',
