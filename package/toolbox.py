@@ -402,3 +402,18 @@ def generate_channels(turn_on):
     for key in turn_on: dic[key] = True
     
     return dic
+
+# Aims at filtering the NaN and replace them with mean values
+# arr refers to a 2D numpy array
+def remove_nan_with_mean(arr):
+    
+    col = np.unique(np.where(np.isnan(arr))[1])
+    
+    for idx in col:
+        mea = np.nanmean(arr[:,idx])
+        print(idx, mea)
+        ind = np.where(np.isnan(arr[:,idx]))[0]
+        print(ind)
+        arr[ind,idx] = mea
+        
+    return arr
