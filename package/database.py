@@ -328,19 +328,19 @@ class Database:
             for pth in [self.train_sca, self.valid_sca]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
-                    mms.partial_fit(remove_nan_with_mean(dtb[key].value))
+                    mms.partial_fit(remove_out_with_mean(dtb[key].value))
 
             for pth in [self.train_sca, self.valid_sca]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
-                    sts.partial_fit(mms.transform(remove_nan_with_mean(dtb[key].value)))
+                    sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
 
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
             for pth in [self.train_sca, self.valid_sca]:
                 # Transformation for both training and validation
                 with h5py.File(pth, 'a') as dtb:
-                    dtb[key][...] = pip.transform(remove_nan_with_mean(dtb[key].value))
+                    dtb[key][...] = pip.transform(remove_out_with_mean(dtb[key].value))
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database

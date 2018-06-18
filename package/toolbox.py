@@ -405,15 +405,22 @@ def generate_channels(turn_on):
 
 # Aims at filtering the NaN and replace them with mean values
 # arr refers to a 2D numpy array
-def remove_nan_with_mean(arr):
+def remove_out_with_mean(arr):
     
     col = np.unique(np.where(np.isnan(arr))[1])
     
     for idx in col:
         mea = np.nanmean(arr[:,idx])
-        print(idx, mea)
         ind = np.where(np.isnan(arr[:,idx]))[0]
-        print(ind)
         arr[ind,idx] = mea
+    
+    col = np.unique(np.where(np.invert(np.isfinite(fea)))[1])
+    
+    for idx in col:
+        tmp = arr[:,idx]
+        mea = np.nanmean(tmp[np.where(np.isfinite(tmp))[0]])
+        print(mea)
+        ind = np.where(np.invert(np.isfinite(tmp)))[0]
+        arr[ind,idx] = mea   
         
     return arr
