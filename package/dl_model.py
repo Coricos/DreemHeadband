@@ -81,7 +81,7 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, key
 
-            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl']:
+            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl'] or self.cls['with_eeg_atd']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
@@ -175,7 +175,7 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl']:
+            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl'] or self.cls['with_eeg_atd']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
