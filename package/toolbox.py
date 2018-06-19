@@ -322,19 +322,19 @@ def compute_features(val):
         for per in [25, 50, 75]: 
             res.append(np.percentile(coe, per))
 
-        cA_5, cD_5, cD_4, cD_3, _, _ = pywt.wavedec(vec, 'db4', level=5)
+        cA_5, cD_5, cD_4, cD_3, _, _ = pywt.wavedec(val, 'db4', level=5)
     
         for sig in [cA_5, cD_5, cD_4, cD_3]:
             res += [np.min(sig), np.max(sig), np.sum(np.square(sig)), np.mean(sig), np.std(sig)]
             
-        sgn = np.sign(vec)
+        sgn = np.sign(val)
         sgn = np.split(sgn, np.where(np.diff(sgn) != 0)[0]+1)
         sgn = np.asarray([len(ele) for ele in sgn])
         res += [np.nanmean(sgn), np.std(sgn)]
         
         sgn, ine = np.asarray([0] + list(sgn)), 0.0
         for idx in range(len(sgn)-1):
-            ine += (sgn[idx+1] - sgn[idx])*np.trapz(np.abs(vec[np.sum(sgn[:idx]):np.sum(sgn[:idx+1])]))
+            ine += (sgn[idx+1] - sgn[idx])*np.trapz(np.abs(val[np.sum(sgn[:idx]):np.sum(sgn[:idx+1])]))
         res.append(ine)
 
         return res
@@ -343,8 +343,9 @@ def compute_features(val):
     def spectrogram(val):
 
         res = []
+        f_s = len(val)/30
 
-        f,_,S = sg.spectrogram(val, fs=len(val) / 30, return_onesided=True)
+        f,_,S = sg.spectrogram(val, fs=f_s, return_onesided=True)
         res += list(f[S.argmax(axis=0)])
         res += list(np.max(S, axis=0))
         psd = np.sum(S, axis=0)
@@ -353,7 +354,7 @@ def compute_features(val):
         res.append(np.std(psd))
         res.append(entropy(psd))
 
-        f,_,Z = sg.stft(vec, fs=50.0, window='hamming', nperseg=250, noverlap=0.7*250)
+        f,_,Z = sg.stft(val, fs=f_s, window='hamming', nperseg=int(5*f_s), noverlap=int(0.7*5*f_s))
         Z = np.abs(Z.T)
         res += list(f[Z.argmax(axis=1)])
         res += list(np.max(Z, axis=1))
