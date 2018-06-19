@@ -216,35 +216,6 @@ class Database:
         # Memory efficiency
         del train_pca, valid_pca, lst
 
-    # Build the paper features for each EEG channel
-    def add_paper_features(self):
-
-        lst = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
-
-        for pth in [self.train_out, self.valid_out]:
-
-            res = []
-            # Iterates over the keys
-            for key in tqdm.tqdm(lst):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                res.append(np.asarray(pol.map(compute_band_features, val)))
-                pol.close()
-                pol.join()
-
-            # Build the entire feature array
-            res = np.hstack(tuple(res))
-
-            # Serialize the output
-            with h5py.File(pth, 'a') as dtb:
-                fea = dtb['fea'].value
-                del dtb['fea']
-                dtb.create_dataset('fea', data=np.hstack((fea, res)))
-                del res, fea
-
     # Rescale the datasets considering both training and validation
     def rescale(self):
 

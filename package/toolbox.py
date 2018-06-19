@@ -145,16 +145,6 @@ def interpolate(val, size=2000):
         f = interp1d(x, val, kind='cubic')
         return f(o)
 
-# Compute the fft components
-# vec refers to a 1D array
-def compute_spectrogram(vec):
-
-    _,_,S = sg.spectrogram(vec, fs=70.0, return_onesided=True)
-    m_x = np.max(S[1:15,:], axis=0)
-    m_n = np.mean(S[1:15,:], axis=1)
-
-    return np.hstack((m_x, m_n))
-
 # Compute features related to the chaos theory
 # val refers to a 1D array
 def compute_chaos(val):
@@ -264,14 +254,6 @@ def reset_mean(vec):
 
     return StandardScaler(with_std=False).fit_transform(vec.reshape(-1,1)).ravel()
 
-# Compute the wavelet spectrum of the signal
-# vec refers to a 1D array
-def compute_wavelet(vec):
-
-    coe,_ = pywt.cwt(vec, np.arange(1, 64), 'cmor', 30)
-    
-    return (np.square(np.abs(coe))).mean(axis=0)
-
 # Compute the Betti curves of a signal
 # vec refers to a 1D array
 def compute_betti_curves(vec):
@@ -282,19 +264,6 @@ def compute_betti_curves(vec):
     del fil
     
     return np.vstack((v,w))
-
-# Defines the most persistent components
-# vec refers to a 1D array
-# n_components refers to the amount to components to extract
-def persistent_components(vec, n_components=5):
-
-    fil = Levels(vec)
-
-    try: 
-        ldc = fil.landscapes(nb_landscapes=n_components)
-        return np.asarray([np.trapz(ele) for ele in ldc]).flatten()
-    except: 
-        return np.zeros(2*n_components)
 
 # Defines the feature construction pipeline
 # val refers to a 1D array
@@ -325,55 +294,106 @@ def compute_features(val):
 
         return ent
 
+    # Defines the whole fourier features
+    def fourier(val, n_features=25):
+
+        res = []
+
+        fft = np.abs(np.fft.rfft(val))
+        for per in [25, 50, 75]: res.append(np.percentile(fft, per))
+        f,s = sg.periodogram(val, fs=len(val) / 30)
+        res.append(f[s.argmax()])
+        res.append(np.max(s))
+        res.append(np.sum(s))
+
+        return res
+
+    # Defines the wavelet features
+    def wavelet(val):
+
+        res = []
+
+        c,_ = pywt.cwt(val, np.arange(1, 32), 'cmor', 30)
+        coe = (np.square(np.abs(c))).mean(axis=0)
+        res.append(np.trapz(coe))
+        res.append(np.mean(coe))
+        res.append(np.std(coe))
+        res.append(entropy(coe))
+        for per in [25, 50, 75]: 
+            res.append(np.percentile(coe, per))
+
+        cA_5, cD_5, cD_4, cD_3, _, _ = pywt.wavedec(vec, 'db4', level=5)
+    
+        for sig in [cA_5, cD_5, cD_4, cD_3]:
+            res += [np.min(sig), np.max(sig), np.sum(np.square(sig)), np.mean(sig), np.std(sig)]
+            
+        sgn = np.sign(vec)
+        sgn = np.split(sgn, np.where(np.diff(sgn) != 0)[0]+1)
+        sgn = np.asarray([len(ele) for ele in sgn])
+        res += [np.nanmean(sgn), np.std(sgn)]
+        
+        sgn, ine = np.asarray([0] + list(sgn)), 0.0
+        for idx in range(len(sgn)-1):
+            ine += (sgn[idx+1] - sgn[idx])*np.trapz(np.abs(vec[np.sum(sgn[:idx]):np.sum(sgn[:idx+1])]))
+        res.append(ine)
+
+        return res
+
+    # Compute the spectrogram features
+    def spectrogram(val):
+
+        res = []
+
+        f,_,S = sg.spectrogram(val, fs=len(val) / 30, return_onesided=True)
+        res += list(f[S.argmax(axis=0)])
+        res += list(np.max(S, axis=0))
+        psd = np.sum(S, axis=0)
+        res += list(psd)
+        res.append(np.mean(psd))
+        res.append(np.std(psd))
+        res.append(entropy(psd))
+
+        f,_,Z = sg.stft(vec, fs=50.0, window='hamming', nperseg=250, noverlap=0.7*250)
+        Z = np.abs(Z.T)
+        res += list(f[Z.argmax(axis=1)])
+        res += list(np.max(Z, axis=1))
+        psd = np.sum(Z, axis=1)
+        res += list(psd)
+        res.append(np.mean(psd))
+        res.append(np.std(psd))
+        res.append(entropy(psd))
+
+        return res
+
     res = []
+
     # Build the feature vector
     res.append(np.mean(val))
     res.append(np.std(val))
     res.append(min(val))
     res.append(max(val))
+
     # Frequential features
-    fft = np.abs(np.fft.rfft(val))
-    res.append(np.trapz(fft))
-    for per in [25, 50, 75]: res.append(np.percentile(fft, per))
-    f,s = sg.periodogram(val, fs=len(val)/30)
-    idx = np.argsort(s)[::-1]
-    res += list(f[idx][:10])
-    res += list(s[idx][:10])
-    c,_ = pywt.cwt(val, np.arange(1, 64), 'cmor', 30)
-    coe = (np.square(np.abs(c))).mean(axis=0)
-    res.append(np.trapz(coe))
-    for per in [25, 50, 75]: res.append(np.percentile(coe, per))
-    hil = sg.hilbert(val)
-    i_p = np.unwrap(np.angle(hil))
-    i_f = np.diff(i_p) / (2 * np.pi * 130)
-    res.append(np.trapz(np.abs(hil)))
-    res.append(max(np.abs(hil)))
-    for per in [25, 50, 75]: res.append(np.percentile(np.abs(hil), per))
-    res.append(np.trapz(i_f))
-    res.append(max(i_f))
-    res.append(min(i_f))
-    res.append(np.std(i_f))
-    for per in [25, 50, 75]: res.append(np.percentile(np.abs(i_f), per))
-    res += list(compute_spectrogram(val))
+    res += list(fourier(val))
+
+    # Wavelet features
+    res += list(wavelet(val))
+
+    # Spectrogram features
+    res += list(spectrogram(val))
+
     # Statistical features
     res.append(kurtosis(val))
     res.append(skew(val))
     res.append(crossing_over(val))
     res.append(entropy(val))
+    # Features over gradient
     grd = np.gradient(val)
     res.append(np.mean(grd))
     res.append(np.std(grd))
     res.append(min(grd))
     res.append(max(grd))
-    res += list(compute_chaos(val))
-    wav = compute_wavelet(val)
-    res.append(np.trapz(wav))
-    for per in [25, 50, 75]: res.append(np.percentile(wav, per))
-    # TDA features
-    res += list(persistent_components(val))
-
-    # Memory efficiency
-    del grd, fft, f, s, c, coe, hil, i_p, i_f, wav
+    res.append(entropy(grd))
 
     return np.asarray(res)
 
@@ -423,29 +443,3 @@ def remove_out_with_mean(arr):
         arr[ind,idx] = mea
         
     return arr
-
-# Defines features out of wavelet decomposition
-# vec refers to a 1D array
-def compute_band_features(vec):
-    
-    cA_5, cD_5, cD_4, cD_3, _, _ = pywt.wavedec(vec, 'db4', level=5)
-    
-    res = []
-    
-    for sig in [cA_5, cD_5, cD_4, cD_3]:
-        res += [np.min(sig), np.max(sig), np.sum(np.square(sig)), np.mean(sig), np.std(sig)]
-        
-    sgn = np.sign(vec)
-    sgn = np.split(sgn, np.where(np.diff(sgn) != 0)[0]+1)
-    sgn = np.asarray([len(ele) for ele in sgn])
-    res += [np.mean(sgn), np.std(sgn)]
-    
-    sgn = np.asarray([0] + list(sgn))
-    ine = 0.0
-    for idx in range(len(sgn)-1):
-        ine += (sgn[idx+1] - sgn[idx])*np.trapz(np.abs(vec[np.sum(sgn[:idx]):np.sum(sgn[:idx+1])]))
-    res.append(ine)
-
-    del sgn, ine, cA_5, cD_5, cD_4, cD_3
-        
-    return np.asarray(res)
