@@ -12,26 +12,24 @@ class ML_Model:
     # Initialization
     # path refers to the absolute path towards the datasets
     # threads refers to the amount of affordable threads
-    def __init__(self, path, threads=multiprocessing.cpu_count()):
+    def __init__(self, path=None, threads=multiprocessing.cpu_count()):
 
         # Attributes
-        self.input = path
         self.njobs = threads
 
-        # Apply on the data
-        with h5py.File(self.input, 'r') as dtb:
-            # Load the labels and initialize training and testing sets
-            self.l_t = dtb['lab_t'].value.ravel()
-            self.l_e = dtb['lab_e'].value.ravel()
-            # Define the specific anomaly issue
-            self.n_c = len(np.unique(list(self.l_t) + list(self.l_e)))
-            # Defines the vectors
-            self.train = dtb['fea_t'].value
-            self.valid = dtb['fea_e'].value
-            self.evals = dtb['fea_v'].value
-            
-        # Defines the different folds on which to apply the Hyperband
-        self.folds = KFold(n_splits=5, shuffle=True)
+        if path:
+            # Needed attribute
+            self.input = path
+            # Apply on the data
+            with h5py.File(self.input, 'r') as dtb:
+                # Load the labels and initialize training and testing sets
+                self.l_t = dtb['lab_t'].value.ravel()
+                self.l_e = dtb['lab_e'].value.ravel()
+                # Define the specific anomaly issue
+                self.n_c = len(np.unique(list(self.l_t) + list(self.l_e)))
+                # Defines the vectors
+                self.train = dtb['fea_t'].value
+                self.valid = dtb['fea_e'].value
 
     # Application of the ML models
     # nme refers to the type of model to use
@@ -68,6 +66,24 @@ class ML_Model:
         if marker is None: self.mod = './models/{}.pk'.format(nme)
         else: self.mod = './models/{}_{}.pk'.format(nme, marker)
         joblib.dump(mod, self.mod)
+
+    # Defines the confusion matrix on train, test and validation sets
+    # nme refers to a new path if necessary
+    # marker allows specific redirection
+    def score(self, nme, marker=None):
+
+        # Avoid unnecessary logs
+        warnings.simplefilter('ignore')
+
+        # Load the model if necessary
+        if marker is None: self.mod = './models/{}.pk'.format(nme)
+        else: self.mod = './models/{}_{}.pk'.format(nme, marker)
+        clf = joblib.load(self.mod)
+
+        # Compute the predictions for validation
+        prd = clf.predict(self.valid)
+
+        return accuracy_score(self.l_e, prd), kappa_score(self.l_e, prd)
 
     # Defines the confusion matrix on train, test and validation sets
     # nme refers to a new path if necessary
@@ -123,6 +139,7 @@ class ML_Model:
         else: self.mod = './models/{}_{}.pk'.format(nme, marker)
         clf = joblib.load(self.mod)
 
+        with h5py.File(self.input, 'r') as dtb: self.evals = dtb['fea_v'].value
         # Compute the predictions for validation
         prd = clf.predict(self.evals)
         idx = np.arange(43830, 64422)
@@ -134,3 +151,58 @@ class ML_Model:
         # Write to csv
         if out is None: out = './results/test_{}.csv'.format(int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
+
+# Defines a structure for a cross_validation
+
+class CV_Model:
+
+    # Initialization
+    # path refers to the absolute path towards the datasets
+    # k_fold refers to 
+    # threads refers to the amount of affordable threads
+    def __init__(self, path, k_fold=7, threads=multiprocessing.cpu_count()):
+
+        # Attributes
+        self.input = path
+        self.njobs = threads
+
+        # Apply on the data
+        with h5py.File(self.input, 'r') as dtb:
+            # Load the labels and initialize training and testing sets
+            self.lab = dtb['lab'].value.ravel()
+            # Define the specific anomaly issue
+            self.n_c = len(np.unique(self.lab))
+            # Defines the vectors
+            self.vec = dtb['fea'].value
+
+        # Defines the cross-validation splits
+        self.kfs = KFold(n_splits=k_fold)
+
+    # CV Launcher
+    # nme refers to the type of model to be launched
+    # log_file refers to where to store the intermediate scores
+    def launch(self, nme, log_file='./models/CV_SCORING.log'):
+
+        for idx, (i_t, i_e) in enumerate(self.kfs.split(np.arange(len(self.lab)))):
+
+            # Build the corresponding tuned model
+            mkr = 'CV_{}'.format(idx)
+            mod = ML_Model(threads=self.njobs)
+            mod.l_t = self.lab[i_t]
+            mod.l_e = self.lab[i_e]
+            mod.train = self.vec[i_t]
+            mod.valid = self.vec[i_e]
+            # Launch the hyperband optimization
+            mod.learn(nme, marker=mkr)
+            # Retrieve the scores
+            a,k = mod.score(nme, marker=mkr)
+            # LOG file for those scores
+            with open(log_file, 'a') as raw:
+                raw.write('# CV_ROUND {} | Accuracy {:3f} | Kappa {:3f} \n'.format(idx, a, k))
+
+            # Memory efficiency
+            del mkr, mod, a, k
+
+
+
+
