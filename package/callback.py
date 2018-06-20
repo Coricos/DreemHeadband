@@ -21,9 +21,9 @@ class Metrics(Callback):
     # epoch refers to the epoch round
     def on_epoch_end(self, epoch, logs={}):
 
-        trg = self.validation_data
-        if self.autoencoder: prd = np.asarray(self.model.predict(self.validation_data[:-2])[0])
-        else: prd = np.asarray(self.model.predict(self.validation_data[:-2]))
+        trg = self.model.validation_data
+        if self.autoencoder: prd = np.asarray(self.model.predict(self.model.validation_data[:-2])[0])
+        else: prd = np.asarray(self.model.predict(self.model.validation_data[:-2]))
         prd = np.asarray([np.argmax(pbs) for pbs in prd])
 
         ini = [np.argmax(ele) for ele in trg[-2]]
