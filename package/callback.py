@@ -42,7 +42,7 @@ class Metrics(Callback):
             else : 
                 break
 
-        prd = np.asarray([np.argmax(pbs) for pbs in prd])
+        prd = np.asarray(prd)
         kap = kappa_score(self.l_e, prd)
         lin = kappa_score(self.l_e, prd, weights='linear')
         qua = kappa_score(self.l_e, prd, weights='quadratic')
@@ -121,7 +121,7 @@ class DataShuffler(Callback):
     # Shuffles the data at each end of epoch
     def on_epoch_end(self, epoch, logs=None):
 
-        if epoch % rnd == 0:
+        if epoch % self.rnd == 0:
 
             with h5py.File(self.pth, 'a') as dtb:
 
