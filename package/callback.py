@@ -14,7 +14,6 @@ class Metrics(Callback):
 
         super(Callback, self).__init__()
 
-        self.weights = weights
         self.val_score = []
         self.autoencoder = autoencoder
 
