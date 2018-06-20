@@ -10,10 +10,14 @@ class Metrics(Callback):
 
     # Initialization
     # autoencoder is a boolean for whether there is an autoencoder or not
-    def __init__(self, autoencoder):
+    # l_e refers to the correct labels of testing set
+    # val_gen refers to the validation generator
+    def __init__(self, autoencoder, l_e, val_gen):
 
         super(Callback, self).__init__()
 
+        self.l_e = l_e
+        self.val_gen = val_gen
         self.val_score = []
         self.autoencoder = autoencoder
 
@@ -21,15 +25,27 @@ class Metrics(Callback):
     # epoch refers to the epoch round
     def on_epoch_end(self, epoch, logs={}):
 
-        trg = self.model.validation_data
-        if self.autoencoder: prd = np.asarray(self.model.predict(self.model.validation_data[:-2])[0])
-        else: prd = np.asarray(self.model.predict(self.model.validation_data[:-2]))
-        prd = np.asarray([np.argmax(pbs) for pbs in prd])
+        # Defines the size of the validation set
+        sze = len(self.l_e)
+        # Defines the tools for prediction
+        ind, prd = 0, []
 
-        ini = [np.argmax(ele) for ele in trg[-2]]
-        kap = kappa_score(ini, prd)
-        lin = kappa_score(ini, prd, weights='linear')
-        qua = kappa_score(ini, prd, weights='quadratic')
+        for vec in self.val_gen:
+            # Defines the right stop according to the batch_size
+            if (sze / 512) - int(sze / 512) == 0 : end = int(sze / 512) - 1
+            else : end = int(sze / 512)
+            # Iterate according to the right stopping point
+            if ind <= end :
+                if self.autoencoder: prd += [np.argmax(pbs) for pbs in self.model.predict(vec)[0]]
+                else: prd += [np.argmax(pbs) for pbs in self.model.predict(vec)]
+                ind += 1
+            else : 
+                break
+
+        prd = np.asarray([np.argmax(pbs) for pbs in prd])
+        kap = kappa_score(self.l_e, prd)
+        lin = kappa_score(self.l_e, prd, weights='linear')
+        qua = kappa_score(self.l_e, prd, weights='quadratic')
         self.val_score.append(kap)
     
         print(' - kappa_score: %f - kappa_linear: %f - kappa_quadra: %f' % (kap, lin, qua))
