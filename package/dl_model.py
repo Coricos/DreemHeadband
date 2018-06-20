@@ -557,7 +557,7 @@ class DL_Model:
         kappa = Metrics(self.cls['with_eeg_atd'], self.l_e, self.data_val('e'))
 
         # Implements the data shuffler
-        shuff = DataShuffler(self.pth)
+        shuff = DataShuffler(self.pth, 3)
 
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=model)

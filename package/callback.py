@@ -109,21 +109,26 @@ class AdaptiveDropout(Layer):
 class DataShuffler(Callback):
 
     # Initialization
-    def __init__(self, dtb_path):
+    # dtb_path refers to the database path
+    # rounds refers to the amount of rounds for which the data is shuffled
+    def __init__(self, dtb_path, rounds):
 
         super(Callback, self).__init__()
 
         self.pth = dtb_path
+        self.rnd = rounds
 
     # Shuffles the data at each end of epoch
     def on_epoch_end(self, epoch, logs=None):
 
-        with h5py.File(self.pth, 'a') as dtb:
+        if epoch % rnd == 0:
 
-            i_t = shuffle(np.arange(dtb['lab_t'].shape[0]))
+            with h5py.File(self.pth, 'a') as dtb:
 
-            for key in [ele for ele in dtb.keys() if ele[-1] == 't']:
+                i_t = shuffle(np.arange(dtb['lab_t'].shape[0]))
+                for key in [ele for ele in dtb.keys() if ele[-1] == 't']:
+                    dtb[key][...] = dtb[key].value[i_t]
 
-                dtb[key][...] = dtb[key].value[i_t]
+        else: pass
 
         return
