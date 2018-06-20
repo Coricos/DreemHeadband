@@ -34,8 +34,10 @@ if __name__ == '__main__':
     prs.add_argument('--n_e_cv1', help='Norm EEG | Method CONV1D', type=str, default='F')
     prs.add_argument('--n_e_cvl', help='Norm EEG | Method CVLSTM', type=str, default='F')
     # Channels oxygen measurements
-    prs.add_argument('--oxy_cv1', help='Oxymeter | Method CONV1D', type=str, default='F')
-    prs.add_argument('--oxy_cvl', help='Oxymeter | Method CVLSTM', type=str, default='F')
+    prs.add_argument('--por_cv1', help='Oxymeter | Method CONV1D', type=str, default='F')
+    prs.add_argument('--por_cvl', help='Oxymeter | Method CVLSTM', type=str, default='F')
+    prs.add_argument('--poi_cv1', help='Oxymeter | Method CONV1D', type=str, default='F')
+    prs.add_argument('--poi_cvl', help='Oxymeter | Method CVLSTM', type=str, default='F')
     # Basic channels
     prs.add_argument('--feature', help='Features | Method DENSE', type=str, default='T')
     # Parse the arguments
@@ -55,8 +57,10 @@ if __name__ == '__main__':
            'with_eeg_tda': prs.eeg_tda == 'T',
            'with_n_e_cv1': prs.n_e_cv1 == 'T',
            'with_n_e_cvl': prs.n_e_cvl == 'T',
-           'with_oxy_cv1': prs.oxy_cv1 == 'T',
-           'with_oxy_cvl': prs.oxy_cvl == 'T',
+           'with_por_cv1': prs.por_cv1 == 'T',
+           'with_poi_cvl': prs.por_cvl == 'T',
+           'with_por_cv1': prs.poi_cv1 == 'T',
+           'with_poi_cvl': prs.poi_cvl == 'T',
            'with_fea': prs.feature == 'T',
            }
 
