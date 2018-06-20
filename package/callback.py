@@ -4,6 +4,39 @@
 
 from package.imports import *
 
+# Defines a specific metric for classification
+
+class Metrics(Callback):
+
+    # Initialization
+    # autoencoder is a boolean for whether there is an autoencoder or not
+    def __init__(self, autoencoder):
+
+        super(Callback, self).__init__()
+
+        self.weights = weights
+        self.val_score = []
+        self.autoencoder = autoencoder
+
+    # Compute the score for each epoch
+    # epoch refers to the epoch round
+    def on_epoch_end(self, epoch, logs={}):
+
+        trg = self.validation_data
+        if self.autoencoder: prd = np.asarray(self.model.predict(self.validation_data[:-2])[0])
+        else: prd = np.asarray(self.model.predict(self.validation_data[:-2]))
+        prd = np.asarray([np.argmax(pbs) for pbs in prd])
+
+        ini = [np.argmax(ele) for ele in trg[-2]]
+        kap = kappa_score(ini, prd)
+        lin = kappa_score(ini, prd, weights='linear')
+        qua = kappa_score(ini, prd, weights='quadratic')
+        self.val_score.append(kap)
+    
+        print(' - kappa_score: %f - kappa_linear: %f - kappa_quadra: %f' % (kap, lin, qua))
+
+        return
+
 # Defines the callback for merge on the adaptive dropout
 
 class DecreaseDropout(Callback):
@@ -21,6 +54,8 @@ class DecreaseDropout(Callback):
     def on_epoch_end(self, epoch, logs=None):
 
         self.prb = max(0, 1 - epoch/self.steps) * self.ini
+
+        return
 
 # Layer corresponding to the adaptive dropout
 
@@ -76,3 +111,4 @@ class DataShuffler(Callback):
 
                 dtb[key][...] = dtb[key].value[i_t]
 
+        return

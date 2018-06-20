@@ -98,10 +98,14 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_cvl']:
+            if self.cls['with_por_cv1'] or self.cls['with_por_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_poi_cv1'] or self.cls['with_poi_cvl']:
+
+                with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_fea']:
@@ -192,10 +196,14 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_oxy_cv1'] or self.cls['with_oxy_cvl']:
+            if self.cls['with_por_cv1'] or self.cls['with_por_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
+
+            if self.cls['with_poi_cv1'] or self.cls['with_poi_cvl']:
+
+                with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
 
             if self.cls['with_fea']:
@@ -437,7 +445,7 @@ class DL_Model:
         self.drp = DecreaseDropout(dropout, decrease)
         # Layer arguments
         arg = {'kernel_initializer': 'he_uniform', 
-               'kernel_constraint': max_norm(5.0),
+               # 'kernel_constraint': max_norm(5.0),
                # 'kernel_regularizer': regularizers.l2(1e-3)
               }
 
@@ -477,10 +485,14 @@ class DL_Model:
             if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
-            for key in ['po_r_t', 'po_ir_t']:
-                inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_oxy_cv1']: self.add_CONV1D(inp, self.drp, arg)
-                if self.cls['with_oxy_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+            inp = Input(shape=(dtb['po_r_t'].shape[1], ))
+            if self.cls['with_por_cv1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_por_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+
+        with h5py.File(self.pth, 'r') as dtb:
+            inp = Input(shape=(dtb['po_ir_t'].shape[1], ))
+            if self.cls['with_poi_cv1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_poi_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
@@ -542,6 +554,7 @@ class DL_Model:
         early = EarlyStopping(monitor=monitor, min_delta=1e-5, **arg)
         arg = {'save_best_only': True, 'save_weights_only': True}
         check = ModelCheckpoint(self.out, monitor=monitor, **arg)
+        kappa = Metrics(self.cls['with_eeg_atd'])
 
         # Implements the data shuffler
         shuff = DataShuffler(self.pth)
@@ -556,7 +569,7 @@ class DL_Model:
         # Fit the model
         his = model.fit_generator(self.data_gen('t', batch=batch),
                     steps_per_epoch=len(self.l_t)//batch, verbose=1, 
-                    epochs=max_epochs, callbacks=[self.drp, early, check, shuff],
+                    epochs=max_epochs, callbacks=[kappa, self.drp, early, check, shuff],
                     shuffle=True, validation_steps=len(self.l_e)//batch,
                     validation_data=self.data_gen('e', batch=batch), 
                     class_weight=class_weight(self.l_t))
