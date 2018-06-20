@@ -58,8 +58,8 @@ if __name__ == '__main__':
            'with_n_e_cv1': prs.n_e_cv1 == 'T',
            'with_n_e_cvl': prs.n_e_cvl == 'T',
            'with_por_cv1': prs.por_cv1 == 'T',
-           'with_poi_cvl': prs.por_cvl == 'T',
-           'with_por_cv1': prs.poi_cv1 == 'T',
+           'with_por_cvl': prs.por_cvl == 'T',
+           'with_poi_cv1': prs.poi_cv1 == 'T',
            'with_poi_cvl': prs.poi_cvl == 'T',
            'with_fea': prs.feature == 'T',
            }
