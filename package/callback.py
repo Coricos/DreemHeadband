@@ -2,7 +2,7 @@
 # May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
-from package.imports import *
+from package.toolbox import *
 
 # Defines a specific metric for classification
 
