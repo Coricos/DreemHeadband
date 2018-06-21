@@ -354,15 +354,19 @@ class Database:
 
             if key[:3] == 'l_0' or key[:3] == 'l_1':
 
-                # Defines the maximum value for all landscapes
+                m_x = []
+
                 for pth in [self.train_sca, self.valid_sca]:
-                    m_x.append(np.max(dtb[key]).value)
+                    # Defines the maximum value for all landscapes
+                    with h5py.File(pth, 'r') as dtb:
+                        m_x.append(np.max(dtb[key]).value)
 
                 m_x = max(tuple(m_n))
 
-                # Apply MinMaxScaling
                 for pth in [self.train_sca, self.valid_sca]:
-                    dtb[key][...] = dtb[key].value / m_x
+                    # Apply MinMaxScaling
+                    with h5py.File(pth, 'r') as dtb:
+                        dtb[key][...] = dtb[key].value / m_x
 
             else:
 
