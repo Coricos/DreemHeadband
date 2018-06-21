@@ -359,7 +359,7 @@ class Database:
                 for pth in [self.train_sca, self.valid_sca]:
                     # Defines the maximum value for all landscapes
                     with h5py.File(pth, 'r') as dtb:
-                        m_x.append(np.max(dtb[key]).value)
+                        m_x.append(np.max(dtb[key].value))
 
                 m_x = max(tuple(m_n))
 
