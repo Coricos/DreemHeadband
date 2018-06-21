@@ -554,8 +554,8 @@ class DL_Model:
         early = EarlyStopping(monitor=monitor, min_delta=1e-5, **arg)
         arg = {'save_best_only': True, 'save_weights_only': True}
         check = ModelCheckpoint(self.out, monitor=monitor, **arg)
-        if (len(self.l_e)/512) - int(len(self.l_e)/512) == 0 : steps = int(len(self.l_e)/512)
-        else : steps = int(len(self.l_e)/512) + 1
+        if (len(self.l_e)/512) - int(len(self.l_e)/512) == 0 : steps = int(len(self.l_e)/512) -1
+        else : steps = int(len(self.l_e)/512)
         kappa = Metrics(self.cls['with_eeg_atd'], self.data_gen('e', batch=512), steps)
         shuff = DataShuffler(self.pth, 3)
 
