@@ -141,6 +141,8 @@ class DL_Model:
 
         while True :
             
+            # Reinitialize when going too far
+            if ind > sze : ind, poi = 0, sze
             # Initialization of data vector
             vec = []
 
@@ -213,9 +215,6 @@ class DL_Model:
 
             ind += batch
             poi -= batch
-
-            # Reinitialize when going too far
-            if ind > sze : ind, poi = 0, sze
 
     # Adds a 2D-Convolution Channel
     # inp refers to the defined input
@@ -555,9 +554,9 @@ class DL_Model:
         early = EarlyStopping(monitor=monitor, min_delta=1e-5, **arg)
         arg = {'save_best_only': True, 'save_weights_only': True}
         check = ModelCheckpoint(self.out, monitor=monitor, **arg)
-        kappa = Metrics(self.cls['with_eeg_atd'], self.l_e, self.data_val('e'))
-
-        # Implements the data shuffler
+        if (len(self.l_e)/512) - int(len(self.l_e)/512) == 0 : steps = int(len(self.l_e)/512)
+        else : steps = int(len(self.l_e)/512) + 1
+        kappa = Metrics(self.cls['with_eeg_atd'], self.data_gen('e', batch=512), steps)
         shuff = DataShuffler(self.pth, 3)
 
         # Build and compile the model
@@ -697,7 +696,7 @@ class DL_Model:
 
         for vec in gen:
             # Defines the right stop according to the batch_size
-            if (sze / batch) - int(sze / batch) == 0 : end = int(sze / batch) - 1
+            if (sze / batch) - int(sze / batch) == 0 : end = int(sze / batch)- 1
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :

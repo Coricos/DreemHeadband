@@ -10,42 +10,39 @@ class Metrics(Callback):
 
     # Initialization
     # autoencoder is a boolean for whether there is an autoencoder or not
-    # l_e refers to the correct labels of testing set
     # val_gen refers to the validation generator
-    def __init__(self, autoencoder, l_e, val_gen):
+    # steps for when the metric must stop the evaluation
+    def __init__(self, autoencoder, val_gen, steps):
 
         super(Callback, self).__init__()
 
-        self.l_e = l_e
         self.val_gen = val_gen
         self.val_score = []
         self.autoencoder = autoencoder
+        self.step = steps
 
     # Compute the score for each epoch
     # epoch refers to the epoch round
     def on_epoch_end(self, epoch, logs={}):
 
-        # Defines the size of the validation set
-        sze = len(self.l_e)
         # Defines the tools for prediction
-        ind, prd = 0, []
+        ind, prd, lab = 0, []
 
         for vec in self.val_gen:
-            # Defines the right stop according to the batch_size
-            if (sze / 512) - int(sze / 512) == 0 : end = int(sze / 512) - 1
-            else : end = int(sze / 512)
             # Iterate according to the right stopping point
-            if ind <= end :
-                if self.autoencoder: prd += [np.argmax(pbs) for pbs in self.model.predict(vec)[0]]
-                else: prd += [np.argmax(pbs) for pbs in self.model.predict(vec)]
+            if ind <= self.step :
+                if self.autoencoder: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[:-1])[0]]
+                else: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[:-1])]
+                lab += list(vec[-1])
                 ind += 1
-            else : 
+            else :
                 break
 
         prd = np.asarray(prd)
-        kap = kappa_score(self.l_e, prd)
-        lin = kappa_score(self.l_e, prd, weights='linear')
-        qua = kappa_score(self.l_e, prd, weights='quadratic')
+        lab = np.asarray([np.argmax(ele) for ele in lab])
+        kap = kappa_score(lab, prd)
+        lin = kappa_score(lab, prd, weights='linear')
+        qua = kappa_score(lab, prd, weights='quadratic')
         self.val_score.append(kap)
     
         print(' - kappa_score: %f - kappa_linear: %f - kappa_quadra: %f' % (kap, lin, qua))
@@ -132,3 +129,4 @@ class DataShuffler(Callback):
         else: pass
 
         return
+
