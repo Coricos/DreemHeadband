@@ -52,6 +52,7 @@ class Filtration:
     # Compute the graph persistence
     def compute_persistence(self):
 
+        self.apply_filtration()
         self.alpha.persistence()
 
     # Defines the Betti curves out of the barcode diagrams

@@ -25,7 +25,7 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, KDTree
 from sklearn.linear_model import SGDClassifier
 from sklearn.decomposition import IncrementalPCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
