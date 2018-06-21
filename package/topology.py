@@ -88,7 +88,7 @@ class Filtration:
         for ele in dig: res += functionize(val, ele)
 
         # Memory efficiency
-        del res, dig, val
+        del dig, val
 
         if graph:
             plt.figure(figsize=(18,2))
@@ -144,6 +144,7 @@ class Filtration:
         # Display landscapes if necessary
         if graph:
             plt.figure(figsize=(18,2))
+            plt.title('Persistent Landscapes')
             for ele in ldc: plt.plot(ele)
             plt.show()
 
