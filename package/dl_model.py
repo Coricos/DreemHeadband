@@ -132,17 +132,15 @@ class DL_Model:
     # batch refers to the batch size
     def data_val(self, fmt, batch=512):
 
-        if fmt == 'e': 
+        if fmt == 'e':
             sze = len(self.l_e)
-        if fmt == 'v': 
+        if fmt == 'v':
             with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_v'].shape[0]
 
         ind, poi = 0, sze
 
         while True :
             
-            # Reinitialize when going too far
-            if ind > sze : ind, poi = 0, sze
             # Initialization of data vector
             vec = []
 
@@ -215,6 +213,9 @@ class DL_Model:
 
             ind += batch
             poi -= batch
+
+            # Reinitialize when going too far
+            if ind > sze : ind, poi = 0, sze
 
     # Adds a 2D-Convolution Channel
     # inp refers to the defined input
