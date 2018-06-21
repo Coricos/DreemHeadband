@@ -254,7 +254,7 @@ def reset_mean(vec):
 
     return StandardScaler(with_std=False).fit_transform(vec.reshape(-1,1)).ravel()
 
-# Compute the Betti curves of a signal
+# Compute the Betti curves
 # vec refers to a 1D array
 def compute_betti_curves(vec):
 
@@ -264,6 +264,17 @@ def compute_betti_curves(vec):
     del fil
     
     return np.vstack((v,w))
+
+# Compute the landscapes
+# vec refers to a 1D array
+def compute_landscapes(vec):
+
+    fil = Levels(vec)
+    try: p,q = fil.landscapes(num_points=100)
+    except: p,q = np.zeros((10,100)), np.zeros((10,100))
+    del fil
+    
+    return np.vstack((p,q))
 
 # Defines the feature construction pipeline
 # val refers to a 1D array

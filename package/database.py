@@ -127,13 +127,14 @@ class Database:
             # Memory efficiency
             del tmp
 
-    # Build the Betti curves corresponding to the EEGs
+    # Build the corresponding Betti curves
     def add_betti_curves(self):
 
+        # Build the betti curves
         for pth in [self.train_out, self.valid_out]:
 
             res = []
-            # Iterates over the keys
+            # Iterates over the EEGs signals
             for key in tqdm.tqdm(range(1, 5)):
 
                 # Load the corresponding values
@@ -154,6 +155,35 @@ class Database:
                     new = 'bdw_{}'.format(key)
                     if dtb.get(new): del dtb[new]
                     dtb.create_dataset(new, data=res[:,1,:])
+
+    # Build the corresponding landscapes
+    def add_landscapes(self):
+
+        # Build the betti curves
+        for pth in [self.train_out, self.valid_out]:
+
+            res = []
+            # Iterates over the EEGs signals
+            for key in tqdm.tqdm(range(1, 5)):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: 
+                    val = dtb['eeg_{}'.format(key)].value
+                    
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                res = np.asarray(pol.map(compute_landscapes, val))
+                pol.close()
+                pol.join()
+
+                # Serialize the output
+                with h5py.File(pth, 'a') as dtb:
+                    new = 'l_0_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,:10,:])
+                    new = 'l_1_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,10:,:])
 
     # Build the features for each channel
     # n_components refers to the PCA transformation
@@ -321,6 +351,10 @@ class Database:
 
         # Specific scaling for features datasets
         for key in tqdm.tqdm(oth):
+
+            if key[:3] == 'l_0' or key[:3] == 'l_1':
+                # Build the scaler
+                return 'yolo'
 
             # Build the scaler
             mms = MinMaxScaler(feature_range=(-1,1))
