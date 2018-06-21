@@ -26,20 +26,19 @@ class Metrics(Callback):
     def on_epoch_end(self, epoch, logs={}):
 
         # Defines the tools for prediction
-        ind, prd, lab = 0, []
+        ind, prd, lab = 0, [], []
 
         for vec in self.val_gen:
             # Iterate according to the right stopping point
             if ind <= self.step :
                 if self.autoencoder: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[:-1])[0]]
                 else: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[:-1])]
-                lab += list(vec[-1])
+                lab += [np.argmax(ele) for ele in vec[-1]]
                 ind += 1
             else :
                 break
 
-        prd = np.asarray(prd)
-        lab = np.asarray([np.argmax(ele) for ele in lab])
+        prd, lab = np.asarray(prd), np.asarray(lab)
         kap = kappa_score(lab, prd)
         lin = kappa_score(lab, prd, weights='linear')
         qua = kappa_score(lab, prd, weights='quadratic')
