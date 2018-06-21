@@ -353,29 +353,39 @@ class Database:
         for key in tqdm.tqdm(oth):
 
             if key[:3] == 'l_0' or key[:3] == 'l_1':
+
+                # Defines the maximum value for all landscapes
+                for pth in [self.train_sca, self.valid_sca]:
+                    m_x.append(np.max(dtb[key]).value)
+
+                m_x = max(tuple(m_n))
+
+                # Apply MinMaxScaling
+                for pth in [self.train_sca, self.valid_sca]:
+                    dtb[key][...] = dtb[key].value / m_x
+
+            else:
+
                 # Build the scaler
-                return 'yolo'
+                mms = MinMaxScaler(feature_range=(-1,1))
+                sts = StandardScaler(with_std=False)
 
-            # Build the scaler
-            mms = MinMaxScaler(feature_range=(-1,1))
-            sts = StandardScaler(with_std=False)
+                for pth in [self.train_sca, self.valid_sca]:
+                    # Partial fit for both training and validation
+                    with h5py.File(pth, 'r') as dtb:
+                        mms.partial_fit(remove_out_with_mean(dtb[key].value))
 
-            for pth in [self.train_sca, self.valid_sca]:
-                # Partial fit for both training and validation
-                with h5py.File(pth, 'r') as dtb:
-                    mms.partial_fit(remove_out_with_mean(dtb[key].value))
+                for pth in [self.train_sca, self.valid_sca]:
+                    # Partial fit for both training and validation
+                    with h5py.File(pth, 'r') as dtb:
+                        sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
 
-            for pth in [self.train_sca, self.valid_sca]:
-                # Partial fit for both training and validation
-                with h5py.File(pth, 'r') as dtb:
-                    sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
+                pip = Pipeline([('mms', mms), ('sts', sts)])
 
-            pip = Pipeline([('mms', mms), ('sts', sts)])
-
-            for pth in [self.train_sca, self.valid_sca]:
-                # Transformation for both training and validation
-                with h5py.File(pth, 'a') as dtb:
-                    dtb[key][...] = pip.transform(remove_out_with_mean(dtb[key].value))
+                for pth in [self.train_sca, self.valid_sca]:
+                    # Transformation for both training and validation
+                    with h5py.File(pth, 'a') as dtb:
+                        dtb[key][...] = pip.transform(remove_out_with_mean(dtb[key].value))
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database
