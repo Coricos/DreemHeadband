@@ -31,9 +31,10 @@ class Metrics(Callback):
         for vec in self.val_gen:
             # Iterate according to the right stopping point
             if ind <= self.step :
+                vec = list(vec)
+                lab += [np.argmax(ele) for ele in vec[-1]]
                 if self.autoencoder: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[:-1])[0]]
                 else: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[:-1])]
-                lab += [np.argmax(ele) for ele in vec[-1]]
                 ind += 1
             else :
                 break
