@@ -250,73 +250,70 @@ class Database:
             res = ['norm_acc', 'norm_eeg', 'acc_x', 'acc_y', 'acc_z', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
             unt = ['bup_1', 'bup_2', 'bup_3', 'bup_4']
             ldc = ['l_0_1', 'l_0_2', 'l_0_3', 'l_0_4', 'l_1_1', 'l_1_2', 'l_1,3', 'l_1_4']
-            lst = list(dtb.keys())
-            oth = [key for key in lst if key not in res + unt + ldc + ['lab']]
+            oth = [key for key in list(dtb.keys()) if key not in res + unt + ldc + ['lab']]
 
-        # Transfer the data from DTS to SCA
-        for key in lst:
-
-            with h5py.File(self.train_sca, 'a') as dtb:
-                if dtb.get(key): del dtb[key]
-                with h5py.File(self.train_out, 'r') as inp:
-                    dtb.create_dataset(key, data=inp[key].value)
-
-            if key != 'lab':
-
-                with h5py.File(self.valid_sca, 'a') as dtb:
-                    if dtb.get(key): del dtb[key]
-                    with h5py.File(self.valid_out, 'r') as inp:
-                        dtb.create_dataset(key, data=inp[key].value)
+        # Transfer the labels from DTS to SCA
+        with h5py.File(self.train_sca, 'a') as dtb:
+            if dtb.get('lab'): del dtb['lab']
+            with h5py.File(self.train_out, 'r') as inp:
+                dtb.create_dataset('lab', data=inp['lab'].value)
 
         # Specific scaling for the temporal signals
         for key in tqdm.tqdm(res):
 
-            for pth in [self.train_sca, self.valid_sca]:
+            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-                with h5py.File(pth, 'a') as dtb:
+                with h5py.File(inp, 'r') as dtb:
 
                     pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                     fun = partial(resize_time_serie, size=size)
                     val = pol.map(fun, dtb[key].value)
                     pol.close()
                     pol.join()
-                    # Serialize new data after resizing
-                    del dtb[key]
+
+                with h5py.File(out, 'a') as dtb:
+
+                    if dtb.get(key): del dtb[key]
                     dtb.create_dataset(key, data=val)
                     del val
 
         # Rescaling for the betti curves
         for key in tqdm.tqdm(unt):
 
-            # Defines the scalers
-            mms = MinMaxScaler(feature_range=(0,2))
-            sts = StandardScaler(with_std=False)
+            try:
+                # Defines the scalers
+                mms = MinMaxScaler(feature_range=(0,2))
+                sts = StandardScaler(with_std=False)
 
-            for pth in [self.train_sca, self.valid_sca]:
-                # Partial fit for both training and validation
-                with h5py.File(pth, 'r') as dtb:
-                    mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
+                for pth in [self.train_sca, self.valid_sca]:
 
-            for pth in [self.train_sca, self.valid_sca]:
-                # Partial fit for both training and validation
-                with h5py.File(pth, 'r') as dtb:
-                    tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
-                    sts.partial_fit(tmp)
-                    del tmp
+                    with h5py.File(pth, 'r') as dtb:
+                        mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
+
+                for pth in [self.train_sca, self.valid_sca]:
+
+                    with h5py.File(pth, 'r') as dtb:
+                        tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
+                        sts.partial_fit(tmp)
+                        del tmp
+
+            except: pass
 
             # Concatenate the pipeline of scalers
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
-            for pth in [self.train_sca, self.valid_sca]:
-                # Apply transformation
-                with h5py.File(pth, 'a') as dtb:
+            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+
+                with h5py.File(inp, 'r') as dtb:
+
                     shp = dtb[key].shape
                     tmp = np.hstack(dtb[key].value).reshape(-1,1)
                     res = pip.transform(tmp).reshape(shp)
-                    # Rescale to independant zero mean
-                    zmn = StandardScaler(with_std=False)
-                    res = zmn.fit_transform(np.transpose(res))
-                    dtb[key][...] = np.transpose(res)
+
+                with h5py.File(out, 'a') as dtb:
+
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=res)
 
             # Memory efficiency
             del mms, sts, pip, tmp, zmn
@@ -334,10 +331,15 @@ class Database:
 
                 m_x = max(tuple(m_x))
 
-                for pth in [self.train_sca, self.valid_sca]:
-                    # Apply MinMaxScaling
-                    with h5py.File(pth, 'a') as dtb:
-                        dtb[key][...] = dtb[key].value / m_x
+                for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+
+                    with h5py.File(inp, 'r') as dtb:
+                        val =dtb[key].value / m_x
+
+                    with h5py.File(out, 'a') as dtb:
+                        if dtb.get(key): del dtb[key]
+                        dtb.create_dataset(key, data=val)
+                        del val
 
             except: pass
 
@@ -360,10 +362,15 @@ class Database:
 
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
-            for pth in [self.train_sca, self.valid_sca]:
-                # Transformation for both training and validation
-                with h5py.File(pth, 'a') as dtb:
-                    dtb[key][...] = pip.transform(remove_out_with_mean(dtb[key].value))
+            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+
+                with h5py.File(inp, 'r') as dtb:
+                    val = pip.transform(remove_out_with_mean(dtb[key].value))
+
+                with h5py.File(out, 'a') as dtb:
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=val)
+                    del val
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database

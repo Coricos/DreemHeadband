@@ -133,7 +133,7 @@ def resize_time_serie(val, size=400):
     sts = StandardScaler(with_std=False)
     pip = Pipeline([('mms', mms), ('sts', sts)])
     
-    return pip.fit_transform(interpolate(eeg, size=400).reshape(-1,1)).ravel()
+    return pip.fit_transform(interpolate(val, size=400).reshape(-1,1)).ravel()
 
 # Defines a vector reduction through interpolation
 # val refers to a 1D array
