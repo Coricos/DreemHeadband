@@ -33,13 +33,11 @@ class Metrics(Callback):
             if ind <= self.step :
                 if self.autoencoder: lab += [np.argmax(ele) for ele in vec[1][0]]
                 else: lab += [np.argmax(ele) for ele in vec[1]]
-                prd += [np.argmax(pbs) for pbs in self.model.predict(vec[0])]
+                if self.autoencoder: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[0])[0]]
+                else: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[0])]
                 ind += 1
             else :
                 break
-
-        print(lab)
-        print(vec)
 
         prd, lab = np.asarray(prd), np.asarray(lab)
         kap = kappa_score(lab, prd)
