@@ -347,7 +347,7 @@ class DL_Model:
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
         self.ate.append(dec)
-        self.mrg.append(enc)
+        self.mrg.append(GlobalAveragePooling1D()(enc))
 
     # Defines a channel combining CONV and LSTM structures
     # inp refers to the defined input
@@ -412,7 +412,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        
+
         # Add layers to model
         if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
