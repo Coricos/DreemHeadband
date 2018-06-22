@@ -365,7 +365,7 @@ class Database:
 
                 for pth in [self.train_sca, self.valid_sca]:
                     # Apply MinMaxScaling
-                    with h5py.File(pth, 'r') as dtb:
+                    with h5py.File(pth, 'a') as dtb:
                         dtb[key][...] = dtb[key].value / m_x
 
             else:
