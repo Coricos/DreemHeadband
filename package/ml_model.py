@@ -203,6 +203,3 @@ class CV_Model:
             # Memory efficiency
             del mkr, mod, a, k
 
-
-
-
