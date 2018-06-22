@@ -29,7 +29,7 @@ class Database:
     # Apply filtering and interpolation on the samples
     # sampling_freq refers to the desired sampling frequency
     # out_storage refers to where to put the newly build datasets
-    def build(self, sampling_freq=50, out_storage='/mnt/Storage'):
+    def build(self, sampling_freq=100, out_storage='/mnt/Storage'):
 
         # Defines the parameters for each key
         fil = {'po_r': True, 'po_ir': True,
@@ -152,9 +152,6 @@ class Database:
                     new = 'bup_{}'.format(key)
                     if dtb.get(new): del dtb[new]
                     dtb.create_dataset(new, data=res[:,0,:])
-                    new = 'bdw_{}'.format(key)
-                    if dtb.get(new): del dtb[new]
-                    dtb.create_dataset(new, data=res[:,1,:])
 
     # Build the corresponding landscapes
     def add_landscapes(self):
@@ -247,74 +244,49 @@ class Database:
         del train_pca, valid_pca, lst
 
     # Rescale the datasets considering both training and validation
-    def rescale(self):
+    def rescale(self, size=400):
 
         with h5py.File(self.train_out, 'r') as dtb:
-            tem = ['acc_x', 'acc_y', 'acc_z', 
-                   'norm_acc', 'norm_eeg', 
-                   'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 
-                   'po_r', 'po_ir',
-                   'bup_1', 'bup_2', 'bup_3', 'bup_4',
-                   'bdw_1', 'bdw_2', 'bdw_3', 'bdw_4']
-            env = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
+            res = ['norm_acc', 'norm_eeg', 'acc_x', 'acc_y', 'acc_z', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
+            unt = ['bup_1', 'bup_2', 'bup_3', 'bup_4']
+            ldc = ['l_0_1', 'l_0_2', 'l_0_3', 'l_0_4', 'l_1_1', 'l_1_2', 'l_1,3', 'l_1_4']
             lst = list(dtb.keys())
-            oth = [key for key in lst if key not in tem + ['lab']]
+            oth = [key for key in lst if key not in res + unt + ldc + ['lab']]
 
-        # Apply the logarithmic envelope
+        # Transfer the data from DTS to SCA
         for key in lst:
 
-            if key in env:
+            with h5py.File(self.train_sca, 'a') as dtb:
+                if dtb.get(key): del dtb[key]
+                with h5py.File(self.train_out, 'r') as inp:
+                    dtb.create_dataset(key, data=inp[key].value)
 
-                # Load the data from both the training and validation sets
-                with h5py.File(self.train_out, 'r') as dtb:
-                    v_t = dtb[key].value
-                with h5py.File(self.valid_out, 'r') as dtb:
-                    v_v = dtb[key].value
+            if key != 'lab':
 
-                # Apply the transformation
-                m_x = max(np.max(v_t), np.max(v_v))
-                coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
-                coe = np.median(np.asarray(coe))
-
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                fun = partial(envelope, m_x=m_x, coeff=coe)
-                v_t = np.asarray(pol.map(fun, v_t))
-                pol.close()
-                pol.join()
-
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                fun = partial(envelope, m_x=m_x, coeff=coe)
-                v_v = np.asarray(pol.map(fun, v_v))
-                pol.close()
-                pol.join()
-
-                # Serialize and replace
-                with h5py.File(self.train_sca, 'a') as dtb:
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=v_t)
                 with h5py.File(self.valid_sca, 'a') as dtb:
                     if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=v_v)
-
-                # Memory efficiency
-                del v_t, v_v
-
-            else:
-
-                with h5py.File(self.train_sca, 'a') as dtb:
-                    if dtb.get(key): del dtb[key]
-                    with h5py.File(self.train_out, 'r') as inp:
+                    with h5py.File(self.valid_out, 'r') as inp:
                         dtb.create_dataset(key, data=inp[key].value)
 
-                if key != 'lab':
+        # Specific scaling for the temporal signals
+        for key in tqdm.tqdm(res):
 
-                    with h5py.File(self.valid_sca, 'a') as dtb:
-                        if dtb.get(key): del dtb[key]
-                        with h5py.File(self.valid_out, 'r') as inp:
-                            dtb.create_dataset(key, data=inp[key].value)
+            for pth in [self.train_sca, self.valid_sca]:
 
-        # Specific scaling for temporal units
-        for key in tqdm.tqdm(tem):
+                with h5py.File(pth, 'a') as dtb:
+
+                    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                    fun = partial(resize_time_serie, size=size)
+                    val = pol.map(fun, dtb[key].value)
+                    pol.close()
+                    pol.join()
+                    # Serialize new data after resizing
+                    del dtb[key]
+                    dtb.create_dataset(key, data=val)
+                    del val
+
+        # Rescaling for the betti curves
+        for key in tqdm.tqdm(unt):
 
             # Defines the scalers
             mms = MinMaxScaler(feature_range=(0,2))
@@ -349,11 +321,10 @@ class Database:
             # Memory efficiency
             del mms, sts, pip, tmp, zmn
 
-        # Specific scaling for features datasets
-        for key in tqdm.tqdm(oth):
+        # Rescaling for the persistent landscapes
+        for key in tqdm.tdqm(ldc):
 
-            if key[:3] == 'l_0' or key[:3] == 'l_1':
-
+            try:
                 m_x = []
 
                 for pth in [self.train_sca, self.valid_sca]:
@@ -368,28 +339,31 @@ class Database:
                     with h5py.File(pth, 'a') as dtb:
                         dtb[key][...] = dtb[key].value / m_x
 
-            else:
+            except: pass
 
-                # Build the scaler
-                mms = MinMaxScaler(feature_range=(0, 2))
-                sts = StandardScaler(with_std=False)
+        # Specific scaling for features datasets
+        for key in tqdm.tqdm(oth):
 
-                for pth in [self.train_sca, self.valid_sca]:
-                    # Partial fit for both training and validation
-                    with h5py.File(pth, 'r') as dtb:
-                        mms.partial_fit(remove_out_with_mean(dtb[key].value))
+            # Build the scaler
+            mms = MinMaxScaler(feature_range=(0, 2))
+            sts = StandardScaler(with_std=False)
 
-                for pth in [self.train_sca, self.valid_sca]:
-                    # Partial fit for both training and validation
-                    with h5py.File(pth, 'r') as dtb:
-                        sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
+            for pth in [self.train_sca, self.valid_sca]:
+                # Partial fit for both training and validation
+                with h5py.File(pth, 'r') as dtb:
+                    mms.partial_fit(remove_out_with_mean(dtb[key].value))
 
-                pip = Pipeline([('mms', mms), ('sts', sts)])
+            for pth in [self.train_sca, self.valid_sca]:
+                # Partial fit for both training and validation
+                with h5py.File(pth, 'r') as dtb:
+                    sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
 
-                for pth in [self.train_sca, self.valid_sca]:
-                    # Transformation for both training and validation
-                    with h5py.File(pth, 'a') as dtb:
-                        dtb[key][...] = pip.transform(remove_out_with_mean(dtb[key].value))
+            pip = Pipeline([('mms', mms), ('sts', sts)])
+
+            for pth in [self.train_sca, self.valid_sca]:
+                # Transformation for both training and validation
+                with h5py.File(pth, 'a') as dtb:
+                    dtb[key][...] = pip.transform(remove_out_with_mean(dtb[key].value))
 
     # Defines a way to reduce the problem
     # output refers to where to serialize the output database

@@ -225,7 +225,7 @@ class DL_Model:
         # Build model
         shp = (1, inp._keras_shape[1], inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(64, (shp[1], 210), data_format='channels_first', **arg)(mod)
+        mod = Convolution2D(64, (shp[1], 32), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -287,7 +287,7 @@ class DL_Model:
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 210, **arg)(mod)
+        mod = Conv1D(64, 32, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -317,39 +317,32 @@ class DL_Model:
     def add_ENCODE(self, inp, callback, arg):
 
         # Build the autoencoder model
-        enc0 = Dense(inp._keras_shape[1] // 3, **arg)(inp)
-        enc = BatchNormalization()(enc0)
-        enc = PReLU()(enc)
-        enc = AdaptiveDropout(callback.prb, callback)(enc)
-        enc1 = Dense(enc._keras_shape[1] // 3, **arg)(enc)
-        enc = BatchNormalization()(enc1)
-        enc = PReLU()(enc)
-        enc = AdaptiveDropout(callback.prb, callback)(enc)
-        enc2 = Dense(enc._keras_shape[1] // 3, **arg)(enc)
-        enc = BatchNormalization()(enc2)
-        enc = PReLU()(enc)
-        enc = AdaptiveDropout(callback.prb, callback)(enc)
-        enc3 = Dense(enc._keras_shape[1] // 4, **arg)(enc)
-        enc = BatchNormalization()(enc3)
-        enc = PReLU()(enc)
-        enc = AdaptiveDropout(callback.prb, callback)(enc)
+        mod = Reshape((inp._keras_shape[1], 1))(inp)
+        mod = Conv1D(64, 8, padding='same', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = MaxPooling1D(pool_size=5)(mod)
+        mod = AdaptiveDropout(drp.prb, drp)(mod)
+        mod = Conv1D(64, 4, padding='same', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        enc = MaxPooling1D(pool_size=5)(mod)
 
-        print('# Latent Space Dimension', enc._keras_shape[1])
+        print('# Latent Space Dimension', enc._keras_shape[1:])
 
-        dec = Dense(enc2._keras_shape[1], **arg)(enc)
-        dec = BatchNormalization()(dec)
-        dec = PReLU()(dec)
-        dec = AdaptiveDropout(callback.prb, callback)(dec)
-        dec = Dense(enc1._keras_shape[1], **arg)(dec)
-        dec = BatchNormalization()(dec)
-        dec = PReLU()(dec)
-        dec = AdaptiveDropout(callback.prb, callback)(dec)
-        dec = Dense(enc0._keras_shape[1], **arg)(dec)
-        dec = BatchNormalization()(dec)
-        dec = PReLU()(dec)
-        dec = AdaptiveDropout(callback.prb, callback)(dec)
-        arg = {'activation': 'linear', 'name': 'ate_{}'.format(len(self.ate))}
-        dec = Dense(inp._keras_shape[1], kernel_initializer='he_uniform', **arg)(dec)
+        mod = Conv1D(64, 4, padding='same', **arg)(enc)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = UpSampling1D(5)(mod)
+        mod = AdaptiveDropout(drp.prb, drp)(mod)
+        mod = Conv1D(64, 8, padding='same', **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = UpSampling1D(5)(mod)
+        mod = Conv1D(1, 8, padding='same', **arg)(mod)
+        mod = AdaptiveDropout(drp.prb, drp)(mod)
+        mod = Activation('linear')(mod)
+        dec = Flatten(name='ate_{}'.format(len(self.ate)))(mod)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -364,7 +357,7 @@ class DL_Model:
 
         # Build the selected model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 210, **arg)(mod)
+        mod = Conv1D(64, 32, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -410,10 +403,7 @@ class DL_Model:
     def add_LDENSE(self, inp, callback, arg):
 
         # Build the model
-        mod = Dense(inp._keras_shape[1] // 2, **arg)(inp)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(inp)
         mod = Dense(mod._keras_shape[1], **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
@@ -422,15 +412,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1], **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-
+        
         # Add layers to model
         if inp not in self.inp: self.inp.append(inp)
         self.mrg.append(mod)
