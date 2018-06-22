@@ -38,6 +38,9 @@ class Metrics(Callback):
             else :
                 break
 
+        print(lab)
+        print(vec)
+
         prd, lab = np.asarray(prd), np.asarray(lab)
         kap = kappa_score(lab, prd)
         lin = kappa_score(lab, prd, weights='linear')
