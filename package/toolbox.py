@@ -147,20 +147,31 @@ def interpolate(val, size=2000):
 
 # Compute features related to the chaos theory
 # val refers to a 1D array
-def compute_chaos(val):
+def compute_tda_features(val):
+    
+    fil = Levels(val)
+    u,d = fil.get_persistence()
+    p,q = fil.betti_curves()
+    r,s = fil.landscapes()
 
     res = []
-    try: res.append(nolds.sampen(val))
-    except: res.append(0.0)
-    try: res.append(nolds.dfa(val))
-    except: res.append(0.0)
-    try: res.append(nolds.hurst_rs(val))
-    except: res.append(0.0)
-    try: res.append(nolds.lyap_r(val))
-    except: res.append(0.0)
-    try: res += list(nolds.lyap_e(val))
-    except: res += list(np.zeros(4))
 
+    for ele in u, d:
+        dig = ele[:,1] - np.sum(ele, axis=1)/2
+        res += [np.max(dig), np.mean(dig), np.std(dig)]
+        for per in [25, 50, 75, 90]: res.append(np.percentile(dig, per))
+
+    for ele in p, q:
+        res.append(np.trapz(ele))
+        res.append(np.max(ele))
+
+    for ele in r, s:
+        for ldc in ele: 
+            res.append(np.trapz(ldc))
+            res.append(np.max(ldc))
+            
+    del fil, u, d, p, q, r, s
+    
     return np.asarray(res)
 
 # Apply a logarithmic envelope to a whole signal
@@ -291,7 +302,7 @@ def compute_features(val):
     # Defines the entropy of the signal
     def entropy(val):
         
-        dta = np.round(val, 2)
+        dta = np.round(val, 4)
         cnt = Counter()
 
         for ele in dta: cnt[ele] += 1
@@ -316,6 +327,7 @@ def compute_features(val):
         res.append(f[s.argmax()])
         res.append(np.max(s))
         res.append(np.sum(s))
+        res.append(entropy(s))
 
         return res
 
@@ -377,6 +389,35 @@ def compute_features(val):
 
         return res
 
+    # Compute hjorth features
+    def neural_features(val):
+
+        res = []
+        
+        tmp = neurokit.complexity(val, sampling_rate=len(val)/30, lyap_r=True, lyap_e=True)
+        for key in sorted(list(tmp.keys())): res.append(tmp[key])
+
+        arg = {'shannon': False, 'sampen': False, 'multiscale': False, 'svd': False, 'correlation': False, 
+               'higushi': False, 'petrosian': False, 'fisher': False, 'hurst': False, 'dfa': False}
+        for bands in [[0.5, 4, 8, 13, 30], [0.5, 1.5, 12, 14]]:
+            res.append(list(neurokit.complexity(val, sampling_rate=len(val)/30, bands=bands, **arg).values())[0])
+
+        dif = np.diff(val)
+        dif = np.asarray([val[0]] + list(dif))
+        num = len(val)
+
+        m_2 = float(np.sum(dif ** 2)) / num
+        t_p = np.sum(np.square(val))
+        res.append(np.sqrt(m_2 / t_p))
+        
+        m_4 = 0.0
+        for idx in range(1, len(dif)):
+            m_4 += np.square(dif[idx] - dif[idx-1])
+        m_4 = m_4 / num
+        res.append(np.sqrt(m_4 * t_p / m_2 / m_2))
+
+        return np.asarray(res)
+
     res = []
 
     # Build the feature vector
@@ -384,21 +425,20 @@ def compute_features(val):
     res.append(np.std(val))
     res.append(min(val))
     res.append(max(val))
-
+    for per in [25, 50, 75]: res.append(np.percentile(val, per))
     # Frequential features
     res += list(fourier(val))
-
     # Wavelet features
     res += list(wavelet(val))
-
     # Spectrogram features
     res += list(spectrogram(val))
-
     # Statistical features
     res.append(kurtosis(val))
     res.append(skew(val))
     res.append(crossing_over(val))
     res.append(entropy(val))
+    res += list(neural_features(val))
+    res += list(compute_tda_features(val))
     # Features over gradient
     grd = np.gradient(val)
     res.append(np.mean(grd))

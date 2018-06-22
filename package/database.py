@@ -317,7 +317,7 @@ class Database:
         for key in tqdm.tqdm(tem):
 
             # Defines the scalers
-            mms = MinMaxScaler(feature_range=(0,1))
+            mms = MinMaxScaler(feature_range=(0,2))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_sca, self.valid_sca]:
@@ -371,7 +371,7 @@ class Database:
             else:
 
                 # Build the scaler
-                mms = MinMaxScaler(feature_range=(-1,1))
+                mms = MinMaxScaler(feature_range=(0, 2))
                 sts = StandardScaler(with_std=False)
 
                 for pth in [self.train_sca, self.valid_sca]:
