@@ -149,28 +149,35 @@ def interpolate(val, size=2000):
 # val refers to a 1D array
 def compute_tda_features(val):
     
-    fil = Levels(val)
-    u,d = fil.get_persistence()
-    p,q = fil.betti_curves()
-    r,s = fil.landscapes()
+    res, fil = [], Levels(val)
 
-    res = []
+    try: 
+        u,d = fil.get_persistence()
+        for ele in u, d:
+            dig = ele[:,1] - np.sum(ele, axis=1)/2
+            res += [np.max(dig), np.mean(dig), np.std(dig)]
+            for per in [25, 50, 75, 90]: res.append(np.percentile(dig, per))
+    except: 
+        res += list(np.zeros(14))
 
-    for ele in u, d:
-        dig = ele[:,1] - np.sum(ele, axis=1)/2
-        res += [np.max(dig), np.mean(dig), np.std(dig)]
-        for per in [25, 50, 75, 90]: res.append(np.percentile(dig, per))
+    try: 
+        p,q = fil.betti_curves()
+        for ele in p, q:
+            res.append(np.trapz(ele))
+            res.append(np.max(ele))
+    except: 
+        res += list(np.zeros(4)) 
 
-    for ele in p, q:
-        res.append(np.trapz(ele))
-        res.append(np.max(ele))
-
-    for ele in r, s:
-        for ldc in ele: 
-            res.append(np.trapz(ldc))
-            res.append(np.max(ldc))
+    try: 
+        r,s = fil.landscapes()
+        for ele in r, s:
+            for ldc in ele: 
+                res.append(np.trapz(ldc))
+                res.append(np.max(ldc))
+    except:
+        res += list(np.zeros(40))
             
-    del fil, u, d, p, q, r, s
+    del fil
     
     return np.asarray(res)
 
@@ -394,13 +401,17 @@ def compute_features(val):
 
         res = []
         
-        tmp = neurokit.complexity(val, sampling_rate=len(val)/30, lyap_r=True, lyap_e=True)
-        for key in sorted(list(tmp.keys())): res.append(tmp[key])
+        try:
+            tmp = neurokit.complexity(val, sampling_rate=len(val)/30, lyap_r=True, lyap_e=True)
+            for key in sorted(list(tmp.keys())): res.append(tmp[key])
+        except:
+            res += list(np.zeros(16))
 
         arg = {'shannon': False, 'sampen': False, 'multiscale': False, 'svd': False, 'correlation': False, 
                'higushi': False, 'petrosian': False, 'fisher': False, 'hurst': False, 'dfa': False}
         for bands in [[0.5, 4, 8, 13, 30], [0.5, 1.5, 12, 14]]:
-            res.append(list(neurokit.complexity(val, sampling_rate=len(val)/30, bands=bands, **arg).values())[0])
+            try: res.append(list(neurokit.complexity(val, sampling_rate=len(val)/30, bands=bands, **arg).values())[0])
+            except: res.append(0.0)
 
         dif = np.diff(val)
         dif = np.asarray([val[0]] + list(dif))
