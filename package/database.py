@@ -361,7 +361,7 @@ class Database:
                     with h5py.File(pth, 'r') as dtb:
                         m_x.append(np.max(dtb[key].value))
 
-                m_x = max(tuple(m_n))
+                m_x = max(tuple(m_x))
 
                 for pth in [self.train_sca, self.valid_sca]:
                     # Apply MinMaxScaling
