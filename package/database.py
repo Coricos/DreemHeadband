@@ -319,7 +319,7 @@ class Database:
             del mms, sts, pip, tmp
 
         # Rescaling for the persistent landscapes
-        for key in tqdm.tdqm(ldc):
+        for key in tqdm.tqdm(ldc):
 
             try:
                 m_x = []
