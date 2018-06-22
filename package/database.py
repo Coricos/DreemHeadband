@@ -316,7 +316,7 @@ class Database:
                     dtb.create_dataset(key, data=res)
 
             # Memory efficiency
-            del mms, sts, pip, tmp, zmn
+            del mms, sts, pip, tmp
 
         # Rescaling for the persistent landscapes
         for key in tqdm.tdqm(ldc):
