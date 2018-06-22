@@ -17,6 +17,7 @@ def build_dataset(storage, label_csv, output):
     dtb.add_norm_eeg()
     dtb.add_features()
     dtb.add_betti_curves()
+    dtb.add_landscapes()
     dtb.rescale()
     dtb.preprocess(output)
 
