@@ -127,13 +127,16 @@ def kalman_filter(val, std_factor=3, smooth_window=5):
 
 # Resize the 30s epochs for better understanding through convolution
 # size refers to the ending lenght
-def resize_time_serie(val, size=400):
+def resize_time_serie(val, size=400, threshold=1.0):
 
-    mms = MinMaxScaler(feature_range=(0,2))
-    sts = StandardScaler(with_std=False)
-    pip = Pipeline([('mms', mms), ('sts', sts)])
+    if np.max(np.abs(val)) > threshold:
+        mms = MinMaxScaler(feature_range=(0,2*threshold))
+        sts = StandardScaler(with_std=False)
+        sca = Pipeline([('mms', mms), ('sts', sts)])
+    else:
+        sca = StandardScaler(with_std=False)
     
-    return pip.fit_transform(interpolate(val, size=400).reshape(-1,1)).ravel()
+    return sca.fit_transform(interpolate(val, size=400).reshape(-1,1)).ravel()
 
 # Defines a vector reduction through interpolation
 # val refers to a 1D array

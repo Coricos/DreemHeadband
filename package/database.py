@@ -261,12 +261,20 @@ class Database:
         # Specific scaling for the temporal signals
         for key in tqdm.tqdm(res):
 
+            with h5py.File(self.train_out, 'r') as dtb: v_t = dtb[key].value
+            with h5py.File(self.valid_out, 'r') as dtb: v_v = dtb[key].value
+
+            m_x = max(np.max(np.abs(v_t)), np.max(np.abs(v_v)))
+            coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
+            coe = np.median(np.asarray(coe))
+            del v_t, v_v, m_x
+
             for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
                 with h5py.File(inp, 'r') as dtb:
 
                     pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                    fun = partial(resize_time_serie, size=size)
+                    fun = partial(resize_time_serie, size=size, threshold=coe)
                     val = pol.map(fun, dtb[key].value)
                     pol.close()
                     pol.join()
@@ -277,46 +285,47 @@ class Database:
                     dtb.create_dataset(key, data=val)
                     del val
 
+            with h5py.File(self.train_sca, 'r') as dtb: old, sze = dtb[key].value, dtb[key].shape[0]
+            with h5py.File(self.valid_sca, 'r') as dtb: old = np.vstack((old, dtb[key].value))
+
+            mms = MinMaxScaler(feature_range=(0,2))
+            sts = StandardScaler(with_std=False)
+            pip = Pipeline([('mms', mms), ('sts', sts)])
+            pip.fit_transform(np.hstack(tuple(old)).reshape(-1,1)).reshape(old.shape)
+
+            with h5py.File(self.train_sca, 'a') as dtb: dtb[key][...] = old[:sze]
+            with h5py.File(self.valid_sca, 'a') as dtb: dtb[key][...] = old[sze:]
+            del mms, sts, pip, old, sze
+
         # Rescaling for the betti curves
         for key in tqdm.tqdm(unt):
 
             try:
                 # Defines the scalers
-                mms = MinMaxScaler(feature_range=(0,2))
-                sts = StandardScaler(with_std=False)
+                mms = MinMaxScaler(feature_range=(0,1))
 
                 for pth in [self.train_sca, self.valid_sca]:
 
                     with h5py.File(pth, 'r') as dtb:
                         mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-                for pth in [self.train_sca, self.valid_sca]:
+                for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-                    with h5py.File(pth, 'r') as dtb:
-                        tmp = mms.transform(np.hstack(dtb[key].value).reshape(-1,1))
-                        sts.partial_fit(tmp)
-                        del tmp
+                    with h5py.File(inp, 'r') as dtb:
+
+                        shp = dtb[key].shape
+                        tmp = np.hstack(dtb[key].value).reshape(-1,1)
+                        res = mms.transform(tmp).reshape(shp)
+
+                    with h5py.File(out, 'a') as dtb:
+
+                        if dtb.get(key): del dtb[key]
+                        dtb.create_dataset(key, data=res)
+
+                # Memory efficiency
+                del mms, tmp
 
             except: pass
-
-            # Concatenate the pipeline of scalers
-            pip = Pipeline([('mms', mms), ('sts', sts)])
-
-            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
-
-                with h5py.File(inp, 'r') as dtb:
-
-                    shp = dtb[key].shape
-                    tmp = np.hstack(dtb[key].value).reshape(-1,1)
-                    res = pip.transform(tmp).reshape(shp)
-
-                with h5py.File(out, 'a') as dtb:
-
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=res)
-
-            # Memory efficiency
-            del mms, sts, pip, tmp
 
         # Rescaling for the persistent landscapes
         for key in tqdm.tqdm(ldc):
@@ -347,7 +356,7 @@ class Database:
         for key in tqdm.tqdm(oth):
 
             # Build the scaler
-            mms = MinMaxScaler(feature_range=(0, 2))
+            mms = MinMaxScaler(feature_range=(-1, 1))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_sca, self.valid_sca]:
