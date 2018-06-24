@@ -269,7 +269,6 @@ class Database:
             old, m_x = [], max(np.max(np.abs(v_t)), np.max(np.abs(v_v)))
             coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
             coe = np.median(np.asarray(coe))
-            del v_t, v_v, m_x
 
             for inp in [self.train_out, self.valid_out]:
 
@@ -293,7 +292,9 @@ class Database:
             with h5py.File(self.valid_sca, 'a') as dtb:
                 if dtb.get(key): del dtb[key]
                 dtb.create_dataset(key, data=old[len(v_t):])
-            del mms, sts, pip, old, sze
+            
+            # Memory efficiency
+            del mms, sts, pip, old, sze, v_t, v_v, m_x
 
         # Rescaling for the betti curves
         print('# Rescaling betti curves ...')
