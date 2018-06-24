@@ -259,104 +259,102 @@ class Database:
                 dtb.create_dataset('lab', data=inp['lab'].value)
 
         # Specific scaling for the temporal signals
+        print('# Rescaling temporal signals ...')
+        time.sleep(0.5)
         for key in tqdm.tqdm(res):
 
             with h5py.File(self.train_out, 'r') as dtb: v_t = dtb[key].value
             with h5py.File(self.valid_out, 'r') as dtb: v_v = dtb[key].value
 
-            m_x = max(np.max(np.abs(v_t)), np.max(np.abs(v_v)))
+            old, m_x = [], max(np.max(np.abs(v_t)), np.max(np.abs(v_v)))
             coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
             coe = np.median(np.asarray(coe))
             del v_t, v_v, m_x
 
-            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+            for inp in [self.train_out, self.valid_out]:
 
                 with h5py.File(inp, 'r') as dtb:
 
                     pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
                     fun = partial(resize_time_serie, size=size, threshold=coe)
-                    val = pol.map(fun, dtb[key].value)
+                    old += pol.map(fun, dtb[key].value)
                     pol.close()
                     pol.join()
 
-                with h5py.File(out, 'a') as dtb:
-
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=val)
-                    del val
-
-            with h5py.File(self.train_sca, 'r') as dtb: old, sze = dtb[key].value, dtb[key].shape[0]
-            with h5py.File(self.valid_sca, 'r') as dtb: old = np.vstack((old, dtb[key].value))
-
+            old = np.vstack(tuple(old))
             mms = MinMaxScaler(feature_range=(0,2))
             sts = StandardScaler(with_std=False)
             pip = Pipeline([('mms', mms), ('sts', sts)])
             pip.fit_transform(np.hstack(tuple(old)).reshape(-1,1)).reshape(old.shape)
 
-            with h5py.File(self.train_sca, 'a') as dtb: dtb[key][...] = old[:sze]
-            with h5py.File(self.valid_sca, 'a') as dtb: dtb[key][...] = old[sze:]
+            with h5py.File(self.train_sca, 'a') as dtb: 
+                if dtb.get(key): del dtb[key]
+                dtb.create_dataset(key, data=old[:len(v_t)])
+            with h5py.File(self.valid_sca, 'a') as dtb:
+                if dtb.get(key): del dtb[key]
+                dtb.create_dataset(key, data=old[len(v_t):])
             del mms, sts, pip, old, sze
 
         # Rescaling for the betti curves
+        print('# Rescaling betti curves ...')
+        time.sleep(0.5)
         for key in tqdm.tqdm(unt):
 
-            try:
-                # Defines the scalers
-                mms = MinMaxScaler(feature_range=(0,1))
+            # Defines the scalers
+            mms = MinMaxScaler(feature_range=(0,1))
 
-                for pth in [self.train_sca, self.valid_sca]:
+            for pth in [self.train_sca, self.valid_sca]:
 
-                    with h5py.File(pth, 'r') as dtb:
-                        mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
+                with h5py.File(pth, 'r') as dtb:
+                    mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-                for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-                    with h5py.File(inp, 'r') as dtb:
+                with h5py.File(inp, 'r') as dtb:
 
-                        shp = dtb[key].shape
-                        tmp = np.hstack(dtb[key].value).reshape(-1,1)
-                        res = mms.transform(tmp).reshape(shp)
+                    shp = dtb[key].shape
+                    tmp = np.hstack(dtb[key].value).reshape(-1,1)
+                    res = mms.transform(tmp).reshape(shp)
 
-                    with h5py.File(out, 'a') as dtb:
+                with h5py.File(out, 'a') as dtb:
 
-                        if dtb.get(key): del dtb[key]
-                        dtb.create_dataset(key, data=res)
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=res)
 
-                # Memory efficiency
-                del mms, tmp
-
-            except: pass
+            # Memory efficiency
+            del mms, tmp
 
         # Rescaling for the persistent landscapes
+        print('# Rescaling persistent landscapes ...')
+        time.sleep(0.5)
         for key in tqdm.tqdm(ldc):
 
-            try:
-                m_x = []
+            m_x = []
 
-                for pth in [self.train_sca, self.valid_sca]:
-                    # Defines the maximum value for all landscapes
-                    with h5py.File(pth, 'r') as dtb:
-                        m_x.append(np.max(dtb[key].value))
+            for pth in [self.train_out, self.valid_out]:
+                # Defines the maximum value for all landscapes
+                with h5py.File(pth, 'r') as dtb:
+                    m_x.append(np.max(dtb[key].value))
 
-                m_x = max(tuple(m_x))
+            m_x = max(tuple(m_x))
 
-                for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-                    with h5py.File(inp, 'r') as dtb:
-                        val =dtb[key].value / m_x
+                with h5py.File(inp, 'r') as dtb:
+                    val = dtb[key].value / m_x
 
-                    with h5py.File(out, 'a') as dtb:
-                        if dtb.get(key): del dtb[key]
-                        dtb.create_dataset(key, data=val)
-                        del val
-
-            except: pass
+                with h5py.File(out, 'a') as dtb:
+                    if dtb.get(key): del dtb[key]
+                    dtb.create_dataset(key, data=val)
+                    del val
 
         # Specific scaling for features datasets
+        print('# Rescaling other features ...')
+        time.sleep(0.5)
         for key in tqdm.tqdm(oth):
 
             # Build the scaler
-            mms = MinMaxScaler(feature_range=(-1, 1))
+            mms = MinMaxScaler(feature_range=(-1, 0))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_sca, self.valid_sca]:
