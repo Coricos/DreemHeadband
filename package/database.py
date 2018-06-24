@@ -294,7 +294,7 @@ class Database:
                 dtb.create_dataset(key, data=old[len(v_t):])
             
             # Memory efficiency
-            del mms, sts, pip, old, sze, v_t, v_v, m_x
+            del mms, sts, pip, old, v_t, v_v, m_x
 
         # Rescaling for the betti curves
         print('# Rescaling betti curves ...')
