@@ -514,7 +514,7 @@ class DL_Model:
     # patience is the parameter of the EarlyStopping callback
     # max_epochs refers to the amount of epochs achievable
     # batch refers to the batch_size
-    def learn(self, dropout=0.5, decrease=50, n_tail=8, patience=3, max_epochs=100, batch=64):
+    def learn(self, dropout=0.5, decrease=100, n_tail=8, patience=3, max_epochs=100, batch=64):
 
         # Compile the model
         model = self.build(dropout, decrease, n_tail)
