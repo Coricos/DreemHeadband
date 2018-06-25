@@ -67,3 +67,4 @@ if __name__ == '__main__':
     # Launch the model
     mod = DL_Model('./dataset/DTB_Headband.h5', dic, marker=prs.marker)
     mod.learn(patience=10, dropout=0.5, decrease=prs.decrease, batch=prs.batch, n_tail=prs.tail)
+    mod.write_to_file(n_tail=prs.tail)
