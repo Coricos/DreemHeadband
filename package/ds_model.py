@@ -20,9 +20,9 @@ class AutoEncoder:
         self.his = './models/HIS_ATE_{}.history'.format(channel)
         self.enc = './models/ENC_{}.weights'.format(channel)
 
-        with h5py.File('{}/sca_train.h5', 'r') as dtb:
+        with h5py.File('{}/sca_train.h5'.format(storage), 'r') as dtb:
             self.raw = dtb[channel].value
-        with h5py.File('{}/sca_valid.h5', 'r') as dtb:
+        with h5py.File('{}/sca_valid.h5'.format(storage), 'r') as dtb:
             self.raw = np.vstack((self.raw, dtb[channel].value))
 
     # Build the relative model for drowsiness classification
