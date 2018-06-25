@@ -97,7 +97,7 @@ class AutoEncoder:
 
         # Build the model
         model = self.build(0.0, 100)
-        model = Model(inputs=self.inp, outputs=self.ate)
+        model = Model(inputs=self.inp, outputs=model)
         model.load_weights(self.ate)
 
         return model
