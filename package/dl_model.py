@@ -311,7 +311,7 @@ class DL_Model:
 
         # Build silhouette layer
         sil = SilhouetteLayer(int(inp._keras_shape[-1]))(inp)
-        mod = BatchNormalization()(mod)
+        mod = BatchNormalization()(sil)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Conv1D(64, 10, **arg)(mod)
