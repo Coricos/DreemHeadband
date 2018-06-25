@@ -1,8 +1,9 @@
 # Personal Use
 *.ipynb
+results/
 
 # Heavy data
-dataset/*
+dataset/
 
 # Cythonized
-package/__pycache__/*
+package/__pycache__/
