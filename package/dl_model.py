@@ -119,7 +119,7 @@ class DL_Model:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
 
             boo = self.cls['with_poi_enc'] or self.cls['with_poi_ate']
-            if self.cls['with_poi_cv1'] or self.cls['with_poi_cvl']:
+            if self.cls['with_poi_cv1'] or self.cls['with_poi_cvl'] or boo:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
