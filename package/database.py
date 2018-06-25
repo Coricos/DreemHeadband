@@ -253,11 +253,13 @@ class Database:
             oth = [key for key in list(dtb.keys()) if key not in res + unt + ldc + ['lab']]
 
         # Transfer the labels from DTS to SCA
+
         with h5py.File(self.train_sca, 'a') as dtb:
             if dtb.get('lab'): del dtb['lab']
             with h5py.File(self.train_out, 'r') as inp:
                 dtb.create_dataset('lab', data=inp['lab'].value)
-
+        print('# Label transfer ...')
+        time.sleep(0.5)
         # Specific scaling for the temporal signals
         print('# Rescaling temporal signals ...')
         time.sleep(0.5)
@@ -284,7 +286,7 @@ class Database:
             mms = MinMaxScaler(feature_range=(0,2))
             sts = StandardScaler(with_std=False)
             pip = Pipeline([('mms', mms), ('sts', sts)])
-            pip.fit_transform(np.hstack(tuple(old)).reshape(-1,1)).reshape(old.shape)
+            old = pip.fit_transform(np.hstack(tuple(old)).reshape(-1,1)).reshape(old.shape)
 
             with h5py.File(self.train_sca, 'a') as dtb: 
                 if dtb.get(key): del dtb[key]
@@ -304,7 +306,7 @@ class Database:
             # Defines the scalers
             mms = MinMaxScaler(feature_range=(0,1))
 
-            for pth in [self.train_sca, self.valid_sca]:
+            for pth in [self.train_out, self.valid_out]:
 
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
@@ -358,12 +360,12 @@ class Database:
             mms = MinMaxScaler(feature_range=(-1, 0))
             sts = StandardScaler(with_std=False)
 
-            for pth in [self.train_sca, self.valid_sca]:
+            for pth in [self.train_out, self.valid_out]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(remove_out_with_mean(dtb[key].value))
 
-            for pth in [self.train_sca, self.valid_sca]:
+            for pth in [self.train_out, self.valid_out]:
                 # Partial fit for both training and validation
                 with h5py.File(pth, 'r') as dtb:
                     sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
