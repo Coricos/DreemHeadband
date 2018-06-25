@@ -367,7 +367,7 @@ class DL_Model:
     # arg refers to arguments for layer initalization
     def add_ENCODE(self, inp, channel, callback, arg):
 
-        enc = AutoEncoder(channel[:-2], storage='/'.join(self.pth.split('/')[:-1]))
+        enc = AutoEncoder(channel, storage='/'.join(self.pth.split('/')[:-1]))
         enc = enc.get_encoder()
         # Make it non-trainable
         for layer in enc.layers: layer.trainable = False
@@ -396,7 +396,7 @@ class DL_Model:
     # arg refers to arguments for layer initalization
     def add_ATENCO(self, inp, channel, callback, arg):
 
-        ate = AutoEncoder(channel[:-2], storage='/'.join(self.pth.split('/')[:-1]))
+        ate = AutoEncoder(channel, storage='/'.join(self.pth.split('/')[:-1]))
         ate = ate.get_autoencoder()
         # Make it non-trainable
         for layer in ate.layers: layer.trainable = False
@@ -533,8 +533,8 @@ class DL_Model:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, self.drp, arg)
                 if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp, arg)
-                if self.cls['with_eeg_enc']: self.add_ENCODE(inp, key, self.drp, arg)
-                if self.cls['with_eeg_ate']: self.add_ATENCO(inp, key, self.drp, arg)
+                if self.cls['with_eeg_enc']: self.add_ENCODE(inp, key[:-2], self.drp, arg)
+                if self.cls['with_eeg_ate']: self.add_ATENCO(inp, key[:-2], self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_tda']:
