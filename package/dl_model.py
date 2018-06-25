@@ -95,6 +95,18 @@ class DL_Model:
                     for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
+            if self.cls['with_eeg_l_0']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    for key in ['l_0_1', 'l_0_2', 'l_0_3', 'l_0_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
+
+            if self.cls['with_eeg_l_1']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    for key in ['l_1_1', 'l_1_2', 'l_1_3', 'l_1_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
+
             if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
@@ -193,6 +205,18 @@ class DL_Model:
                     for key in ['bup_1', 'bup_2', 'bup_3', 'bup_4']:
                         vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
 
+            if self.cls['with_eeg_l_0']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    for key in ['l_0_1', 'l_0_2', 'l_0_3', 'l_0_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
+
+            if self.cls['with_eeg_l_1']:
+
+                with h5py.File(self.pth, 'r') as dtb:
+                    for key in ['l_1_1', 'l_1_2', 'l_1_3', 'l_1_4']:
+                        vec.append(dtb['{}_{}'.format(key, fmt)][ind:ind+batch])
+
             if self.cls['with_n_e_cv1'] or self.cls['with_n_e_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
@@ -265,6 +289,34 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Conv1D(128, 4, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 4, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling1D(pool_size=2)(mod)
+        mod = GlobalAveragePooling1D()(mod)
+
+        # Add layers to the model
+        if inp not in self.inp: self.inp.append(inp)
+        self.mrg.append(mod)
+
+    # 1D CNN channel designed for the TDA betti curves
+    # inp refers to the defined input
+    # callback refers to the annealing dropout
+    # arg refers to arguments for layer initalization
+    def add_SILHOU(self, inp, callback, arg):
+
+        # Build silhouette layer
+        sil = SilhouetteLayer(100)(inp)
+
+        mod = Reshape((sil._keras_shape[1], 1))(sil)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(64, 10, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -491,6 +543,18 @@ class DL_Model:
                 for key in ['bup_1_t', 'bup_2_t', 'bup_3_t', 'bup_4_t']:
                     inp = Input(shape=(dtb[key].shape[1], ))
                     self.add_TDACV1(inp, self.drp, arg)
+
+        with h5py.File(self.pth, 'r') as dtb:
+            if self.cls['with_eeg_l_0']:
+                for key in ['l_0_1_t', 'l_0_2_t', 'l_0_3_t', 'l_0_4_t']:
+                    inp = Input(shape=(dtb[key].shape[1], ))
+                    self.add_SILHOU(inp, self.drp, arg)
+
+        with h5py.File(self.pth, 'r') as dtb:
+            if self.cls['with_eeg_l_1']:
+                for key in ['l_1_1_t', 'l_1_2_t', 'l_1_3_t', 'l_1_4_t']:
+                    inp = Input(shape=(dtb[key].shape[1], ))
+                    self.add_SILHOU(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_eeg_t'].shape[1], ))
