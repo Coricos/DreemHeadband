@@ -367,7 +367,7 @@ class DL_Model:
     # arg refers to arguments for layer initalization
     def add_ENCODE(self, inp, channel, callback, arg):
 
-        enc = AutoEncoder(channel, storage='/'.join(self.pth.split('/')[:-1]))
+        enc = AutoEncoder(channel[:-2], storage='/'.join(self.pth.split('/')[:-1]))
         enc = enc.get_encoder()
         # Make it non-trainable
         for layer in enc.layers: layer.trainable = False
@@ -396,7 +396,7 @@ class DL_Model:
     # arg refers to arguments for layer initalization
     def add_ATENCO(self, inp, channel, callback, arg):
 
-        ate = AutoEncoder(channel, storage='/'.join(self.pth.split('/')[:-1]))
+        ate = AutoEncoder(channel[:-2], storage='/'.join(self.pth.split('/')[:-1]))
         ate = ate.get_autoencoder()
         # Make it non-trainable
         for layer in ate.layers: layer.trainable = False
