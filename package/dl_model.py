@@ -311,10 +311,7 @@ class DL_Model:
 
         # Build silhouette layer
         sil = SilhouetteLayer(int(inp._keras_shape[-1]))(inp)
-        mod = BatchNormalization()(sil)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(64, 10, **arg)(mod)
+        mod = Conv1D(64, 10, **arg)(sil)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -374,9 +371,6 @@ class DL_Model:
 
         mod = enc(inp)
         mod = GlobalMaxPooling1D()(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
         mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
@@ -403,10 +397,6 @@ class DL_Model:
         for layer in ate.layers: layer.trainable = False
 
         mod = ate(inp)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-
         mod = Reshape((inp._keras_shape[1], 1))(mod)
         mod = Conv1D(64, 32, **arg)(mod)
         mod = PReLU()(mod)
