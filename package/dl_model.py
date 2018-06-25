@@ -483,7 +483,8 @@ class DL_Model:
 
         # Gather all the model in one dense network
         print('# Ns Channels: ', len(self.mrg))
-        model = concatenate(self.mrg)
+        if len(self.mrg) > 1: model = concatenate(self.mrg)
+        else: model = self.mrg[0]
         print('# Merge Layer: ', model._keras_shape[1])
 
         # Defines the learning tail
