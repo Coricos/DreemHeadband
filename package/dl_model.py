@@ -310,7 +310,7 @@ class DL_Model:
     def add_SILHOU(self, inp, callback, arg):
 
         # Build silhouette layer
-        sil = SilhouetteLayer(int(inp._keras_shape[1]))(inp)
+        sil = SilhouetteLayer(int(inp._keras_shape[-1]))(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -545,13 +545,13 @@ class DL_Model:
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_l_0']:
                 for key in ['l_0_1_t', 'l_0_2_t', 'l_0_3_t', 'l_0_4_t']:
-                    inp = Input(shape=(dtb[key].shape[1], ))
+                    inp = Input(shape=(dtb[key].shape[1], dtb[key].shape[2]))
                     self.add_SILHOU(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_l_1']:
                 for key in ['l_1_1_t', 'l_1_2_t', 'l_1_3_t', 'l_1_4_t']:
-                    inp = Input(shape=(dtb[key].shape[1], ))
+                    inp = Input(shape=(dtb[key].shape[1], dtb[key].shape[2]))
                     self.add_SILHOU(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
