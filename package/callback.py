@@ -9,16 +9,14 @@ from package.toolbox import *
 class Metrics(Callback):
 
     # Initialization
-    # autoencoder is a boolean for whether there is an autoencoder or not
     # val_gen refers to the validation generator
     # steps for when the metric must stop the evaluation
-    def __init__(self, autoencoder, val_gen, steps):
+    def __init__(self, val_gen, steps):
 
         super(Callback, self).__init__()
 
         self.val_gen = val_gen
         self.val_score = []
-        self.autoencoder = autoencoder
         self.step = steps
 
     # Compute the score for each epoch
@@ -31,10 +29,8 @@ class Metrics(Callback):
         for vec in self.val_gen:
             # Iterate according to the right stopping point
             if ind <= self.step :
-                if self.autoencoder: lab += [np.argmax(ele) for ele in vec[1][0]]
-                else: lab += [np.argmax(ele) for ele in vec[1]]
-                if self.autoencoder: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[0])[0]]
-                else: prd += [np.argmax(pbs) for pbs in self.model.predict(vec[0])]
+                lab += [np.argmax(ele) for ele in vec[1]]
+                prd += [np.argmax(pbs) for pbs in self.model.predict(vec[0])]
                 ind += 1
             else :
                 break

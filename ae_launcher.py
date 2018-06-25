@@ -7,7 +7,7 @@ import argparse
 # Defines the multi-threaded auto-encoders training
 # storage pinpoints to the database repository
 # channels refers to which channel to train on
-def ae_launcher(storage='./dataset', channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']):
+def ae_launcher(test_size=0.0, storage='./dataset', channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']):
 
     thread_list = channels
 
@@ -26,7 +26,7 @@ def ae_launcher(storage='./dataset', channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4
 
         # Launch the thread through multi-threading
         cnl = thread_list.pop(0)
-        arg = '{} {} {}'.format(storage, cnl, gpu)
+        arg = '{} {} {} {}'.format(test_size, storage, cnl, gpu)
         cmd = 'python3 -W ignore ae_builder.py {}'.format(arg)
         cmd = ['nohup'] + shlex.split(cmd)
         out = open('./models/AE_{}.out'.format(cnl), 'w')
@@ -43,8 +43,9 @@ if __name__ == '__main__':
     prs = argparse.ArgumentParser()
     # Mandatory arguments
     prs.add_argument('-s', '--storage', help='Refers to the databases repository', type=str, default='./dataset')
+    prs.add_argument('-t', '--test_size', help='Test_size for training', type=float, default=0.0)
     # Parse the arguments
     prs = prs.parse_args()
 
     # Launch the model
-    ae_launcher(storage=prs.storage, channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir'])
+    ae_launcher(test_size=prs.test_size, storage=prs.storage, channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir'])

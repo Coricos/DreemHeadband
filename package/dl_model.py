@@ -4,6 +4,7 @@
 
 from package.database import *
 from package.callback import *
+from package.ds_model import *
     
 # Defines the multi-channel networks
 
@@ -81,7 +82,8 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, key
 
-            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl'] or self.cls['with_eeg_atd']:
+            boo = self.cls['with_eeg_enc'] or self.cls['with_eeg_ate']
+            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl'] or boo:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
@@ -98,11 +100,13 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_por_cv1'] or self.cls['with_por_cvl']:
+            boo = self.cls['with_por_enc'] or self.cls['with_por_ate']
+            if self.cls['with_por_cv1'] or self.cls['with_por_cvl'] or boo:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
 
+            boo = self.cls['with_poi_enc'] or self.cls['with_poi_ate']
             if self.cls['with_poi_cv1'] or self.cls['with_poi_cvl']:
 
                 with h5py.File(self.pth, 'r') as dtb:
@@ -118,9 +122,6 @@ class DL_Model:
                 # Defines the labels
                 lab = dtb['lab_{}'.format(fmt)][ind:ind+batch]
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
-                if self.cls['with_eeg_atd']:
-                    lab = [lab]
-                    for i in range(1, 5): lab.append(dtb['eeg_{}_{}'.format(i, fmt)][ind:ind+batch])
             
             yield(vec, lab)
             del lab, vec
@@ -179,7 +180,8 @@ class DL_Model:
                     vec.append(tmp)
                     del shp, tmp, ann
 
-            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl'] or self.cls['with_eeg_atd']:
+            boo = self.cls['with_eeg_enc'] or self.cls['with_eeg_ate']
+            if self.cls['with_eeg_cv1'] or self.cls['with_eeg_cvl'] or boo:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']:
@@ -196,12 +198,14 @@ class DL_Model:
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['norm_eeg_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_por_cv1'] or self.cls['with_por_cvl']:
+            boo = self.cls['with_por_enc'] or self.cls['with_por_ate']
+            if self.cls['with_por_cv1'] or self.cls['with_por_cvl'] or boo:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_r_{}'.format(fmt)][ind:ind+batch])
 
-            if self.cls['with_poi_cv1'] or self.cls['with_poi_cvl']:
+            boo = self.cls['with_poi_enc'] or self.cls['with_poi_ate']
+            if self.cls['with_poi_cv1'] or self.cls['with_poi_cvl'] or boo:
 
                 with h5py.File(self.pth, 'r') as dtb:
                     vec.append(dtb['po_ir_{}'.format(fmt)][ind:ind+batch])
@@ -252,7 +256,7 @@ class DL_Model:
     # inp refers to the defined input
     # callback refers to the annealing dropout
     # arg refers to arguments for layer initalization
-    def add_TDAC1(self, inp, callback, arg):
+    def add_TDACV1(self, inp, callback, arg):
 
         # Build model
         mod = Reshape((inp._keras_shape[1], 1))(inp)
@@ -291,15 +295,11 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, **arg)(mod)
+        mod = Conv1D(128, 6, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, **arg)(mod)
-        mod = PReLU()(mod)
-        mod = BatchNormalization()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 8, **arg)(mod)
+        mod = Conv1D(128, 6, **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -312,42 +312,69 @@ class DL_Model:
 
     # Adds an autoencoder channel
     # inp refers to the defined input
+    # channel refers to a specific hannel
     # callback refers to the callback managing the dropout rate 
     # arg refers to arguments for layer initalization
-    def add_ENCODE(self, inp, callback, arg):
+    def add_ENCODE(self, inp, channel, callback, arg):
 
-        # Build the autoencoder model
-        mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 8, padding='same', **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = MaxPooling1D(pool_size=5)(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(64, 4, padding='same', **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        enc = MaxPooling1D(pool_size=5)(mod)
+        enc = AutoEncoder(channel, storage='/'.join(self.pth.split('/')[:-1]))
+        enc = enc.get_encoder()
+        # Make it non-trainable
+        for layer in enc.layers: layer.trainable = False
 
-        print('# Latent Space Dimension', enc._keras_shape[1:])
-
-        mod = Conv1D(64, 4, padding='same', **arg)(enc)
+        mod = enc(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
-        mod = UpSampling1D(5)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(64, 8, padding='same', **arg)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
-        mod = UpSampling1D(5)(mod)
-        mod = Conv1D(1, 8, padding='same', **arg)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Activation('linear')(mod)
-        dec = Flatten(name='ate_{}'.format(len(self.ate)))(mod)
+        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
-        self.ate.append(dec)
-        self.mrg.append(GlobalAveragePooling1D()(enc))
+        self.mrg.append(mod)
+
+    # Adds an autoencoder channel
+    # inp refers to the defined input
+    # channel refers to a specific hannel
+    # callback refers to the callback managing the dropout rate 
+    # arg refers to arguments for layer initalization
+    def add_ATENCO(self, inp, channel, callback, arg):
+
+        ate = AutoEncoder(channel, storage='/'.join(self.pth.split('/')[:-1]))
+        ate = ate.get_autoencoder()
+        # Make it non-trainable
+        for layer in ate.layers: layer.trainable = False
+
+        mod = ate(inp)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+
+        mod = Reshape((inp._keras_shape[1], 1))(mod)
+        mod = Conv1D(64, 32, **arg)(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 6, **arg)(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Conv1D(128, 6, **arg)(mod)
+        mod = PReLU()(mod)
+        mod = BatchNormalization()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = AveragePooling1D(pool_size=2)(mod)
+        mod = GlobalAveragePooling1D()(mod)
+
+        # Add model to main model
+        if inp not in self.inp: self.inp.append(inp)
+        self.mrg.append(mod)
 
     # Defines a channel combining CONV and LSTM structures
     # inp refers to the defined input
@@ -403,7 +430,6 @@ class DL_Model:
     def add_LDENSE(self, inp, callback, arg):
 
         # Build the model
-        mod = AdaptiveDropout(callback.prb, callback)(inp)
         mod = Dense(mod._keras_shape[1], **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
@@ -457,13 +483,14 @@ class DL_Model:
                 inp = Input(shape=(dtb[key].shape[1], ))
                 if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, self.drp, arg)
                 if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp, arg)
-                if self.cls['with_eeg_atd']: self.add_ENCODE(inp, self.drp, arg)
+                if self.cls['with_eeg_enc']: self.add_ENCODE(inp, key, self.drp, arg)
+                if self.cls['with_eeg_ate']: self.add_ATENCO(inp, key, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_eeg_tda']:
                 for key in ['bup_1_t', 'bup_2_t', 'bup_3_t', 'bup_4_t']:
                     inp = Input(shape=(dtb[key].shape[1], ))
-                    self.add_TDAC1(inp, self.drp, arg)
+                    self.add_TDACV1(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_eeg_t'].shape[1], ))
@@ -474,11 +501,15 @@ class DL_Model:
             inp = Input(shape=(dtb['po_r_t'].shape[1], ))
             if self.cls['with_por_cv1']: self.add_CONV1D(inp, self.drp, arg)
             if self.cls['with_por_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+            if self.cls['with_por_enc']: self.add_ENCODE(inp, 'po_r', self.drp, arg)
+            if self.cls['with_por_ate']: self.add_ATENCO(inp, 'po_r', self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['po_ir_t'].shape[1], ))
             if self.cls['with_poi_cv1']: self.add_CONV1D(inp, self.drp, arg)
             if self.cls['with_poi_cvl']: self.add_CVLSTM(inp, self.drp, arg)
+            if self.cls['with_poi_enc']: self.add_ENCODE(inp, 'po_ir', self.drp, arg)
+            if self.cls['with_poi_ate']: self.add_ATENCO(inp, 'po_ir', self.drp, arg)
 
         if self.cls['with_fea']:
             with h5py.File(self.pth, 'r') as dtb:
@@ -520,21 +551,10 @@ class DL_Model:
         model = self.build(dropout, decrease, n_tail)
 
         # Defines the losses depending on the case
-        if self.cls['with_eeg_atd']: 
-            model = [model] + self.ate
-            loss = {'output': 'categorical_crossentropy', 
-                    'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
-                    'ate_2': 'mean_squared_error', 'ate_3': 'mean_squared_error'}
-            loss_weights = {'output': 0.5, 'ate_0': 0.25, 'ate_1': 0.25, 
-                            'ate_2': 0.25, 'ate_3': 0.25}
-            metrics = {'output': 'accuracy', 'ate_0': 'mae', 'ate_1': 'mae', 
-                       'ate_2': 'mae', 'ate_3': 'mae'}
-            monitor = 'val_output_acc'
-        else: 
-            loss = 'categorical_crossentropy'
-            loss_weights = None
-            metrics = ['accuracy']
-            monitor = 'val_acc'
+        loss = 'categorical_crossentropy'
+        loss_weights = None
+        metrics = ['accuracy']
+        monitor = 'val_acc'
 
         # Implements the model and its callbacks
         arg = {'patience': patience, 'verbose': 0}
@@ -543,7 +563,7 @@ class DL_Model:
         check = ModelCheckpoint(self.out, monitor=monitor, **arg)
         if (len(self.l_e)/512) - int(len(self.l_e)/512) == 0 : steps = int(len(self.l_e)/512) -1
         else : steps = int(len(self.l_e)/512)
-        kappa = Metrics(self.cls['with_eeg_atd'], self.data_gen('e', batch=512), steps)
+        kappa = Metrics(self.data_gen('e', batch=512), steps)
         shuff = DataShuffler(self.pth, 3)
 
         # Build and compile the model
@@ -571,20 +591,11 @@ class DL_Model:
         with open(self.his, 'rb') as raw: dic = pickle.load(raw)
 
         # Generates the plot
-        if self.cls['with_eeg_atd']: 
-            plt.figure(figsize=(18,8))
-        else:
-            plt.figure(figsize=(18,4))
-        
+        plt.figure(figsize=(18,4))        
         fig = gd.GridSpec(2,2)
 
-        if self.cls['with_eeg_atd']: 
-            plt.subplot(fig[0,0])
-            acc, val = dic['output_acc'], dic['val_output_acc']
-        else:
-            plt.subplot(fig[:,0])
-            acc, val = dic['acc'], dic['val_acc']
-
+        plt.subplot(fig[:,0])
+        acc, val = dic['acc'], dic['val_acc']
         plt.title('Accuracy Evolution - Classification')
         plt.plot(range(len(acc)), acc, c='orange', label='Train')
         plt.scatter(range(len(val)), val, marker='x', s=50, c='grey', label='Test')
@@ -593,35 +604,10 @@ class DL_Model:
         plt.xlabel('Epochs')
         plt.ylabel('Accuracy')
 
-        if self.cls['with_eeg_atd']: 
-            plt.subplot(fig[0,1])
-            plt.title('Score Evolution - AutoEncoder')
-            color_t, color_e = ['orange', 'lightblue', 'red', 'grey'], ['blue', 'yellow', 'green', 'black']
-            for ate, col_t, col_e in zip(['ate_0', 'ate_1', 'ate_2', 'ate_3'], color_t, color_e):
-                plt.plot(dic['{}_mean_absolute_error'.format(ate)], c=col_t, label='Train_{}'.format(ate))
-                tmp = dic['val_{}_mean_absolute_error'.format(ate)]
-                plt.scatter(range(len(tmp)), tmp, marker='x', s=4, c=col_e, label='Test_{}'.format(ate))
-            plt.legend(loc='best')
-            plt.grid()
-            plt.xlabel('Epochs')
-            plt.ylabel('MAE')
-
-        if self.cls['with_eeg_atd']: 
-            plt.subplot(fig[1,:])
-        else: 
-            plt.subplot(fig[:,1])
-
+        plt.subplot(fig[:,1])
         plt.title('Losses Evolution')
         plt.plot(dic['loss'], c='orange', label='Train Loss')
         plt.plot(dic['val_loss'], c='grey', label='Test Loss')
-
-        if self.cls['with_eeg_atd']: 
-            plt.plot(dic['output_loss'], c='red', label='Train Classification Loss')
-            plt.plot(dic['val_output_loss'], c='darkblue', label='Test Classification Loss')
-            color_t, color_e = ['orange', 'lightblue', 'red', 'grey'], ['blue', 'yellow', 'green', 'black']
-            for ate, col_t, col_e in zip(['ate_0', 'ate_1', 'ate_2', 'ate_3'], color_t, color_e):
-                plt.plot(dic['{}_loss'.format(ate)], c=col_t, label='Loss_Train_{}'.format(ate))
-                plt.plot(dic['val_{}_loss'.format(ate)], c=col_e, label='Loss_Test_{}'.format(ate))
 
         plt.legend(loc='best')
         plt.grid()
@@ -642,19 +628,9 @@ class DL_Model:
         model = self.build(0.0, 100, n_tail)
 
         # Defines the losses depending on the case
-        if self.cls['with_eeg_atd']: 
-            model = [model] + self.ate
-            loss = {'output': 'categorical_crossentropy', 
-                    'ate_0': 'mean_squared_error', 'ate_1': 'mean_squared_error',
-                    'ate_2': 'mean_squared_error', 'ate_3': 'mean_squared_error'}
-            loss_weights = {'output': 0.5, 'ate_0': 0.25, 'ate_1': 0.25, 
-                            'ate_2': 0.25, 'ate_3': 0.25}
-            metrics = {'output': 'accuracy', 'ate_0': 'mae', 'ate_1': 'mae', 
-                       'ate_2': 'mae', 'ate_3': 'mae'}
-        else: 
-            loss = 'categorical_crossentropy'
-            loss_weights = None
-            metrics = ['accuracy']
+        loss = 'categorical_crossentropy'
+        loss_weights = None
+        metrics = ['accuracy']
 
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=model)
@@ -687,10 +663,7 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                if self.cls['with_eeg_atd']:
-                    prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)[0]]
-                else:
-                    prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)]
+                prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)]
                 ind += 1
             else : 
                 break
