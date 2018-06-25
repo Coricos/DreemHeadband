@@ -412,6 +412,10 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
+        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
+        mod = BatchNormalization()(mod)
+        mod = PReLU()(mod)
+        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add layers to model
         if inp not in self.inp: self.inp.append(inp)

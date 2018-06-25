@@ -45,7 +45,7 @@ class AutoEncoder:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         self.enc = MaxPooling1D(pool_size=5)(mod)
-        print('# ENCODER Latent Space', enc._keras_shape)
+        print('# ENCODER Latent Space', self.enc._keras_shape)
 
         mod = Conv1D(128, 6, padding='same', **arg)(self.enc)
         mod = BatchNormalization()(mod)
@@ -93,12 +93,17 @@ class AutoEncoder:
         del model, early, check, his
 
     # Reconstruct the model
-    def get_encoder(self):
+    def reconstruct(self):
 
         # Build the model
-        model = self.build(0.0, 100)
-        model = Model(inputs=self.inp, outputs=self.ate)
-        model.load_weights(self.ate)
+        self.model = self.build(0.0, 100)
+        self.model = Model(inputs=self.inp, outputs=self.ate)
+        self.model.load_weights(self.ate)
+
+    # Reconstruct the encoder
+    def get_encoder(self):
+
+        if not hasattr(self, 'model'): self.reconstruct()       
         # Serialize the classifier
         model = Model(inputs=model.input, outputs=model.layers[-10].output)
 
