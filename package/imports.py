@@ -4,8 +4,9 @@
 
 # Core packages
 
-import h5py, multiprocessing, tqdm, nolds, sys, GPUtil
+import h5py, multiprocessing, tqdm, nolds, sys
 import pickle, warnings, time, pywt, joblib, neurokit
+import os, shlex, subprocess, GPUtil
 
 import numpy as np
 import pandas as pd
@@ -76,7 +77,6 @@ try:
     build = '/home/meryll/Documents/Environment/{}'.format(gpath)
     sys.path.append(build)
     del build, gpath
-
     import gudhi
 
 except:
