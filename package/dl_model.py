@@ -373,6 +373,7 @@ class DL_Model:
         for layer in enc.layers: layer.trainable = False
 
         mod = enc(inp)
+        mod = GlobalMaxPooling1D()(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
