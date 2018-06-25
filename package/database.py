@@ -152,6 +152,9 @@ class Database:
                     new = 'bup_{}'.format(key)
                     if dtb.get(new): del dtb[new]
                     dtb.create_dataset(new, data=res[:,0,:])
+                    new = 'bdw_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,1,:])
 
     # Build the corresponding landscapes
     def add_landscapes(self):
@@ -248,7 +251,7 @@ class Database:
 
         with h5py.File(self.train_out, 'r') as dtb:
             res = ['norm_acc', 'norm_eeg', 'acc_x', 'acc_y', 'acc_z', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
-            unt = ['bup_1', 'bup_2', 'bup_3', 'bup_4']
+            unt = ['bup_1', 'bup_2', 'bup_3', 'bup_4', 'bdw_1', 'bdw_2', 'bdw_3', 'bdw_4']
             ldc = ['l_0_1', 'l_0_2', 'l_0_3', 'l_0_4', 'l_1_1', 'l_1_2', 'l_1_3', 'l_1_4']
             oth = [key for key in list(dtb.keys()) if key not in res + unt + ldc + ['lab']]
 
