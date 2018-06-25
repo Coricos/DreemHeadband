@@ -4,6 +4,8 @@
 
 import argparse
 
+from package.imports import *
+
 # Defines the multi-threaded auto-encoders training
 # storage pinpoints to the database repository
 # channels refers to which channel to train on
