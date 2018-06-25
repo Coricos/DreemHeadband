@@ -41,7 +41,7 @@ import lightgbm as lgb
 import tensorflow as tf
 
 from keras import backend as K
-from keras import regularizers
+from keras import regularizers, initializers
 from keras.utils import np_utils
 from keras.models import Model, load_model
 from keras.layers import Convolution2D, MaxPooling2D, Flatten

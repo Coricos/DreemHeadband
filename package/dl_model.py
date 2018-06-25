@@ -310,9 +310,7 @@ class DL_Model:
     def add_SILHOU(self, inp, callback, arg):
 
         # Build silhouette layer
-        sil = SilhouetteLayer(100)(inp)
-
-        mod = Reshape((sil._keras_shape[1], 1))(sil)
+        sil = SilhouetteLayer(int(inp._keras_shape[1]))(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
