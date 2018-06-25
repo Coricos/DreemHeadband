@@ -78,8 +78,8 @@ class AutoEncoder:
         model.compile(loss='mean_squared_error', metrics=['mean_absolute_error'], optimizer='adadelta')
 
         # Defines the callbacks
-        early = EarlyStopping(monitor='val_loss', min_delta=1e-5, patience=patience, mode='min')
-        check = ModelCheckpoint(self.ate, period=1, monitor='val_loss', mode='min', 
+        early = EarlyStopping(monitor='loss', min_delta=1e-5, patience=patience, mode='min')
+        check = ModelCheckpoint(self.ate, period=1, monitor='loss', mode='min', 
                                 save_best_only=True, save_weights_only=True)
 
         # Launch the learning
