@@ -482,7 +482,7 @@ class DL_Model:
     def add_LDENSE(self, inp, callback, arg):
 
         # Build the model
-        mod = Dense(mod._keras_shape[1], **arg)(inp)
+        mod = Dense(inp._keras_shape[1], **arg)(inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
