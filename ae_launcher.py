@@ -42,7 +42,7 @@ if __name__ == '__main__':
     # Initialize the arguments
     prs = argparse.ArgumentParser()
     # Mandatory arguments
-    prs.add_argument('-s', '--storage', help='Refers to the databases repository', type=str, default=None)
+    prs.add_argument('-s', '--storage', help='Refers to the databases repository', type=str, default='./dataset')
     # Parse the arguments
     prs = prs.parse_args()
 

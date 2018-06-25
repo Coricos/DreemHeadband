@@ -4,7 +4,7 @@
 
 # Core packages
 
-import h5py, multiprocessing, tqdm, nolds, sys
+import h5py, multiprocessing, tqdm, nolds, sys, GPUtil
 import pickle, warnings, time, pywt, joblib, neurokit
 
 import numpy as np
