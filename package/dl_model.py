@@ -798,7 +798,7 @@ class CV_DL_Model:
         for idx in range(self.n_iter):
 
             # Launch the model scoring for each iteration
-            mod = DL_Model('./dataset/DTB_Headband.h5', self.channels, marker='CV_{}'.format(idx))
+            mod = DL_Model(self.path, self.channels, marker='CV_{}'.format(idx))
             mod.learn(patience=10, dropout=0.3, decrease=100, batch=64, n_tail=5)
             mod.write_to_file(n_tail=5)
 
