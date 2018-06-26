@@ -44,6 +44,7 @@ class AutoEncoder:
         mod = Conv1D(128, 6, padding='same', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
+        mod = GaussianNoise(0.1)
         enc = MaxPooling1D(pool_size=5)(mod)
         print('# ENCODER Latent Space', enc._keras_shape)
 
