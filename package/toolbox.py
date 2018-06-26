@@ -528,3 +528,49 @@ def remove_out_with_mean(arr):
         arr[ind,idx] = mea
         
     return arr
+
+# Returns the argmax of the most predicted value
+# val refers to a 2D numpy array
+def correlate(val, wei): 
+
+    return np.argmax(np.sum(val/wei.reshape(wei.shape[0],1), axis=0))
+
+# Defines an aggregater for ensemble learning
+# storage refers where to pick the results files
+# graph is a boolean for correlation
+# out refers to a specific serialization path
+def aggregate(storage='./results', graph=False, out=None):
+
+    # Load all the existing validation results
+    res, lst = [], glob.glob('{}/test_*.csv'.format(storage))
+    for ele in lst: res.append(pd.read_csv(ele, sep=';', header=0, index_col=0))
+    res = pd.concat(res, axis=1)
+    res.columns = ['RES_{}'.format(k) for k in range(len(lst))]
+    # Compute their respective correlation
+    cor = res.corr()
+
+    if graph:
+
+        plt.figure(figsize=(18, 8))
+        sns.heatmap(cor, cmap='BuGn', annot=True, cbar=False)
+        plt.show()
+
+    # Deal with the correlation for diversity
+    wei = np.mean(cor, axis=0).values.ravel()
+    res = res.values
+    res = np_utils.to_categorical(res.ravel(), num_classes=5).reshape(res.shape[0], res.shape[1], 5)
+    # Computes the respective scores
+    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+    res = np.asarray(pol.map(partial(correlate, wei=wei), res))
+    pol.close()
+    pol.join()
+
+    # Serialization of the result
+    idx = np.arange(43830, 64422)
+    res = np.hstack((idx.reshape(-1,1), res.reshape(-1,1)))
+    # Creates the relative dataframe
+    res = pd.DataFrame(res, columns=['id', 'label'])
+
+    # Write to csv
+    if out is None: out = '{}/aggr_{}.csv'.format(storage, int(time.time()))
+    res.to_csv(out, index=False, header=True, sep=';')
