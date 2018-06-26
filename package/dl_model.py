@@ -788,14 +788,15 @@ class CV_DL_Model:
         self.path = '{}/CV_Headband.h5'.format(storage)
         self.n_iter = n_iter
         self.channels = channels
-
-        # Build the new relative database
-        Database(storage=storage).preprocess(self.path, test=0.3)
+        self.storage = storage
 
     # CV Launcher definition
     def launch(self):
 
         for idx in range(self.n_iter):
+
+            # Build the new relative database
+            Database(storage=self.storage).preprocess(self.path, test=0.3)
 
             # Launch the model scoring for each iteration
             mod = DL_Model(self.path, self.channels, marker='CV_{}'.format(idx))
