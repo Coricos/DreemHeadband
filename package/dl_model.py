@@ -773,3 +773,32 @@ class DL_Model:
         # Write to csv
         if out is None: out = './results/test_{}.csv'.format(int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
+
+# Defines a structure for a cross_validation
+
+class CV_DL_Model:
+
+    # Initialization
+    # channels refers to which channels to use during multiple tests
+    # storage refers to the absolute path towards the datasets
+    # n_iter refers to the amount of iterations
+    def __init__(self, channels, storage='./dataset', n_iter=7):
+
+        # Attributes
+        self.path = '{}/CV_Headband.h5'.format(storage)
+        self.n_iter = n_iter
+        self.channels = channels
+
+        # Build the new relative database
+        Database(storage=storage).preprocess(self.path, test=0.3)
+
+    # CV Launcher definition
+    def launch(self):
+
+        for idx in range(self.n_iter):
+
+            # Launch the model scoring for each iteration
+            mod = DL_Model('./dataset/DTB_Headband.h5', self.channels, marker='CV_{}'.format(idx))
+            mod.learn(patience=10, dropout=0.3, decrease=100, batch=64, n_tail=5)
+            mod.write_to_file(n_tail=5)
+

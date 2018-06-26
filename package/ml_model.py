@@ -154,7 +154,7 @@ class ML_Model:
 
 # Defines a structure for a cross_validation
 
-class CV_Model:
+class CV_ML_Model:
 
     # Initialization
     # path refers to the absolute path towards the datasets

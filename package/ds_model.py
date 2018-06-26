@@ -36,6 +36,7 @@ class AutoEncoder:
         arg = {'kernel_initializer': 'he_uniform'}
 
         mod = Reshape((self.inp._keras_shape[1], 1))(self.inp)
+        mod = GaussianNoise(np.std(self.raw))(mod)
         mod = Conv1D(64, 50, padding='same', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
@@ -44,7 +45,6 @@ class AutoEncoder:
         mod = Conv1D(128, 6, padding='same', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
-        mod = GaussianNoise(0.1)
         enc = MaxPooling1D(pool_size=5)(mod)
         print('# ENCODER Latent Space', enc._keras_shape)
 
@@ -71,7 +71,7 @@ class AutoEncoder:
     # patience is the parameter of the EarlyStopping callback
     # verbose indicates whether to use tensorboard or not
     # max_epochs refers to the amount of epochs achievable
-    def learn(self, test_ratio=0.3, dropout=0.3, decrease=50, batch_size=64, patience=5, verbose=1, max_epochs=100):
+    def learn(self, test_ratio=0.3, dropout=0.25, decrease=50, batch_size=64, patience=5, verbose=1, max_epochs=100):
 
         # Build the model
         model = self.build(dropout, decrease)
@@ -102,6 +102,18 @@ class AutoEncoder:
         model.load_weights(self.ate)
 
         return model
+
+    # Random visualization over the autoencoder reconstruction power
+    def see_result(self):
+
+        # Randomly select an index among the possibilities
+        idx = np.random.choice(self.raw.shape[0])
+        ate = self.get_autoencoder()
+
+        plt.figure(figsize=(18,4))
+        plt.plot(self.raw[idx], label='Initial Signal')
+        plt.scatter(np.arange(self.raw.shape[1]), ate.predict(self.raw[idx].reshape(1,self.raw.shape[1])), c='b', marker='x')
+        plt.show()
 
     # Reconstruct the encoder
     def get_encoder(self):
