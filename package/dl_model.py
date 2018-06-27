@@ -703,15 +703,15 @@ class DL_Model:
         self.inp, self.mrg = [], []
         
         # Build the model
-        model = self.build(0.0, 100, n_tail)
+        decod, model = self.build(0.0, 100, n_tail)
 
         # Defines the losses depending on the case
-        loss = 'categorical_crossentropy'
-        loss_weights = None
-        metrics = ['accuracy']
+        loss = {'output': 'categorical_crossentropy', 'decode': 'mean_squared_error'}
+        loss_weights = {'output': 1.0, 'decode': 2.0}
+        metrics = {'output': 'accuracy', 'decode': 'mean_absolute_error'}
 
         # Build and compile the model
-        model = Model(inputs=self.inp, outputs=model)
+        model = Model(inputs=self.inp, outputs=[model, decod])
 
         # Load the appropriate weights
         model.load_weights(self.out)
@@ -741,7 +741,7 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)]
+                prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)[0]]
                 ind += 1
             else : 
                 break
