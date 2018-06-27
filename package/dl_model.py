@@ -578,7 +578,7 @@ class DL_Model:
         self.mrg_size = merge._keras_shape[1]
 
         # Defines the feature encoder part
-        model = Dense(model._keras_shape[1], **arg)(merge)
+        model = Dense(merge._keras_shape[1], **arg)(merge)
         model = BatchNormalization()(model)
         model = PReLU()(model)
         model = AdaptiveDropout(self.drp.prb, self.drp)(model)
