@@ -136,7 +136,6 @@ class DL_Model:
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
                 lab = [lab, np.zeros((len(lab), mrg_size)).astype('float32')]
             
-            print(lab)
             yield(vec, lab)
             del lab, vec
 
