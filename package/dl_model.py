@@ -36,7 +36,7 @@ class DL_Model:
     # Defines a generator (training and testing)
     # fmt refers to whether apply it for training or testing
     # batch refers to the batch size
-    def data_gen(self, fmt, batch=64):
+    def data_gen(self, fmt, mrg_size, batch=64):
         
         ind = 0
 
@@ -134,6 +134,7 @@ class DL_Model:
                 # Defines the labels
                 lab = dtb['lab_{}'.format(fmt)][ind:ind+batch]
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
+                lab = [lab, np.zeros(mrg_size).astype('float32')]
             
             yield(vec, lab)
             del lab, vec
@@ -574,6 +575,7 @@ class DL_Model:
         if len(self.mrg) > 1: merge = concatenate(self.mrg)
         else: merge = self.mrg[0]
         print('# Merge Layer:', merge._keras_shape[1])
+        self.mrg_size = merge._keras_shape[1]
 
         # Defines the feature encoder part
         model = Dense(model._keras_shape[1], **arg)(merge)
@@ -602,8 +604,8 @@ class DL_Model:
         model = BatchNormalization()(model)
         model = PReLU()(model)
         model = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        new = {'activation': 'linear', 'name': 'decode'}
-        decod = Dense(merge._keras_shape[1], **arg, **new)(model)
+        model = Dense(merge._keras_shape[1], activation='linear', **arg)(model)
+        decod = Subtract(name='decode')([merge, model])
         # Defines the output part
         model = Dense(enc_2._keras_shape[1], **arg)(enc_2)
         model = BatchNormalization()(model)
@@ -643,18 +645,18 @@ class DL_Model:
         shuff = DataShuffler(self.pth, 3)
 
         # Build and compile the model
-        model = Model(inputs=self.inp, outputs=[decod, model])
+        model = Model(inputs=self.inp, outputs=[model, decod])
         optim = Adadelta(clipnorm=1.0)
         arg = {'loss': loss, 'optimizer': optim}
         model.compile(metrics=metrics, loss_weights=loss_weights, **arg)
         print('# Model Compiled')
         
         # Fit the model
-        his = model.fit_generator(self.data_gen('t', batch=batch),
+        his = model.fit_generator(self.data_gen('t', self.mrg_size, batch=batch),
                     steps_per_epoch=len(self.l_t)//batch, verbose=1, 
                     epochs=max_epochs, callbacks=[kappa, self.drp, early, check, shuff],
                     shuffle=True, validation_steps=len(self.l_e)//batch,
-                    validation_data=self.data_gen('e', batch=batch), 
+                    validation_data=self.data_gen('e', self.mrg_size, batch=batch), 
                     class_weight=class_weight(self.l_t))
 
         # Serialize its training history
