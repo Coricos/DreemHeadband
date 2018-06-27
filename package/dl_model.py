@@ -570,26 +570,49 @@ class DL_Model:
                 self.add_LDENSE(inp, self.drp, arg)
 
         # Gather all the model in one dense network
-        print('# Ns Channels: ', len(self.mrg))
-        if len(self.mrg) > 1: model = concatenate(self.mrg)
-        else: model = self.mrg[0]
-        print('# Merge Layer: ', model._keras_shape[1])
+        print('# Ns Channels:', len(self.mrg))
+        if len(self.mrg) > 1: merge = concatenate(self.mrg)
+        else: merge = self.mrg[0]
+        print('# Merge Layer:', merge._keras_shape[1])
 
-        # Defines the learning tail
-        tails = np.linspace(2*self.n_c, model._keras_shape[1], num=n_tail)
-
-        for idx in range(n_tail):
-            # Build intermediate layers
-            model = Dense(int(tails[n_tail - 1 - idx]), **arg)(model)
-            model = BatchNormalization()(model)
-            model = PReLU()(model)
-            model = AdaptiveDropout(self.drp.prb, self.drp)(model)
-
-        # Last layer for probabilities
-        arg = {'activation': 'softmax', 'name': 'output'}
-        model = Dense(self.n_c, kernel_initializer='he_normal', **arg)(model)
-
-        return model
+        # Defines the feature encoder part
+        model = Dense(model._keras_shape[1], **arg)(merge)
+        model = BatchNormalization()(model)
+        model = PReLU()(model)
+        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        model = Dense(model._keras_shape[1] // 3, **arg)(model)
+        model = BatchNormalization()(model)
+        model = PReLU()(model)
+        enc_0 = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        model = Dense(model._keras_shape[1] // 3, **arg)(enc_0)
+        model = BatchNormalization()(model)
+        model = PReLU()(model)
+        enc_1 = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        model = Dense(model._keras_shape[1] // 3, **arg)(enc_1)
+        model = BatchNormalization()(model)
+        model = PReLU()(model)
+        enc_2 = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        print('# Latent Space:', enc_2._keras_shape[1])
+        # Defines the decoder part
+        model = Dense(enc_1._keras_shape[1], **arg)(enc_2)
+        model = BatchNormalization()(model)
+        model = PReLU()(model)
+        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        model = Dense(enc_0._keras_shape[1], **arg)(model)
+        model = BatchNormalization()(model)
+        model = PReLU()(model)
+        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        new = {'activation': 'linear', 'name': 'decode'}
+        decod = Dense(merge._keras_shape[1], **arg, **new)(model)
+        # Defines the output part
+        model = Dense(enc_2._keras_shape[1], **arg)(enc_2)
+        model = BatchNormalization()(model)
+        model = PReLU()(model)
+        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        new = {'activation': 'softmax', 'name': 'output'}
+        model = Dense(self.n_c, **arg, **new)(model)
+       
+        return decod, model
 
     # Launch the learning process (GPU-oriented)
     # dropout refers to the initial dropout rate
@@ -601,13 +624,13 @@ class DL_Model:
     def learn(self, dropout=0.5, decrease=100, n_tail=8, patience=3, max_epochs=100, batch=64):
 
         # Compile the model
-        model = self.build(dropout, decrease, n_tail)
+        decod, model = self.build(dropout, decrease, n_tail)
 
         # Defines the losses depending on the case
-        loss = 'categorical_crossentropy'
-        loss_weights = None
-        metrics = ['accuracy']
-        monitor = 'val_acc'
+        loss = {'output': 'categorical_crossentropy', 'decode': 'mean_squared_error'}
+        loss_weights = {'output': 1.0, 'decode': 2.0}
+        metrics = {'output': 'accuracy', 'decode': 'mean_absolute_error'}
+        monitor = 'val_output_acc'
 
         # Implements the model and its callbacks
         arg = {'patience': patience, 'verbose': 0}
@@ -620,7 +643,7 @@ class DL_Model:
         shuff = DataShuffler(self.pth, 3)
 
         # Build and compile the model
-        model = Model(inputs=self.inp, outputs=model)
+        model = Model(inputs=self.inp, outputs=[decod, model])
         optim = Adadelta(clipnorm=1.0)
         arg = {'loss': loss, 'optimizer': optim}
         model.compile(metrics=metrics, loss_weights=loss_weights, **arg)
