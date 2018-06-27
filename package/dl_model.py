@@ -134,8 +134,9 @@ class DL_Model:
                 # Defines the labels
                 lab = dtb['lab_{}'.format(fmt)][ind:ind+batch]
                 lab = np_utils.to_categorical(lab, num_classes=self.n_c)
-                lab = [lab, np.zeros(mrg_size).astype('float32')]
+                lab = [lab, np.zeros((len(lab), mrg_size)).astype('float32')]
             
+            print(lab)
             yield(vec, lab)
             del lab, vec
 
@@ -582,15 +583,15 @@ class DL_Model:
         model = BatchNormalization()(model)
         model = PReLU()(model)
         model = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        model = Dense(model._keras_shape[1] // 3, **arg)(model)
+        model = Dense(model._keras_shape[1] // 2, **arg)(model)
         model = BatchNormalization()(model)
         model = PReLU()(model)
         enc_0 = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        model = Dense(model._keras_shape[1] // 3, **arg)(enc_0)
+        model = Dense(model._keras_shape[1] // 2, **arg)(enc_0)
         model = BatchNormalization()(model)
         model = PReLU()(model)
         enc_1 = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        model = Dense(model._keras_shape[1] // 3, **arg)(enc_1)
+        model = Dense(model._keras_shape[1] // 2, **arg)(enc_1)
         model = BatchNormalization()(model)
         model = PReLU()(model)
         enc_2 = AdaptiveDropout(self.drp.prb, self.drp)(model)
@@ -641,7 +642,7 @@ class DL_Model:
         check = ModelCheckpoint(self.out, monitor=monitor, **arg)
         if (len(self.l_e)/512) - int(len(self.l_e)/512) == 0 : steps = int(len(self.l_e)/512) -1
         else : steps = int(len(self.l_e)/512)
-        kappa = Metrics(self.data_gen('e', batch=512), steps)
+        kappa = Metrics(self.data_gen('e', self.mrg_size, batch=512), steps)
         shuff = DataShuffler(self.pth, 3)
 
         # Build and compile the model
