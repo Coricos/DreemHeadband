@@ -590,7 +590,7 @@ class DL_Model:
         model = BatchNormalization()(model)
         model = PReLU()(model)
         enc_1 = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        model = Dense(model._keras_shape[1] // 2, **arg)(enc_1)
+        model = Dense(model._keras_shape[1] // 3, **arg)(enc_1)
         model = BatchNormalization()(model)
         model = PReLU()(model)
         enc_2 = AdaptiveDropout(self.drp.prb, self.drp)(model)
