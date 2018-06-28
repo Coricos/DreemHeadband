@@ -29,7 +29,7 @@ def ae_launcher(test_size=0.0, storage='./dataset', channels=['eeg_1', 'eeg_2', 
         # Launch the thread through multi-threading
         cnl = thread_list.pop(0)
         arg = '{} {} {} {} ATE'.format(test_size, storage, cnl, gpu)
-        cmd = 'python3 -W ignore ae_builder.py {}'.format(arg)
+        cmd = 'python3 -W ignore mp_builder.py {}'.format(arg)
         cmd = ['nohup'] + shlex.split(cmd)
         out = open('./models/ATE_{}.out'.format(cnl), 'w')
         log = open('./models/ATE_logger.out', 'a')
@@ -60,7 +60,7 @@ def c1_launcher(test_size=0.0, storage='./dataset', channels=['eeg_1', 'eeg_2', 
         # Launch the thread through multi-threading
         cnl = thread_list.pop(0)
         arg = '{} {} {} {} CV1'.format(test_size, storage, cnl, gpu)
-        cmd = 'python3 -W ignore ae_builder.py {}'.format(arg)
+        cmd = 'python3 -W ignore mp_builder.py {}'.format(arg)
         cmd = ['nohup'] + shlex.split(cmd)
         out = open('./models/CV1_{}.out'.format(cnl), 'w')
         log = open('./models/CV1_logger.out', 'a')
