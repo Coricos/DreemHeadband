@@ -43,8 +43,8 @@ class AutoEncoder:
         dic, val = ratios(self.lab_t), []
         # Iterates over all the different labels
         for key in np.unique(self.lab_t):
-            tmp = self.raw_t[np.where(self.lab_t == ele)[0]]
-            fun = partial(bootstrap_sample, num=ratios(self.lab_t)[ele]-1)
+            tmp = self.raw_t[np.where(self.lab_t == key)[0]]
+            fun = partial(bootstrap_sample, num=ratios(self.lab_t)[key]-1)
             pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
             val.append(np.vstack(tuple(pol.map(fun, tmp))))
             pol.close()
@@ -107,7 +107,7 @@ class AutoEncoder:
 
         # Apply data augmentation
         self.bootstrap()
-        
+
         # Build the model
         model = self.build(dropout, decrease)
         model = Model(inputs=self.inp, outputs=model)
