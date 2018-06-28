@@ -592,7 +592,8 @@ class DL_Model:
         model = Dense(model._keras_shape[1] // 3, **arg)(enc_1)
         model = BatchNormalization()(model)
         model = PReLU()(model)
-        enc_2 = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        enc_2 = GaussianDropout(1e-3)(model)
         print('# Latent Space:', enc_2._keras_shape[1])
         # Defines the decoder part
         model = Dense(enc_1._keras_shape[1], **arg)(enc_2)
