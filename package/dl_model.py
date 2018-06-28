@@ -492,8 +492,7 @@ class DL_Model:
     # Defines the whole architecture
     # dropout refers to the initial dropout rate
     # decrease refers to the amount of epochs for full annealation
-    # n_tail refers to the amount of layers in the concatenate section
-    def build(self, dropout, decrease, n_tail):
+    def build(self, dropout, decrease):
 
         # Defines the dropout callback
         self.drp = DecreaseDropout(dropout, decrease)
@@ -619,14 +618,13 @@ class DL_Model:
     # Launch the learning process (GPU-oriented)
     # dropout refers to the initial dropout rate
     # decrease refers to the amount of epochs for full annealation
-    # n_tail refers to the amount of layers in the concatenate section
     # patience is the parameter of the EarlyStopping callback
     # max_epochs refers to the amount of epochs achievable
     # batch refers to the batch_size
-    def learn(self, dropout=0.5, decrease=100, n_tail=8, patience=3, max_epochs=100, batch=64):
+    def learn(self, dropout=0.5, decrease=100, patience=3, max_epochs=100, batch=64):
 
         # Compile the model
-        decod, model = self.build(dropout, decrease, n_tail)
+        decod, model = self.build(dropout, decrease)
 
         # Defines the losses depending on the case
         loss = {'output': 'categorical_crossentropy', 'decode': 'mean_squared_error'}
@@ -696,14 +694,13 @@ class DL_Model:
         plt.show()
 
     # Rebuild the model from the saved weights
-    # n_tail refers to the amount of layers to merge the channels
-    def reconstruct(self, n_tail=8):
+    def reconstruct(self):
 
         # Reinitialize attributes
         self.inp, self.mrg = [], []
         
         # Build the model
-        decod, model = self.build(0.0, 100, n_tail)
+        decod, model = self.build(0.0, 100)
 
         # Defines the losses depending on the case
         loss = {'output': 'categorical_crossentropy', 'decode': 'mean_squared_error'}
@@ -720,12 +717,11 @@ class DL_Model:
 
     # Validate on the unseen samples
     # fmt refers to whether apply it for testing or validation
-    # n_tail refers to the marker for the model reconstruction
     # batch refers to the batch size
-    def predict(self, fmt, n_tail=8, batch=512):
+    def predict(self, fmt, batch=512):
 
         # Load the best model saved
-        if not hasattr(self, 'clf'): self.reconstruct(n_tail=n_tail)
+        if not hasattr(self, 'clf'): self.reconstruct()
 
         # Defines the size of the validation set
         if fmt == 'e': sze = len(self.l_e)
@@ -749,8 +745,7 @@ class DL_Model:
         return np.asarray(prd)
 
     # Generates the confusion matrixes for train, test and validation sets
-    # n_tail refers to the amount of layers to merge the channels
-    def confusion_matrix(self, n_tail=8):
+    def confusion_matrix(self):
 
         # Avoid unnecessary logs
         warnings.simplefilter('ignore')
@@ -778,17 +773,28 @@ class DL_Model:
             plt.show()
 
         # Compute the predictions for validation
-        prd = self.predict('e', n_tail=n_tail)
+        prd = self.predict('e')
         build_matrix(prd, self.l_e, 'TEST')
         del prd
 
-    # Write validation to file
-    # out refers to the output path
-    # n_tail refers to the amount of layers to merge the channels
-    def write_to_file(self, out=None, n_tail=8):
+    # Returns the test scores of the given model
+    def get_score(self):
 
         # Compute the predictions for validation
-        prd = self.predict('v', n_tail=n_tail)
+        prd = self.predict('e')
+        acc = accuracy_score(self.l_e, prd)
+        f1s = f1_score(self.l_e, prd, average='weighted')
+        kap = kappa_score(self.l_e, prd)
+        del prd
+
+        return acc, f1s, kap
+
+    # Write validation to file
+    # out refers to the output path
+    def write_to_file(self, out=None):
+
+        # Compute the predictions for validation
+        prd = self.predict('v')
         idx = np.arange(43830, 64422)
         res = np.hstack((idx.reshape(-1,1), prd.reshape(-1,1)))
 
@@ -804,27 +810,46 @@ class DL_Model:
 class CV_DL_Model:
 
     # Initialization
-    # channels refers to which channels to use during multiple tests
     # storage refers to the absolute path towards the datasets
     # n_iter refers to the amount of iterations
-    def __init__(self, channels, storage='./dataset', n_iter=7):
+    def __init__(self, storage='./dataset', n_iter=7):
 
         # Attributes
         self.path = '{}/CV_Headband.h5'.format(storage)
         self.n_iter = n_iter
-        self.channels = channels
         self.storage = storage
 
     # CV Launcher definition
-    def launch(self):
+    def launch(self, log_file='./models/DL_SCORING.log'):
 
         for idx in range(self.n_iter):
 
             # Build the new relative database
             Database(storage=self.storage).preprocess(self.path, test=0.3)
 
+            # Build the randomly selected channels
+            key = list(generate_channels([]).keys())
+            msk = np.random.randint(0, 2, len(key)).astype('bool')
+            channels = generate_channels(np.asarray(key)[msk])
+
             # Launch the model scoring for each iteration
-            mod = DL_Model(self.path, self.channels, marker='CV_{}'.format(idx))
-            mod.learn(patience=10, dropout=0.3, decrease=100, batch=64, n_tail=5)
-            mod.write_to_file(n_tail=5)
+            mod = DL_Model(self.path, channels, marker='ITER_{}'.format(idx))
+            mod.learn(patience=10, dropout=0.5, decrease=150, batch=64, max_epochs=100)
+            mod.write_to_file()
+
+            # Save experiment characteristics
+            acc, f1s, kap = mod.get_score()
+            kys = []
+            for key in list(channels.keys()):
+                if channels[key]: kys.append(key[5:])
+            # Write in log file
+            with open(log_file, 'a') as out:
+                out.write('# ITER {}:\n'.format(idx))
+                out.write('  CHANNELS: {}\n'.format(' | '.join(sorted(kys))))
+                out.write('  SCORES: ACC {:.4f} | F1S {:.4f} | KAP {:.4f}\n'.format(acc, f1s, kap))
+                out.write('\n')
+
+            # Memory efficiency
+            del key, msk, channels, mod, acc, f1s, kap, kys
+
 
