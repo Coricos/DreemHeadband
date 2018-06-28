@@ -301,8 +301,8 @@ class CV1_Channel:
         model.compile(loss=loss, metrics=metrics, loss_weights=loss_weights, optimizer='adadelta')
 
         # Defines the callbacks
-        early = EarlyStopping(monitor=monitor, min_delta=1e-5, patience=patience, mode='min')
-        check = ModelCheckpoint(self.ate, period=1, monitor=monitor, mode='min', 
+        early = EarlyStopping(monitor=monitor, min_delta=1e-5, patience=patience, mode='max')
+        check = ModelCheckpoint(self.ate, period=1, monitor=monitor, mode='max', 
                                 save_best_only=True, save_weights_only=True)
 
         # Launch the learning
