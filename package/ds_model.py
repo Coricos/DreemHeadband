@@ -225,9 +225,9 @@ class CV1_Channel:
         arg = {'kernel_initializer': 'he_uniform'}
 
         # Build the convolution channel
-        model = Reshape((inp._keras_shape[1], 1))(inp)
-        model = Conv1D(64, 16, **arg)(mod)
-        model = PReLU()(mod)
+        model = Reshape((self.inp._keras_shape[1], 1))(self.inp)
+        model = Conv1D(64, 16, **arg)(model)
+        model = PReLU()(model)
         model = BatchNormalization()(model)
         model = AdaptiveDropout(self.drp.prb, self.drp)(model)
         model = Conv1D(128, 6, **arg)(model)
@@ -297,7 +297,7 @@ class CV1_Channel:
 
         # Build the model
         decod, model = self.build(dropout, decrease)
-        model = Model(inputs=self.inp, outputs=[decod, model])
+        model = Model(inputs=self.inp, outputs=[model, decod])
         model.compile(loss=loss, metrics=metrics, loss_weights=loss_weights, optimizer='adadelta')
 
         # Defines the callbacks
