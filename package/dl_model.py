@@ -829,8 +829,9 @@ class CV_DL_Model:
 
             # Build the randomly selected channels
             key = list(generate_channels([]).keys())
-            msk = np.random.randint(0, 2, len(key)).astype('bool')
-            channels = generate_channels(np.asarray(key)[msk])
+            msk = np.zeros(len(key))
+            msk[np.random.choice(np.arange(len(key)), size=4)] = 1
+            channels = generate_channels(np.asarray(key)[msk.astype('bool')])
 
             # Launch the model scoring for each iteration
             mod = DL_Model(self.path, channels, marker='ITER_{}'.format(idx))
