@@ -21,9 +21,41 @@ class AutoEncoder:
         self.enc = './models/ENC_{}.weights'.format(channel)
 
         with h5py.File('{}/sca_train.h5'.format(storage), 'r') as dtb:
-            self.raw = dtb[channel].value
+            self.raw_t = dtb[channel].value
+            self.lab_t = dtb['lab'].value.ravel()
         with h5py.File('{}/sca_valid.h5'.format(storage), 'r') as dtb:
-            self.raw = np.vstack((self.raw, dtb[channel].value))
+            self.raw_v = dtb[channel].value
+
+    # Defines a bootstraping technique for dataset augmentation
+    def bootstrap(self):
+
+        # Estimate the amount of samples to generate from each sample
+        def ratios(lab, factor=2):
+    
+            dic = dict()
+            
+            for ele in np.unique(lab): dic[ele] = len(np.where(lab == ele)[0])
+            m_x = max(list(dic.values()))
+            for ele in dic.keys(): dic[ele] = int(factor * m_x / dic[ele])
+            
+            return dic
+
+        dic, val = ratios(self.lab_t), []
+        # Iterates over all the different labels
+        for key in np.unique(self.lab_t):
+            tmp = self.raw_t[np.where(self.lab_t == ele)[0]]
+            fun = partial(bootstrap_sample, num=ratios(self.lab_t)[ele]-1)
+            pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+            val.append(np.vstack(tuple(pol.map(fun, tmp))))
+            pol.close()
+            pol.join()
+
+        # Shuffle and save as attribute
+        self.raw = shuffle(np.vstack(tuple(val)))
+        self.raw = shuffle(np.vstack((self.raw, self.raw_v)))
+
+        # Memory efficiency
+        del self.raw_t, self.lab_t, self.raw_v, dic, val
 
     # Build the relative model for drowsiness classification
     # dropout refers to the amount of dropout to set in the model
@@ -36,8 +68,8 @@ class AutoEncoder:
         arg = {'kernel_initializer': 'he_uniform'}
 
         mod = Reshape((self.inp._keras_shape[1], 1))(self.inp)
-        mod = GaussianNoise(np.std(self.raw))(mod)
-        mod = Conv1D(64, 50, padding='same', **arg)(mod)
+        mod = GaussianNoise(np.std(self.raw) / 2)(mod)
+        mod = Conv1D(64, 32, padding='same', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = MaxPooling1D(pool_size=5)(mod)
@@ -53,11 +85,11 @@ class AutoEncoder:
         mod = PReLU()(mod)
         mod = UpSampling1D(5)(mod)
         mod = AdaptiveDropout(self.drp.prb, self.drp)(mod)
-        mod = Conv1D(64, 50, padding='same', **arg)(mod)
+        mod = Conv1D(64, 32, padding='same', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = UpSampling1D(5)(mod)
-        mod = Conv1D(1, 50, padding='same', **arg)(mod)
+        mod = Conv1D(1, 32, padding='same', **arg)(mod)
         mod = AdaptiveDropout(self.drp.prb, self.drp)(mod)
         mod = Activation('linear')(mod)
         dec = Flatten(name='decoder')(mod) 
@@ -71,8 +103,11 @@ class AutoEncoder:
     # patience is the parameter of the EarlyStopping callback
     # verbose indicates whether to use tensorboard or not
     # max_epochs refers to the amount of epochs achievable
-    def learn(self, test_ratio=0.3, dropout=0.25, decrease=50, batch_size=64, patience=5, verbose=1, max_epochs=100):
+    def learn(self, test_ratio=0.3, dropout=0.25, decrease=100, batch_size=64, patience=5, verbose=1, max_epochs=100):
 
+        # Apply data augmentation
+        self.bootstrap()
+        
         # Build the model
         model = self.build(dropout, decrease)
         model = Model(inputs=self.inp, outputs=model)

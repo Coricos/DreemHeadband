@@ -574,3 +574,14 @@ def aggregate(storage='./results', graph=False, out=None):
     # Write to csv
     if out is None: out = '{}/aggr_{}.csv'.format(storage, int(time.time()))
     res.to_csv(out, index=False, header=True, sep=';')
+
+# Multiprocessed bootstraping of time series
+# vec refers to a 1D numpy array
+# num refers to the amount of bootstraped elements
+def bootstrap_sample(vec, num):
+    
+    res = [vec]
+    bts = CircularBlockBootstrap(vec.shape[0], vec)
+    for new in bts.bootstrap(num): res.append(new[0][0])
+        
+    return np.asarray(res)

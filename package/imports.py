@@ -20,6 +20,7 @@ from functools import partial
 from collections import Counter
 from scipy.stats import kurtosis, skew
 from scipy.interpolate import interp1d
+from arch.bootstrap import CircularBlockBootstrap
 
 from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
