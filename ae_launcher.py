@@ -35,7 +35,7 @@ def ae_launcher(test_size=0.0, storage='./dataset', channels=['eeg_1', 'eeg_2', 
         log = open('./models/ATE_logger.out', 'a')
         subprocess.Popen(cmd, stdout=out, stderr=log)
         print('# Launched:', arg)
-        time.sleep(20)
+        time.sleep(30)
 
 # Main algorithm
 
