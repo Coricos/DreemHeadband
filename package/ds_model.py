@@ -68,7 +68,7 @@ class AutoEncoder:
         arg = {'kernel_initializer': 'he_uniform'}
 
         mod = Reshape((self.inp._keras_shape[1], 1))(self.inp)
-        mod = GaussianNoise(np.std(self.raw) / 2)(mod)
+        mod = GaussianNoise(np.std(self.raw_t) / 2)(mod)
         mod = Conv1D(64, 32, padding='same', **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
