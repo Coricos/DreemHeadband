@@ -346,6 +346,7 @@ class DL_Model:
             for layer in cv1.layers: layer.trainable = False
 
             mod = cv1(inp)
+            mod = GaussianNoise(1e-3)(mod)
 
         except: 
 
