@@ -178,6 +178,11 @@ class CV_ML_Model:
         # Defines the cross-validation splits
         self.kfs = KFold(n_splits=k_fold)
 
+        # Apply feature filtering based on variance
+        vtf = VarianceThreshold(threshold=1e-4)
+        self.vec = vtf.fit_transform(self.vec)
+        joblib.dump(vtf, './models/VTF_Selection.jb')
+
     # CV Launcher
     # nme refers to the type of model to be launched
     # log_file refers to where to store the intermediate scores

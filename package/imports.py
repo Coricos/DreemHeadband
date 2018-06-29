@@ -33,6 +33,7 @@ from sklearn.decomposition import IncrementalPCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.feature_selection import VarianceThreshold
 
 from imblearn.over_sampling import RandomOverSampler
 
