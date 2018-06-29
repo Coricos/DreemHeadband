@@ -343,7 +343,7 @@ class DL_Model:
             cv1 = CV1_Channel(channel, storage='/'.join(self.pth.split('/')[:-1]))
             cv1 = cv1.get_cv1_channel()
             # Make it non-trainable
-            for layer in cv1.layers: layer.trainable = False
+            # for layer in cv1.layers: layer.trainable = False
 
             mod = cv1(inp)
             mod = GaussianNoise(1e-3)(mod)
