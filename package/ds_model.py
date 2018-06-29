@@ -176,12 +176,11 @@ class CV1_Channel:
         self.his = './models/HIS_CV1_{}.history'.format(channel)
         self.enc = './models/CV1_{}.weights'.format(channel)
 
-        with h5py.File('{}/sca_train.h5'.format(storage), 'r') as dtb:
-            self.raw_t = dtb[channel].value
-            self.lab_t = dtb['lab'].value.ravel()
-
-        # Splits between train and test
-        self.raw_t, self.raw_e, self.lab_t, self.lab_e = train_test_split(self.raw_t, self.lab_t, test_size=test_ratio)
+        with h5py.File('{}/DTB_Headband.h5'.format(storage), 'r') as dtb:
+            self.raw_t = dtb[channel + '_t'].value
+            self.lab_t = dtb['lab_t'].value.ravel()
+            self.raw_e = dtb[channel + '_e'].value
+            self.lab_e = dtb['lab_e'].value.ravel()
 
     # Defines a bootstraping technique for dataset augmentation
     def bootstrap(self):
