@@ -62,7 +62,7 @@ class AutoEncoder:
     # decrease refers to the number of epochs for decreasing ratio
     def build(self, dropout, decrease):
 
-        self.inp = Input(shape=(self.raw.shape[1], ))
+        self.inp = Input(shape=(self.raw_t.shape[1], ))
         self.drp = DecreaseDropout(dropout, decrease)
 
         arg = {'kernel_initializer': 'he_uniform'}
