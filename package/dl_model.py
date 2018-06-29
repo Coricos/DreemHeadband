@@ -333,26 +333,39 @@ class DL_Model:
 
     # Adds a 1D-Convolution Channel
     # inp refers to the defined input
+    # channel refers to a specific channel
     # callback refers to the callback managing the dropout rate 
     # arg refers to arguments for layer initalization
-    def add_CONV1D(self, inp, callback, arg):
+    def add_CONV1D(self, inp, channel, callback, arg):
 
-        # Build the selected model
-        mod = Reshape((inp._keras_shape[1], 1))(inp)
-        mod = Conv1D(64, 32, **arg)(mod)
-        mod = PReLU()(mod)
-        mod = BatchNormalization()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 6, **arg)(mod)
-        mod = PReLU()(mod)
-        mod = BatchNormalization()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 6, **arg)(mod)
-        mod = PReLU()(mod)
-        mod = BatchNormalization()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=2)(mod)
-        mod = GlobalAveragePooling1D()(mod)
+        try:
+
+            cv1 = CV1_Channel(channel, storage='/'.join(self.pth.split('/')[:-1]))
+            cv1 = cv1.get_cv1_channel()
+            # Make it non-trainable
+            for layer in cv1.layers: layer.trainable = False
+
+            mod = cv1(inp)
+
+        except: 
+
+            print('# No pre-build Conv1D channel for {}'.format(channel))
+            # Build the selected model
+            mod = Reshape((inp._keras_shape[1], 1))(inp)
+            mod = Conv1D(64, 32, **arg)(mod)
+            mod = PReLU()(mod)
+            mod = BatchNormalization()(mod)
+            mod = AdaptiveDropout(callback.prb, callback)(mod)
+            mod = Conv1D(128, 6, **arg)(mod)
+            mod = PReLU()(mod)
+            mod = BatchNormalization()(mod)
+            mod = AdaptiveDropout(callback.prb, callback)(mod)
+            mod = Conv1D(128, 6, **arg)(mod)
+            mod = PReLU()(mod)
+            mod = BatchNormalization()(mod)
+            mod = AdaptiveDropout(callback.prb, callback)(mod)
+            mod = AveragePooling1D(pool_size=2)(mod)
+            mod = GlobalAveragePooling1D()(mod)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -360,7 +373,7 @@ class DL_Model:
 
     # Adds an autoencoder channel
     # inp refers to the defined input
-    # channel refers to a specific hannel
+    # channel refers to a specific channel
     # callback refers to the callback managing the dropout rate 
     # arg refers to arguments for layer initalization
     def add_ENCODE(self, inp, channel, callback, arg):
@@ -372,14 +385,6 @@ class DL_Model:
 
         mod = enc(inp)
         mod = GlobalMaxPooling1D()(mod)
-        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Dense(mod._keras_shape[1] // 2, **arg)(mod)
-        mod = BatchNormalization()(mod)
-        mod = PReLU()(mod)
-        mod = AdaptiveDropout(callback.prb, callback)(mod)
 
         # Add model to main model
         if inp not in self.inp: self.inp.append(inp)
@@ -387,7 +392,7 @@ class DL_Model:
 
     # Adds an autoencoder channel
     # inp refers to the defined input
-    # channel refers to a specific hannel
+    # channel refers to a specific channel
     # callback refers to the callback managing the dropout rate 
     # arg refers to arguments for layer initalization
     def add_ATENCO(self, inp, channel, callback, arg):
@@ -497,10 +502,7 @@ class DL_Model:
         # Defines the dropout callback
         self.drp = DecreaseDropout(dropout, decrease)
         # Layer arguments
-        arg = {'kernel_initializer': 'he_uniform', 
-               # 'kernel_constraint': max_norm(5.0),
-               # 'kernel_regularizer': regularizers.l2(1e-3)
-              }
+        arg = {'kernel_initializer': 'he_normal'}
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_acc_cv2']:
@@ -508,12 +510,12 @@ class DL_Model:
                 self.add_CONV2D(inp, self.drp, arg)
             for key in ['acc_x_t', 'acc_y_t', 'acc_z_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_acc_cv1']: self.add_CONV1D(inp, self.drp, arg)
+                if self.cls['with_acc_cv1']: self.add_CONV1D(inp, key[:-2], self.drp, arg)
                 if self.cls['with_acc_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_acc_t'].shape[1], ))
-            if self.cls['with_n_a_cv1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_n_a_cv1']: self.add_CONV1D(inp, 'norm_acc', self.drp, arg)
             if self.cls['with_n_a_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
@@ -522,7 +524,7 @@ class DL_Model:
                 self.add_CONV2D(inp, self.drp, arg)
             for key in ['eeg_1_t', 'eeg_2_t', 'eeg_3_t', 'eeg_4_t']:
                 inp = Input(shape=(dtb[key].shape[1], ))
-                if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, self.drp, arg)
+                if self.cls['with_eeg_cv1']: self.add_CONV1D(inp, key[:-2], self.drp, arg)
                 if self.cls['with_eeg_cvl']: self.add_CVLSTM(inp, self.drp, arg)
                 if self.cls['with_eeg_enc']: self.add_ENCODE(inp, key[:-2], self.drp, arg)
                 if self.cls['with_eeg_ate']: self.add_ATENCO(inp, key[:-2], self.drp, arg)
@@ -547,19 +549,19 @@ class DL_Model:
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['norm_eeg_t'].shape[1], ))
-            if self.cls['with_n_e_cv1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_n_e_cv1']: self.add_CONV1D(inp, 'norm_eeg', self.drp, arg)
             if self.cls['with_n_e_cvl']: self.add_CVLSTM(inp, self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['po_r_t'].shape[1], ))
-            if self.cls['with_por_cv1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_por_cv1']: self.add_CONV1D(inp, 'po_r', self.drp, arg)
             if self.cls['with_por_cvl']: self.add_CVLSTM(inp, self.drp, arg)
             if self.cls['with_por_enc']: self.add_ENCODE(inp, 'po_r', self.drp, arg)
             if self.cls['with_por_ate']: self.add_ATENCO(inp, 'po_r', self.drp, arg)
 
         with h5py.File(self.pth, 'r') as dtb:
             inp = Input(shape=(dtb['po_ir_t'].shape[1], ))
-            if self.cls['with_poi_cv1']: self.add_CONV1D(inp, self.drp, arg)
+            if self.cls['with_poi_cv1']: self.add_CONV1D(inp, 'po_ir', self.drp, arg)
             if self.cls['with_poi_cvl']: self.add_CVLSTM(inp, self.drp, arg)
             if self.cls['with_poi_enc']: self.add_ENCODE(inp, 'po_ir', self.drp, arg)
             if self.cls['with_poi_ate']: self.add_ATENCO(inp, 'po_ir', self.drp, arg)

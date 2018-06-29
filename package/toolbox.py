@@ -585,3 +585,59 @@ def bootstrap_sample(vec, num):
     for new in bts.bootstrap(num): res.append(new[0][0])
         
     return np.asarray(res)
+
+# Visualization function for independent Conv1D channels
+# channels refers to which channels to visualize
+def independent_cv1(channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']):
+    
+    for key in channels:
+
+        with open('./models/HIS_CV1_{}.history'.format(key), 'rb') as raw: his = pickle.load(raw)
+
+        plt.figure(figsize=(18,5))
+        plt.suptitle('Training History | Independent Channel CV1 | {}'.format(key), y=1.05)
+        idx = np.arange(len(his['output_loss']))
+        plt.subplot(2,2,1)
+        plt.plot(idx, his['output_loss'], label='Output Loss', c='orange')
+        plt.scatter(idx, his['val_output_loss'], label='Val Output Loss', c='black', marker='d', s=5)
+        plt.legend(loc='best')
+        plt.grid()
+        plt.subplot(2,2,2)
+        plt.plot(idx, his['decode_loss'], label='Decode Loss', c='orange')
+        plt.scatter(idx, his['val_decode_loss'], label='Val Decode Loss', c='black', marker='d', s=5)
+        plt.legend(loc='best')
+        plt.grid()
+        plt.subplot(2,2,3)
+        plt.plot(idx, his['output_acc'], label='Output Acc', c='orange')
+        plt.scatter(idx, his['val_output_acc'], label='Val Output Acc', c='black', marker='d', s=5)
+        plt.legend(loc='best')
+        plt.grid()
+        plt.subplot(2,2,4)
+        plt.plot(idx, his['decode_mean_absolute_error'], label='Decode MAE', c='orange')
+        plt.scatter(idx, his['val_decode_mean_absolute_error'], label='Val MAE', c='black', marker='d', s=5)
+        plt.legend(loc='best')
+        plt.grid()
+        plt.tight_layout()
+        plt.show()
+
+# Visualization function for independent autoencoders
+# channels refers to which channels to visualize
+def independent_ate(channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']):
+    
+    for key in channels:
+
+        with open('./models/HIS_ATE_{}.history'.format(key), 'rb') as raw: his = pickle.load(raw)
+
+        plt.figure(figsize=(18,3))
+        plt.suptitle('Training History | Independent Channel ATE | {}'.format(key), y=1.05)
+        idx = np.arange(len(his['loss']))
+        plt.subplot(1,2,1)
+        plt.plot(idx, his['loss'], label='Loss', c='orange')
+        plt.legend(loc='best')
+        plt.grid()
+        plt.subplot(1,2,2)
+        plt.plot(idx, his['mean_absolute_error'], label='Mean Absolute Error', c='lightblue')
+        plt.legend(loc='best')
+        plt.grid()
+        plt.tight_layout()
+        plt.show()

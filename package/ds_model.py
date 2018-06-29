@@ -316,4 +316,14 @@ class CV1_Channel:
         # Memory efficiency
         del model, early, check, his
 
-    # def get_cv1_channel(self):
+    # Reconstruct and extract the desired channel
+    def get_cv1_channel(self):
+
+        # Recreate the model
+        dec, mod = self.build(0.0, 50)
+        mod = Model(inputs=self.inp, outputs=[mod, dec])
+        mod.load_weights(self.ate)
+        # Extract the channel
+        mod = Model(inputs=self.inp, outputs=mod.layers[-10].output)
+
+        return mod
