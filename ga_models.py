@@ -2,6 +2,9 @@
 # Date : 01/07/2018
 # Dreem Headband Sleep Phases Classification Challenge
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = ''
+
 from package.callback import *
 
 # Defines the data loader
@@ -19,7 +22,7 @@ class Parametrized_Dense:
             # Load the labels and the corresponding data
             self.lab = dtb['lab'].value.ravel()
             # Define the specific anomaly issue
-            self.n_c = len(np.unique(self.l_t))
+            self.n_c = len(np.unique(self.lab))
             # Defines the vectors
             self.fea = dtb['fea'].value
 
@@ -44,8 +47,8 @@ class Parametrized_Dense:
         self.clb = [chk, drp, ear]
 
         # Defines the model architecture
-        self.inp = Input(shape=(X.shape[1], ))
-        mod = Dense(self.prm['layer_0'], **arg)(inp)
+        self.inp = Input(shape=(self.fea.shape[1], ))
+        mod = Dense(self.prm['layer_0'], **arg)(self.inp)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(drp.prb, drp)(mod)
@@ -78,8 +81,8 @@ class Parametrized_Dense:
             model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer='adadelta')
 
             # Launch the training
-            model.fit(self.fea[i_t], np_utils.to_categorical(self.lab[i_t]), verbose=0, 
-                      epochs=1, shuffle=True, batch_size=self.prm['batchs_size'], 
+            model.fit(self.fea[i_t], np_utils.to_categorical(self.lab[i_t]), verbose=1, 
+                      epochs=100, shuffle=True, batch_size=self.prm['batch_size'], callbacks=self.clb,
                       validation_data=(self.fea[i_e], np_utils.to_categorical(self.lab[i_e])))
 
             # Reload the best model and save the score
