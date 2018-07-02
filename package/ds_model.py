@@ -51,11 +51,11 @@ class AutoEncoder:
             pol.join()
 
         # Shuffle and save as attribute
-        self.raw = shuffle(np.vstack(tuple(val)))
-        self.raw = shuffle(np.vstack((self.raw, self.raw_v)))
+        self.raw_t = shuffle(np.vstack(tuple(val)))
+        self.raw_t = shuffle(np.vstack((self.raw_t, self.raw_v)))
 
         # Memory efficiency
-        del self.raw_t, self.lab_t, self.raw_v, dic, val
+        del self.lab_t, self.raw_v, dic, val
 
     # Build the relative model for drowsiness classification
     # dropout refers to the amount of dropout to set in the model
@@ -120,7 +120,7 @@ class AutoEncoder:
                                 save_best_only=True, save_weights_only=True)
 
         # Launch the learning
-        his = model.fit(self.raw, self.raw, verbose=verbose, epochs=max_epochs, batch_size=batch_size,
+        his = model.fit(self.raw_t, self.raw_t, verbose=verbose, epochs=max_epochs, batch_size=batch_size,
                         shuffle=True, callbacks=[self.drp, check, early], validation_split=test_ratio)
 
         # Save model history
@@ -147,8 +147,8 @@ class AutoEncoder:
         ate = self.get_autoencoder()
 
         plt.figure(figsize=(18,4))
-        plt.plot(self.raw[idx], label='Initial Signal')
-        plt.scatter(np.arange(self.raw.shape[1]), ate.predict(self.raw[idx].reshape(1,self.raw.shape[1])), c='b', marker='x')
+        plt.plot(self.raw_t[idx], label='Initial Signal')
+        plt.scatter(np.arange(self.raw_t.shape[1]), ate.predict(self.raw_t[idx].reshape(1,self.raw_t.shape[1])), c='b', marker='x')
         plt.show()
 
     # Reconstruct the encoder
