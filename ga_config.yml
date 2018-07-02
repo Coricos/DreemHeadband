@@ -1,0 +1,33 @@
+# Author : Dindin Meryll
+# Date : 01/07/2018
+# Dreem Headband Sleep Phases Classification Challenge
+
+{
+  "parameters": [
+    
+    {"name": "dropout", "type": "float", "min": 0.0, "max": 0.5},
+    {"name": "layer_0", "type": "int", "min": 10, "max": 1000},
+    {"name": "layer_1", "type": "int", "min": 10, "max": 750},
+    {"name": "layer_2", "type": "int", "min": 10, "max": 500},
+    {"name": "layer_3", "type": "int", "min": 10, "max": 500},
+    {"name": "layer_4", "type": "int", "min": 10, "max": 250},
+    {"name": "batch_size", "type": "int", "min": 16, "max": 128}
+
+  ],
+
+  "cache": './cmaes_scores.log',
+
+  "objectives": 1,
+
+  "optimizer": {
+
+    "name": "cmaes",
+    "max_iters": 42
+
+  },
+
+  "workers": [
+
+    {"command": "python3 -W ignore ./ga_models.py ${parameters}"}
+  ]
+}

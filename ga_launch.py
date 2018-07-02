@@ -1,5 +1,6 @@
 # Author : Dindin Meryll
 # Date : 01/07/2018
+# Dreem Headband Sleep Phases Classification Challenge
 
 from cmaes.functions import *
 
