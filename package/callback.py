@@ -4,6 +4,18 @@
 
 from package.toolbox import *
 
+# Tool aimed at reparametrization by sampling an isotropic unit Gaussian
+# args refers to the mean and log of variance of Q(z|X)
+
+def iso_sampling(args):
+
+    z_m, z_l = args
+    sze = K.shape(z_m)[0]
+    dim = K.int_shape(z_m)[1]
+    eps = K.random_normal(shape=(sze, dim))
+
+    return z_m + K.exp(0.5 * z_l) * eps
+
 # Defines a specific metric for classification
 
 class Metrics(Callback):
