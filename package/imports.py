@@ -51,9 +51,10 @@ from keras.layers import Conv1D, Input, MaxPooling1D, GlobalAveragePooling1D
 from keras.layers import AveragePooling1D, AveragePooling2D, UpSampling1D
 from keras.layers import BatchNormalization, GlobalAveragePooling2D, Add
 from keras.layers import GlobalMaxPooling1D, MaxoutDense, PReLU, LSTM
-from keras.layers import Bidirectional, GaussianNoise, Subtract
+from keras.layers import Bidirectional, GaussianNoise, Subtract, Lambda
 from keras.layers.core import Dense, Dropout, Activation, Reshape
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
+from keras.objectives import mse
 from keras.optimizers import Adadelta, Adam
 from keras.constraints import max_norm
 from keras.layers.merge import concatenate
