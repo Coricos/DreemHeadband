@@ -208,3 +208,36 @@ class CV_ML_Model:
             # Memory efficiency
             del mkr, mod, a, k
 
+    def make_predictions(self, valid, nme, scaler='./models/VTF_Selection.jb'):
+
+        # Apply on the data
+        with h5py.File(valid, 'r') as dtb:
+            # Load the scaler
+            vtf = joblib.load(scaler)
+            # Defines the vectors
+            vec = vtf.transform(dtb['fea'].value)
+
+        # Initial vector for result storing
+        res = np.zeros((len(vec), self.n_c))
+
+        # Look for all available models
+        lst = sorted(glob.glob('./models/{}_*.pk'.format(nme)))
+        for mod in lst:
+            # Load the model and make the predictions
+            mod = joblib.load(mod)
+            res += np_utils.to_categorical(mod.predict(vec), num_classes=self.n_c)
+
+        # Write to file
+        res = np.asarray([np.argmax(ele) for ele in res])
+        idx = np.arange(43830, 64422)
+        res = np.hstack((idx.reshape(-1,1), res.reshape(-1,1)))
+
+        # Creates the relative dataframe
+        res = pd.DataFrame(res, columns=['id', 'label'])
+
+        # Write to csv
+        if out is None: out = './results/c{}_{}.csv'.format(nme, int(time.time()))
+        res.to_csv(out, index=False, header=True, sep=';')
+
+
+
