@@ -241,7 +241,7 @@ class VAutoEncoder:
         self.z_l = AdaptiveDropout(self.drp.prb, self.drp)(z_l)
         mod = Lambda(iso_sampling)([z_m, z_l])
         # Ends the definition of the encoder
-        enc = Model(inputs=self.inp, outputs=[self.z_m, self.z_l, mod], name='encode')
+        self.enc = Model(inputs=self.inp, outputs=[self.z_m, self.z_l, mod], name='encode')
         # Defines the decoder
         mod = Dense(e_1._keras_shape[1], **arg)(mod)
         mod = BatchNormalization()(mod)
@@ -257,16 +257,21 @@ class VAutoEncoder:
     
     # Model training
     # latent_dim corresponds to the latent_dimension
-    # test_ratio gives 
+    # bootstrap corresponds to time-serie bootstrapping
+    # test_ratio gives the proportion of test
     # batch_size refers to the used batch_size during learning
     # dropout is the dropout rate into the model
     # patience is the parameter of the EarlyStopping callback
     # verbose indicates whether to use tensorboard or not
     # max_epochs refers to the amount of epochs achievable
-    def learn(self, latent_dim, test_ratio=0.3, dropout=0.25, decrease=100, batch_size=64, patience=5, verbose=1, max_epochs=100):
+    def learn(self, latent_dim, bootstrap=True, test_ratio=0.3, dropout=0.25, decrease=100, batch_size=64, patience=5, verbose=1, max_epochs=100):
 
         # Apply data augmentation
-        self.bootstrap()
+        if bootstrap: 
+            self.bootstrap()
+            class_weight = class_weight(self.lab_t)
+        else:
+            class_weight = None
 
         # Build the model
         v_ate = self.build(latent_dim, dropout, decrease)
@@ -277,7 +282,8 @@ class VAutoEncoder:
         kloss = -0.5 * K.sum(kloss, axis=-1)
         vloss = K.mean(rloss + kloss)
         # Compile the model
-        model.compile(loss=vae_loss, metrics=['mean_squared_error'], optimizer='adadelta')
+        model.add_loss(vloss)
+        model.compile(metrics=['mean_squared_error'], optimizer='adadelta')
 
         # Defines the callbacks
         early = EarlyStopping(monitor='loss', min_delta=1e-5, patience=patience, mode='min')
@@ -285,7 +291,7 @@ class VAutoEncoder:
                                 save_best_only=True, save_weights_only=True)
 
         # Launch the learning
-        his = model.fit(self.raw_t, self.raw_t, verbose=verbose, epochs=max_epochs, batch_size=batch_size,
+        his = model.fit(self.raw_t, verbose=verbose, epochs=max_epochs, batch_size=batch_size, class_weight=class_weight,
                         shuffle=True, callbacks=[self.drp, check, early], validation_split=test_ratio)
 
         # Save model history
