@@ -231,19 +231,19 @@ class VAutoEncoder:
         mod = BatchNormalization()(e_1)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(self.drp.prb, self.drp)(mod)
-        z_m = Dense(latent_dim, activation='relu', **arg)(mod)
+        z_m = Dense(latent_dim, **arg)(mod)
         z_m = BatchNormalization()(z_m)
         z_m = PReLU()(z_m)
         self.z_m = AdaptiveDropout(self.drp.prb, self.drp)(z_m)
-        z_l = Dense(latent_dim, activation='relu', **arg)(mod)
+        z_l = Dense(latent_dim, **arg)(mod)
         z_l = BatchNormalization()(z_l)
         z_l = PReLU()(z_l)
         self.z_l = AdaptiveDropout(self.drp.prb, self.drp)(z_l)
         mod = Lambda(iso_sampling)([z_m, z_l])
         # Ends the definition of the encoder
-        enc = Model(inp, [self.z_m, self.z_l, mod], name='encode')
-
-        mod = Dense(e_1._keras_shape[1], **arg)(enc)
+        enc = Model(inputs=self.inp, outputs=[self.z_m, self.z_l, mod], name='encode')
+        # Defines the decoder
+        mod = Dense(e_1._keras_shape[1], **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(self.drp.prb, self.drp)(mod)
@@ -251,11 +251,9 @@ class VAutoEncoder:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(self.drp.prb, self.drp)(mod)
-        mod = Dense(self.inp._keras_shape[1], activation='linear', **arg)(mod)
-        # Ends the definition of the decoder
-        dec = Model(inp, mod, name='decode')
+        mod = Dense(self.inp._keras_shape[1], activation='tanh', **arg)(mod)
 
-        return dec(enc(self.inp)[2])
+        return mod
     
     # Model training
     # latent_dim corresponds to the latent_dimension
@@ -272,7 +270,7 @@ class VAutoEncoder:
 
         # Build the model
         v_ate = self.build(latent_dim, dropout, decrease)
-        model = Model(self.inp, v_ate)
+        model = Model(inputs=self.inp, outputs=v_ate)
         # Defines the losses
         rloss = mse(self.inp, v_ate) * self.raw_t.shape[1]
         kloss = 1 + self.z_l - K.square(self.z_m) - K.exp(self.z_l)
