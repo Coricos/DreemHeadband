@@ -208,6 +208,7 @@ class CV_ML_Model:
             # Memory efficiency
             del mkr, mod, a, k
 
+    # Valid refers to the 
     def make_predictions(self, valid, nme, scaler='./models/VTF_Selection.jb'):
 
         # Apply on the data
@@ -236,7 +237,7 @@ class CV_ML_Model:
         res = pd.DataFrame(res, columns=['id', 'label'])
 
         # Write to csv
-        if out is None: out = './results/c{}_{}.csv'.format(nme, int(time.time()))
+        out = './results/c{}_{}.csv'.format(nme, int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
 
 
