@@ -254,19 +254,19 @@ class DL_Model:
         # Build model
         shp = (1, inp._keras_shape[1], inp._keras_shape[2])
         mod = Reshape(shp)(inp)
-        mod = Convolution2D(64, (shp[1], 32), data_format='channels_first', **arg)(mod)
+        mod = Convolution2D(64, (shp[1], 16), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(128, (1, 8), data_format='channels_first', **arg)(mod)
+        mod = Convolution2D(128, (1, 6), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(128, (1, 8), data_format='channels_first', **arg)(mod)
+        mod = Convolution2D(128, (1, 6), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Convolution2D(128, (1, 8), data_format='channels_first', **arg)(mod)
+        mod = Convolution2D(128, (1, 4), data_format='channels_first', **arg)(mod)
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -503,7 +503,7 @@ class DL_Model:
         # Defines the dropout callback
         self.drp = DecreaseDropout(dropout, decrease)
         # Layer arguments
-        arg = {'kernel_initializer': 'he_normal'}
+        arg = {'kernel_initializer': 'he_uniform'}
 
         with h5py.File(self.pth, 'r') as dtb:
             if self.cls['with_acc_cv2']:
