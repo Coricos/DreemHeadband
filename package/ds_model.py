@@ -269,9 +269,9 @@ class VAutoEncoder:
         # Apply data augmentation
         if bootstrap: 
             self.bootstrap()
-            class_weight = class_weight(self.lab_t)
+            weights = None
         else:
-            class_weight = None
+            weights = class_weight(self.lab_t)
 
         # Build the model
         v_ate = self.build(latent_dim, dropout, decrease)
@@ -291,7 +291,7 @@ class VAutoEncoder:
                                 save_best_only=True, save_weights_only=True)
 
         # Launch the learning
-        his = model.fit(self.raw_t, verbose=verbose, epochs=max_epochs, batch_size=batch_size, class_weight=class_weight,
+        his = model.fit(self.raw_t, verbose=verbose, epochs=max_epochs, batch_size=batch_size, class_weight=weights,
                         shuffle=True, callbacks=[self.drp, check, early], validation_split=test_ratio)
 
         # Save model history

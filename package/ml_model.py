@@ -179,7 +179,7 @@ class CV_ML_Model:
         self.kfs = KFold(n_splits=k_fold)
 
         # Apply feature filtering based on variance
-        vtf = VarianceThreshold(threshold=1e-4)
+        vtf = VarianceThreshold(threshold=0.0)
         self.vec = vtf.fit_transform(self.vec)
         joblib.dump(vtf, './models/VTF_Selection.jb')
 
@@ -208,15 +208,21 @@ class CV_ML_Model:
             # Memory efficiency
             del mkr, mod, a, k
 
-    # Valid refers to the 
-    def make_predictions(self, valid, nme, scaler='./models/VTF_Selection.jb'):
+    # Stacking of predictions
+    # valid refers to where the validation input is stored
+    # nme refers to the name of the estimator
+    # scaler refers whether feature extraction has been used
+    def make_predictions(self, valid, nme, scaler=None):
 
         # Apply on the data
         with h5py.File(valid, 'r') as dtb:
-            # Load the scaler
-            vtf = joblib.load(scaler)
-            # Defines the vectors
-            vec = vtf.transform(dtb['fea'].value)
+            if scaler:
+                # Load the scaler
+                vtf = joblib.load(scaler)
+                # Defines the vectors
+                vec = vtf.transform(dtb['fea'].value)
+            else:
+                vec = dtb['fea'].value
 
         # Initial vector for result storing
         res = np.zeros((len(vec), self.n_c))

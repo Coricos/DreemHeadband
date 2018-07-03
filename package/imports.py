@@ -24,6 +24,7 @@ from arch.bootstrap import CircularBlockBootstrap
 
 from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+from sklearn.manifold import TSNE
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.ensemble import GradientBoostingClassifier
