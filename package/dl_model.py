@@ -270,7 +270,6 @@ class DL_Model:
         mod = PReLU()(mod)
         mod = BatchNormalization(axis=1)(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling2D(pool_size=(1, 8), data_format='channels_first')(mod)
         mod = GlobalAveragePooling2D()(mod)
 
         # Add layers to the model
@@ -289,7 +288,7 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = Conv1D(128, 4, **arg)(mod)
+        mod = Conv1D(128, 6, **arg)(mod)
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
@@ -297,7 +296,6 @@ class DL_Model:
         mod = BatchNormalization()(mod)
         mod = PReLU()(mod)
         mod = AdaptiveDropout(callback.prb, callback)(mod)
-        mod = AveragePooling1D(pool_size=2)(mod)
         mod = GlobalAveragePooling1D()(mod)
 
         # Add layers to the model
@@ -365,7 +363,10 @@ class DL_Model:
             mod = PReLU()(mod)
             mod = BatchNormalization()(mod)
             mod = AdaptiveDropout(callback.prb, callback)(mod)
-            mod = AveragePooling1D(pool_size=2)(mod)
+            mod = Conv1D(128, 4, **arg)(mod)
+            mod = PReLU()(mod)
+            mod = BatchNormalization()(mod)
+            mod = AdaptiveDropout(callback.prb, callback)(mod)
             mod = GlobalAveragePooling1D()(mod)
 
         # Add model to main model
@@ -580,24 +581,22 @@ class DL_Model:
         self.mrg_size = merge._keras_shape[1]
 
         # Defines the feature encoder part
-        model = Dense(merge._keras_shape[1], **arg)(merge)
+        model = Dense(merge._keras_shape[1] // 3, **arg)(merge)
         model = BatchNormalization()(model)
         model = PReLU()(model)
         model = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        model = Dense(model._keras_shape[1] // 2, **arg)(model)
+        enc_0 = GaussianNoise(1e-2)(model)
+        model = Dense(model._keras_shape[1] // 3, **arg)(model)
         model = BatchNormalization()(model)
         model = PReLU()(model)
-        enc_0 = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        model = Dense(model._keras_shape[1] // 2, **arg)(enc_0)
-        model = BatchNormalization()(model)
-        model = PReLU()(model)
-        enc_1 = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        enc_1 = GaussianNoise(1e-2)(model)
         model = Dense(model._keras_shape[1] // 3, **arg)(enc_1)
         model = BatchNormalization()(model)
         model = PReLU()(model)
-        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
-        enc_2 = GaussianNoise(1e-3)(model)
+        enc_2 = AdaptiveDropout(self.drp.prb, self.drp)(model)
         print('# Latent Space:', enc_2._keras_shape[1])
+
         # Defines the decoder part
         model = Dense(enc_1._keras_shape[1], **arg)(enc_2)
         model = BatchNormalization()(model)
@@ -609,13 +608,10 @@ class DL_Model:
         model = AdaptiveDropout(self.drp.prb, self.drp)(model)
         model = Dense(merge._keras_shape[1], activation='linear', **arg)(model)
         decod = Subtract(name='decode')([merge, model])
+
         # Defines the output part
-        model = Dense(enc_2._keras_shape[1], **arg)(enc_2)
-        model = BatchNormalization()(model)
-        model = PReLU()(model)
-        model = AdaptiveDropout(self.drp.prb, self.drp)(model)
         new = {'activation': 'softmax', 'name': 'output'}
-        model = Dense(self.n_c, **arg, **new)(model)
+        model = Dense(self.n_c, **arg, **new)(enc_2)
        
         return decod, model
 
