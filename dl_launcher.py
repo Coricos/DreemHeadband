@@ -10,7 +10,7 @@ from package.dl_model import *
 
 if __name__ == '__main__':
 
-	warnings.simplefilter('ignore')
+    warnings.simplefilter('ignore')
 
     # Initialize the arguments
     prs = argparse.ArgumentParser()
