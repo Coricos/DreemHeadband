@@ -501,7 +501,7 @@ def generate_channels(turn_on):
            'with_poi_cvl': False,
            'with_poi_enc': False,
            'with_poi_ate': False,
-           'with_fea': True,
+           'with_fea': False,
            }
     
     for key in turn_on: dic[key] = True
