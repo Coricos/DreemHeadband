@@ -628,7 +628,7 @@ class DL_Model:
 
         # Defines the losses depending on the case
         loss = {'output': 'categorical_crossentropy', 'decode': 'mean_squared_error'}
-        loss_weights = {'output': 1.0, 'decode': 2.0}
+        loss_weights = {'output': 1.0, 'decode': 10.0}
         metrics = {'output': 'accuracy', 'decode': 'mean_absolute_error'}
         monitor = 'val_output_acc'
 
@@ -718,12 +718,6 @@ class DL_Model:
         
         # Build the model
         decod, model = self.build(0.0, 100)
-
-        # Defines the losses depending on the case
-        loss = {'output': 'categorical_crossentropy', 'decode': 'mean_squared_error'}
-        loss_weights = {'output': 1.0, 'decode': 2.0}
-        metrics = {'output': 'accuracy', 'decode': 'mean_absolute_error'}
-
         # Build and compile the model
         model = Model(inputs=self.inp, outputs=[model, decod])
 
@@ -741,9 +735,11 @@ class DL_Model:
         if not hasattr(self, 'clf'): self.reconstruct()
 
         # Defines the size of the validation set
-        if fmt == 'e': sze = len(self.l_e)
+        if fmt == 'e': 
+            sze = len(self.l_e)
         if fmt == 'v': 
-            with h5py.File(self.pth, 'r') as dtb: sze = dtb['eeg_1_v'].shape[0]
+            with h5py.File(self.pth, 'r') as dtb: 
+                sze = dtb['eeg_1_v'].shape[0]
 
         # Defines the tools for prediction
         gen, ind, prd = self.data_val(fmt, batch=batch), 0, []
@@ -827,47 +823,57 @@ class DL_Model:
 class CV_DL_Model:
 
     # Initialization
+    # channels refers to what channels to use
     # storage refers to the absolute path towards the datasets
-    # n_iter refers to the amount of iterations
-    def __init__(self, storage='./dataset', n_iter=7):
+    def __init__(self, channels, storage='./dataset'):
 
         # Attributes
+        self.cls = channels
         self.path = '{}/CV_Headband.h5'.format(storage)
-        self.n_iter = n_iter
+        self.n_iter = sorted(glob.glob('{}/CV_ITER_*.h5'.format(storage)))
         self.storage = storage
 
     # CV Launcher definition
     def launch(self, log_file='./models/DL_SCORING.log'):
 
-        for idx in range(self.n_iter):
+        kys, prd = [], []
+        for key in list(self.cls.keys()):
+            if self.cls[key]: kys.append(key[5:])
+        # Serialize the channels for log purpose
+        with open(log_file, 'a') as raw:
+            raw.write('# CHANNELS: {} \n'.format(' | '.join(kys)))
+            raw.write('\n')
 
-            # Build the new relative database
-            Database(storage=self.storage).preprocess(self.path, test=0.3)
-
-            # Build the randomly selected channels
-            key = list(generate_channels([]).keys())
-            msk = np.zeros(len(key))
-            msk[np.random.choice(np.arange(len(key)), size=4)] = 1
-            channels = generate_channels(np.asarray(key)[msk.astype('bool')])
+        for idx, path in enumerate(self.n_iter):
 
             # Launch the model scoring for each iteration
-            mod = DL_Model(self.path, channels, marker='ITER_{}'.format(idx))
-            mod.learn(patience=10, dropout=0.5, decrease=150, batch=64, max_epochs=100)
-            mod.write_to_file()
+            mod = DL_Model(path, self.cls, marker='ITER_{}'.format(idx))
+            mod.learn(patience=10, dropout=0.5, decrease=150, batch=32, max_epochs=100)
+            prd.append(mod.predict('v'))
 
             # Save experiment characteristics
             acc, f1s, kap = mod.get_score()
-            kys = []
-            for key in list(channels.keys()):
-                if channels[key]: kys.append(key[5:])
-            # Write in log file
-            with open(log_file, 'a') as out:
-                out.write('# ITER {}:\n'.format(idx))
-                out.write('  CHANNELS: {}\n'.format(' | '.join(sorted(kys))))
-                out.write('  SCORES: ACC {:.4f} | F1S {:.4f} | KAP {:.4f}\n'.format(acc, f1s, kap))
-                out.write('\n')
+            
+            # LOG file for those scores
+            with open(log_file, 'a') as raw:
+                raw.write('# CV_ROUND {} | Accuracy {:3f} | Kappa {:3f} | F1Score {:3f} \n'.format(idx, acc, kap, f1s))
 
             # Memory efficiency
-            del key, msk, channels, mod, acc, f1s, kap, kys
+            del mod, acc, f1s, kap
+
+        # Write output of cross-validation to a suitable file
+        prd = np.vstack(tuple(prd)).T
+        prd = np_utils.to_categorical(prd.ravel(), num_classes=5).reshape(prd.shape[0], prd.shape[1], 5)
+        prd = np.sum(prd, axis=1)
+        prd = np.asarray([np.argmax(ele) for ele in prd])
+        idx = np.arange(43830, 64422)
+        res = np.hstack((idx.reshape(-1,1), prd.reshape(-1,1)))
+
+        # Creates the relative dataframe
+        res = pd.DataFrame(res, columns=['id', 'label'])
+
+        # Write to csv
+        if out is None: out = './results/test_{}.csv'.format(int(time.time()))
+        res.to_csv(out, index=False, header=True, sep=';')
 
 
