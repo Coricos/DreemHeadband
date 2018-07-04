@@ -863,6 +863,9 @@ class CV_DL_Model:
             # Memory efficiency
             del mod, acc, f1s, kap
 
+        # Write new line for next call
+        with open(log_file, 'a') as raw: raw.write('\n')
+
         # Write output of cross-validation to a suitable file
         prd = np.vstack(tuple(prd)).T
         prd = np_utils.to_categorical(prd.ravel(), num_classes=5).reshape(prd.shape[0], prd.shape[1], 5)
@@ -877,5 +880,7 @@ class CV_DL_Model:
         # Write to csv
         if out is None: out = './results/test_{}.csv'.format(int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
+
+
 
 

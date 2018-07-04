@@ -9,7 +9,7 @@ from cmaes.functions import *
 if __name__ == '__main__':
 
 	# Parse arguments
-    parser = argparse.ArgumentParser(description="MOoMin - Multi-Objective black-bOx MINimizer")
+    parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', default='config.yml', type=str, help='Configuration file in YAML format')
     parser = parser.parse_args()
     
