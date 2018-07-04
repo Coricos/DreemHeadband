@@ -834,7 +834,9 @@ class CV_DL_Model:
         self.storage = storage
 
     # CV Launcher definition
-    def launch(self, log_file='./models/DL_SCORING.log'):
+    # out refers to the output prediction file
+    # log_file refers to the scoring files logger
+    def launch(self, out=None, log_file='./models/DL_SCORING.log'):
 
         kys, prd = [], []
         for key in list(self.cls.keys()):

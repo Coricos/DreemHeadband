@@ -18,6 +18,8 @@ if __name__ == '__main__':
     prs.add_argument('-n', '--name', help='Type of model to use', type=str, default='XGB')
     prs.add_argument('-f', '--folds', help='Number of folds for cross-validation', type=int, default=7)
     prs.add_argument('-t', '--threads', help='Amount of threads', type=int, default=multiprocessing.cpu_count())
+    prs.add_argument('-p', '--output', help='Predictions file', type=str, default='./results/cMOD_{}.csv'.format(int(time.time())))
+    prs.add_argument('-c', '--channels', help='Channels Definition', nargs='*')
     prs.add_argument('-l', '--log_file', help='Where to write out the intermediate scores', type=str, default='./models/CV_SCORING.log')
     # Parse the arguments
     prs = prs.parse_args()
@@ -29,7 +31,8 @@ if __name__ == '__main__':
 
     # Launch cross-validation for dl models
     if prs.objectif == 'dl':
-        mod = CV_DL_Model(storage='./dataset', n_iter=prs.folds)
-        mod.launch(log_file=prs.log_file)
+        dic = generate_channels(prs.channels)
+        mod = CV_DL_Model(dic, storage='./dataset')
+        mod.launch(out=prs.output, log_file=prs.log_file)
 
 
