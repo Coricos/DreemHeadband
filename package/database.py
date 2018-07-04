@@ -437,4 +437,50 @@ class Database:
 
                     if out.get(lab_v): del out[lab_v]
                     out.create_dataset(lab_v, data=dtb[key].value)
-        
+    
+    # Build the multiple datasets necessary for cross-validation
+    # folds refers to the amount of cross-validation rounds
+    # storage refers to the root directory for datasets storage
+    def build_cv(self, folds, storage='./dataset'):
+
+        # Defines the cross-validation splits
+        kfs = KFold(n_splits=folds)
+        with h5py.File(self.train_sca, 'r') as dtb: 
+            lab = dtb['lab'].value.ravel()
+
+        # For each round, creates a new dataset
+        for idx, (i_t, i_e) in enumerate(kfs.split(np.arange(len(lab)))):
+
+            out = '{}/CV_ITER_{}.h5'.format(storage, idx)
+            print('\n# Building CV_ITER_{}.h5'.format(idx))
+
+            # Split the training set into both training and testing
+            with h5py.File(self.train_sca, 'r') as dtb:
+
+                print('# Train and Test ...')
+                time.sleep(0.5)
+                for key in tqdm.tqdm(list(dtb.keys())):
+
+                    with h5py.File(out, 'a') as out:
+
+                        key_t, key_e = '{}_t'.format(key), '{}_e'.format(key)
+
+                        if out.get(key_t): del out[key_t]
+                        out.create_dataset(key_t, data=dtb[key].value[i_t])
+                        if out.get(key_e): del out[key_e]
+                        out.create_dataset(key_e, data=dtb[key].value[i_e])
+
+            # Adds the validation set into the output database
+            with h5py.File(self.valid_sca, 'r') as dtb:
+
+                print('# Validation ...')
+                time.sleep(0.5)
+                for key in tqdm.tqdm(list(dtb.keys())):
+
+                    with h5py.File(out, 'a') as out:
+
+                        key_v = '{}_v'.format(key)
+
+                        if out.get(key_v): del out[key_v]
+                        out.create_dataset(key_v, data=dtb[key].value)
+
