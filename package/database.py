@@ -451,7 +451,7 @@ class Database:
         # For each round, creates a new dataset
         for idx, (i_t, i_e) in enumerate(kfs.split(np.arange(len(lab)))):
 
-            out = '{}/CV_ITER_{}.h5'.format(storage, idx)
+            output = '{}/CV_ITER_{}.h5'.format(storage, idx)
             print('\n# Building CV_ITER_{}.h5'.format(idx))
 
             # Split the training set into both training and testing
@@ -461,7 +461,7 @@ class Database:
                 time.sleep(0.5)
                 for key in tqdm.tqdm(list(dtb.keys())):
 
-                    with h5py.File(out, 'a') as out:
+                    with h5py.File(output, 'a') as out:
 
                         key_t, key_e = '{}_t'.format(key), '{}_e'.format(key)
 
@@ -477,7 +477,7 @@ class Database:
                 time.sleep(0.5)
                 for key in tqdm.tqdm(list(dtb.keys())):
 
-                    with h5py.File(out, 'a') as out:
+                    with h5py.File(output, 'a') as out:
 
                         key_v = '{}_v'.format(key)
 
