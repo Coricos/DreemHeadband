@@ -143,7 +143,7 @@ class AutoEncoder:
     def see_result(self):
 
         # Randomly select an index among the possibilities
-        idx = np.random.choice(self.raw.shape[0])
+        idx = np.random.choice(self.raw_t.shape[0])
         ate = self.get_autoencoder()
 
         plt.figure(figsize=(18,4))
