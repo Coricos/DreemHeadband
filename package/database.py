@@ -481,7 +481,7 @@ class Database:
 
             idx = np.arange(dtb['lab'].shape[0])
             arg = {'test_size': test, 'shuffle': True}
-            i_t, i_e, _, _ = train_test_split(idx, idx, **arg)
+            i_t, i_e, _, _ = train_test_split(idx, dtb['lab'].value, **arg)
             i_t = shuffle(i_t)
 
             for key in tqdm.tqdm(list(dtb.keys())):
