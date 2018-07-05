@@ -176,7 +176,7 @@ class CV_ML_Model:
             self.vec = dtb['fea'].value
 
         # Defines the cross-validation splits
-        self.kfs = KFold(n_splits=k_fold)
+        self.kfs = StratifiedKFold(n_splits=folds, shuffle=True)
 
         # Apply feature filtering based on variance
         vtf = VarianceThreshold(threshold=0.0)
@@ -188,7 +188,7 @@ class CV_ML_Model:
     # log_file refers to where to store the intermediate scores
     def launch(self, nme, log_file='./models/CV_SCORING.log'):
 
-        for idx, (i_t, i_e) in enumerate(self.kfs.split(np.arange(len(self.lab)))):
+        for idx, (i_t, i_e) in enumerate(self.kfs.split(self.lab, self.lab)):
 
             # Build the corresponding tuned model
             mkr = 'CV_{}'.format(idx)
