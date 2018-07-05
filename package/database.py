@@ -170,6 +170,8 @@ class Database:
             with open(pth, 'wb') as raw:
                 dic = {'min_up': mnu, 'max_up': mxu, 'min_dw': mnd, 'max_dw': mxd}
                 pickle.dump(dic, raw)
+            print('# Persistence limits have been serialized ...')
+            time.sleep(0.5)
 
         # Build the betti curves
         for pth in [self.train_out, self.valid_out]:
