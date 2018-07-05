@@ -343,7 +343,7 @@ class Database:
 
             old, m_x = [], max(np.max(np.abs(v_t)), np.max(np.abs(v_v)))
             coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
-            coe = np.median(np.asarray(coe))
+            coe = np.percentile(np.asarray(coe), 75)
 
             for inp in [self.train_out, self.valid_out]:
 
