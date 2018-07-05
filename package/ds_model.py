@@ -148,7 +148,7 @@ class AutoEncoder:
 
         plt.figure(figsize=(18,4))
         plt.plot(self.raw_t[idx], label='Initial Signal')
-        plt.scatter(np.arange(self.raw_t.shape[1]), ate.predict(self.raw_t[idx].reshape(1,self.raw_t.shape[1])), c='b', marker='x')
+        plt.scatter(np.arange(self.raw_t.shape[1]), ate.predict(self.raw_t[idx].reshape(1,self.raw_t.shape[1])), s=2, c='black', marker='d')
         plt.show()
 
     # Reconstruct the encoder
