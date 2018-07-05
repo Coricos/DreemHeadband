@@ -176,7 +176,7 @@ class CV_ML_Model:
             self.vec = dtb['fea'].value
 
         # Defines the cross-validation splits
-        self.kfs = StratifiedKFold(n_splits=folds, shuffle=True)
+        self.kfs = StratifiedKFold(n_splits=k_fold, shuffle=True)
 
         # Apply feature filtering based on variance
         vtf = VarianceThreshold(threshold=0.0)
