@@ -21,6 +21,7 @@ from collections import Counter
 from scipy.stats import kurtosis, skew
 from scipy.interpolate import interp1d
 from arch.bootstrap import CircularBlockBootstrap
+from statsmodels.tsa.ar_model import AR
 
 from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
@@ -32,7 +33,8 @@ from sklearn.neighbors import KNeighborsClassifier, KDTree
 from sklearn.linear_model import SGDClassifier
 from sklearn.decomposition import IncrementalPCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.feature_selection import VarianceThreshold
 

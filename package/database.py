@@ -512,10 +512,10 @@ class Database:
     # storage refers to the root directory for datasets storage
     def build_cv(self, folds, storage='./dataset'):
 
-        # Defines the cross-validation splits
-        kfs = KFold(n_splits=folds)
         with h5py.File(self.train_sca, 'r') as dtb: 
             lab = dtb['lab'].value.ravel()
+        # Defines the cross-validation splits
+        kfs = StratifiedKFold(lab, n_splits=folds, shuffle=True)
 
         # For each round, creates a new dataset
         for idx, (i_t, i_e) in enumerate(kfs.split(np.arange(len(lab)))):
