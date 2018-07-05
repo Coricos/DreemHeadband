@@ -29,7 +29,7 @@ class Database:
 
     # Load the corresponding labels
     # input refers to the input_file in which the labels are stored
-    def load_labels(self, input):
+    def load_labels(self, input='./dataset/label.csv'):
 
         lab = pd.read_csv(input, sep=';', index_col=0)
 
