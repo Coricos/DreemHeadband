@@ -850,7 +850,7 @@ class CV_DL_Model:
 
             # Launch the model scoring for each iteration
             mod = DL_Model(path, self.cls, marker='ITER_{}'.format(idx))
-            mod.learn(patience=10, dropout=0.5, decrease=150, batch=32, max_epochs=100)
+            mod.learn(patience=10, dropout=0.6, decrease=150, batch=32, max_epochs=100)
             prd.append(mod.predict('v'))
 
             # Save experiment characteristics
