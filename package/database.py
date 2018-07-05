@@ -8,7 +8,7 @@ class Database:
 
     # Initialization
     # storage refers to where to get the datasets
-    def __init__(self, storage='./dataset'):
+    def __init__(self, threads=multiprocessing.cpu_count(), storage='./dataset'):
 
         self.train_pth = '{}/train.h5'.format(storage)
         self.valid_pth = '{}/valid.h5'.format(storage)
@@ -19,6 +19,7 @@ class Database:
 
         self.storage = storage
         self.sets_size = []
+        self.threads = threads
         
         with h5py.File(self.train_pth, 'r') as dtb:
             self.sets_size.append(dtb['po_r'].shape[0])
@@ -49,7 +50,7 @@ class Database:
 
                 # Apply the kalman filter if needed
                 if fil[key]:
-                    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                    pol = multiprocessing.Pool(processes=self.threads)
                     arg = {'std_factor': dic[key][0], 'smooth_window': dic[key][1]}
                     fun = partial(kalman_filter, **arg)
                     val = np.asarray(pol.map(fun, val))
@@ -57,7 +58,7 @@ class Database:
                     pol.join()
 
                 # Adapt the size of the vectors
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                pol = multiprocessing.Pool(processes=self.threads)
                 fun = partial(interpolate, size=30*sampling_freq)
                 val = np.asarray(pol.map(fun, val))
                 pol.close()
@@ -173,7 +174,7 @@ class Database:
                     val = dtb['eeg_{}'.format(key)].value
                     
                 # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                pol = multiprocessing.Pool(processes=self.threads)
                 arg = {'mnu': mnu, 'mxu': mxu, 'mnd': mnd, 'mxd': mxd}
                 fun = partial(compute_betti_curves, **arg)
                 res = np.asarray(pol.map(fun, val))
@@ -206,7 +207,7 @@ class Database:
                     val = dtb['eeg_{}'.format(key)].value
                     
                 # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                pol = multiprocessing.Pool(processes=self.threads)
                 res = np.asarray(pol.map(compute_landscapes, val))
                 pol.close()
                 pol.join()
@@ -235,7 +236,7 @@ class Database:
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
                 # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                pol = multiprocessing.Pool(processes=self.threads)
                 res.append(np.asarray(pol.map(compute_features, val)))
                 pol.close()
                 pol.join()
@@ -314,7 +315,7 @@ class Database:
 
                 with h5py.File(inp, 'r') as dtb:
 
-                    pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                    pol = multiprocessing.Pool(processes=self.threads)
                     fun = partial(resize_time_serie, size=size, threshold=coe)
                     old += pol.map(fun, dtb[key].value)
                     pol.close()
