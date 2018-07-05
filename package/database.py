@@ -515,10 +515,10 @@ class Database:
         with h5py.File(self.train_sca, 'r') as dtb: 
             lab = dtb['lab'].value.ravel()
         # Defines the cross-validation splits
-        kfs = StratifiedKFold(lab, n_folds=folds, shuffle=True)
+        kfs = StratifiedKFold(n_splits=folds, shuffle=True)
 
         # For each round, creates a new dataset
-        for idx, (i_t, i_e) in enumerate(kfs.split(np.arange(len(lab)))):
+        for idx, (i_t, i_e) in enumerate(kfs.split(lab, lab)):
 
             output = '{}/CV_ITER_{}.h5'.format(storage, idx)
             print('\n# Building CV_ITER_{}.h5'.format(idx))
