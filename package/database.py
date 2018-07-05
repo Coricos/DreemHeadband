@@ -117,6 +117,15 @@ class Database:
                 pol.close()
                 pol.join()
 
+            # Relation between EEGs
+            with h5py.File(pth, 'r') as dtb: shp = dtb['eeg_1'].shape
+            # Multiprocessed computation
+            pol = multiprocessing.Pool(processes=self.threads)
+            fun = partial(compute_distances, pth=pth)
+            res.append(np.asarray(pol.map(fun, np.arange(shp[0]))))
+            pol.close()
+            pol.join()
+
             # Serialize the output
             with h5py.File(out, 'a') as dtb:
                 if dtb.get('fea'): del dtb['fea']
