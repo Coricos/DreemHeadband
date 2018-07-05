@@ -53,8 +53,10 @@ class Database:
                 tmp += np.square(dtb['acc_z'].value)
 
             # Serialize the result
+            with h5py.File(pth, 'a') as dtb:
+                if dtb.get('norm_acc'): del dtb['norm_acc']
+                dtb.create_dataset('norm_acc', data=np.sqrt(tmp))
             with h5py.File(out, 'a') as dtb:
-
                 if dtb.get('norm_acc'): del dtb['norm_acc']
                 dtb.create_dataset('norm_acc', data=np.sqrt(tmp))
 
@@ -77,8 +79,10 @@ class Database:
                 tmp += np.square(dtb['eeg_4'].value)
 
             # Serialize the result
+            with h5py.File(pth, 'a') as dtb:
+                if dtb.get('norm_eeg'): del dtb['norm_eeg']
+                dtb.create_dataset('norm_eeg', data=np.sqrt(tmp))
             with h5py.File(out, 'a') as dtb:
-
                 if dtb.get('norm_eeg'): del dtb['norm_eeg']
                 dtb.create_dataset('norm_eeg', data=np.sqrt(tmp))
 
