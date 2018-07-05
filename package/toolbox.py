@@ -285,12 +285,21 @@ def reset_mean(vec):
 
     return StandardScaler(with_std=False).fit_transform(vec.reshape(-1,1)).ravel()
 
+# Multiprocessed way of computing the limits of a persistent diagrams
+# vec refers to a 1D numpy array
+def persistent_limits(vec):
+    
+    lvl = Levels(vec)
+    u,d = lvl.get_persistence()
+    
+    return np.asarray([min(u[:,0]), max(u[:,1]), min(d[:,0]), max(d[:,1])])
+
 # Compute the Betti curves
 # vec refers to a 1D array
-def compute_betti_curves(vec):
+def compute_betti_curves(vec, mnu, mxu, mnd, mxd):
 
     fil = Levels(vec)
-    try: v,w = fil.betti_curves(num_points=100)
+    try: v,w =  lvl.betti_curves(mnu, mxu, mnd, mxd, num_points=100)
     except: v,w = np.zeros(100), np.zeros(100)
     del fil
     

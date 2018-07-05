@@ -130,10 +130,41 @@ class Database:
     # Build the corresponding Betti curves
     def add_betti_curves(self):
 
+        lmt = []
+        # Get the betti curves limitations
+        for pth in [self.train_out, self.valid_out]:
+
+            # Iterates over the EEGs signals
+            for key in tqdm.tqdm(range(1, 5)):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: 
+                    val = dtb['eeg_{}'.format(key)].value
+
+                # Computes the persistent limits for the relative patient
+                pol = multiprocessing.Pool(processes=self.threads)
+                lmt.append(np.asarray(pol.map(persistent_limits, val)))
+                pol.close()
+                pol.join()
+                # Memory efficiency
+                del val, pol
+
+        # Extracts the main limits
+        lmt = np.vstack(tuple(lmt))
+        mnu, mxu = min(lmt[:,0]), max(lmt[:,1]) 
+        mnd, mxd = min(lmt[:,2]), max(lmt[:,3])
+        # Memory efficiency
+        del lmt
+
+        # Serialize the obtained threshold
+        with open('./tools/TDA_limits.pk', 'wb') as raw:
+            dic = {'min_up': mnu, 'max_up': mxu, 'min_dw': mnd, 'max_dw': mxd}
+            pickle.dump(dic, raw)
+            del dic
+
         # Build the betti curves
         for pth in [self.train_out, self.valid_out]:
 
-            res = []
             # Iterates over the EEGs signals
             for key in tqdm.tqdm(range(1, 5)):
 
@@ -143,9 +174,13 @@ class Database:
                     
                 # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                res = np.asarray(pol.map(compute_betti_curves, val))
+                arg = {'mnu': mnu, 'mxu': mxu, 'mnd': mnd, 'mxd': mxd}
+                fun = partial(compute_betti_curves, **arg)
+                res = np.asarray(pol.map(fun, val))
                 pol.close()
                 pol.join()
+                # Memory efficiency
+                del val, pol, arg, fun
 
                 # Serialize the output
                 with h5py.File(pth, 'a') as dtb:
