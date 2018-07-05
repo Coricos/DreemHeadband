@@ -285,9 +285,8 @@ class Database:
                     dtb.create_dataset(new, data=res[:,10:,:])
 
     # Apply filtering and interpolation on the samples
-    # sampling_freq refers to the desired sampling frequency
     # out_storage refers to where to put the newly build datasets
-    def build(self, sampling_freq=50, out_storage='/mnt/Storage'):
+    def build_series(self, out_storage='/mnt/Storage'):
 
         # Defines the parameters for each key
         fil = {'po_r': True, 'po_ir': True,
@@ -314,13 +313,6 @@ class Database:
                     pol.close()
                     pol.join()
 
-                # Adapt the size of the vectors
-                pol = multiprocessing.Pool(processes=self.threads)
-                fun = partial(interpolate, size=30*sampling_freq)
-                val = np.asarray(pol.map(fun, val))
-                pol.close()
-                pol.join()
-
                 # Serialize the outputs
                 with h5py.File(out, 'a') as dtb:
                     if dtb.get(key): del dtb[key]
@@ -330,7 +322,7 @@ class Database:
                 del pol, fun, val
 
     # Rescale the datasets considering both training and validation
-    def rescale(self, size=400):
+    def rescale(self, size=500):
 
         with h5py.File(self.train_out, 'r') as dtb:
             res = ['norm_acc', 'norm_eeg', 'acc_x', 'acc_y', 'acc_z', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
