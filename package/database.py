@@ -27,18 +27,266 @@ class Database:
         with h5py.File(self.valid_pth, 'r') as dtb:
             self.sets_size.append(dtb['po_r'].shape[0])
 
+    # Load the corresponding labels
+    # input refers to the input_file in which the labels are stored
+    def load_labels(self, input):
+
+        lab = pd.read_csv(input, sep=';', index_col=0)
+
+        with h5py.File(self.train_out, 'a') as dtb:
+            # Serialize the labels
+            if dtb.get('lab'): del dtb['lab']
+            dtb.create_dataset('lab', data=lab.values)
+
+    # Build the norm of the accelerometers
+    def add_norm_acc(self):
+
+        # Iterates over both the training and validation sets
+        for pth, out in zip([self.train_pth, self.valid_pth],
+                            [self.train_out, self.valid_out]):
+
+            with h5py.File(pth, 'r') as dtb:
+
+                # Aggregates the values
+                tmp = np.square(dtb['acc_x'].value)
+                tmp += np.square(dtb['acc_y'].value)
+                tmp += np.square(dtb['acc_z'].value)
+
+            # Serialize the result
+            with h5py.File(out, 'a') as dtb:
+
+                if dtb.get('norm_acc'): del dtb['norm_acc']
+                dtb.create_dataset('norm_acc', data=np.sqrt(tmp))
+
+            # Memory efficiency
+            del tmp
+
+    # Build the norm of the EEGs
+    def add_norm_eeg(self):
+
+        # Iterates over both the training and validation sets
+        for pth, out in zip([self.train_pth, self.valid_pth],
+                            [self.train_out, self.valid_out]):
+
+            with h5py.File(pth, 'r') as dtb:
+
+                # Aggregates the values
+                tmp = np.square(dtb['eeg_1'].value)
+                tmp += np.square(dtb['eeg_2'].value)
+                tmp += np.square(dtb['eeg_3'].value)
+                tmp += np.square(dtb['eeg_4'].value)
+
+            # Serialize the result
+            with h5py.File(out, 'a') as dtb:
+
+                if dtb.get('norm_eeg'): del dtb['norm_eeg']
+                dtb.create_dataset('norm_eeg', data=np.sqrt(tmp))
+
+            # Memory efficiency
+            del tmp
+
+    # Build the features for each channel
+    # n_components refers to the PCA transformation
+    def add_features(self, n_components=10):
+
+        # Build the features over the initial signals
+        for pth, out in zip([self.train_pth, self.valid_pth], 
+                            [self.train_out, self.valid_out]):
+
+            res = []
+
+            # Iterates over the other signals
+            for key in tqdm.tqdm(['po_r', 'po_ir', 'norm_acc', 'norm_eeg']):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=self.threads)
+                res.append(np.asarray(pol.map(compute_stats_features, val)))
+                pol.close()
+                pol.join()
+
+            # Iterates over the EEG signals
+            for key in tqdm.tqdm(['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=self.threads)
+                res.append(np.asarray(pol.map(compute_eeg_features, val)))
+                pol.close()
+                pol.join()
+
+            # Serialize the output
+            with h5py.File(out, 'a') as dtb:
+                if dtb.get('fea'): del dtb['fea']
+                dtb.create_dataset('fea', data=np.hstack(tuple(res)))
+                del res
+
+        # Build the features relative to their PCA reduction
+        train_pca, valid_pca = [], []
+        lst = ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir', 'norm_acc', 'norm_eeg']
+
+        # Iterates over the keys
+        for key in tqdm.tqdm(lst):
+
+            # Defines the PCA transform adapted to incremental learning
+            pca = IncrementalPCA(n_components=n_components)
+            # Partial fit over training and validation
+            for pth in [self.train_pth, self.valid_pth]:
+                with h5py.File(pth, 'r') as dtb:
+                    pca.partial_fit(dtb[key].value)
+            # Apply transformation on training set
+            with h5py.File(self.train_pth, 'r') as dtb:
+                train_pca.append(pca.transform(dtb[key].value))
+            # Apply transformation on validation set
+            with h5py.File(self.valid_pth, 'r') as dtb:
+                valid_pca.append(pca.transform(dtb[key].value))
+
+        # Serialization for the training results
+        with h5py.File(self.train_out, 'a') as dtb:
+            fea, pca = dtb['fea'].value, np.hstack(tuple(train_pca))
+            del dtb['fea']
+            dtb.create_dataset('fea', data=np.hstack((fea, pca)))
+            del fea, pca
+        # Serialization for the validation results
+        with h5py.File(self.valid_out, 'a') as dtb:
+            fea, pca = dtb['fea'].value, np.hstack(tuple(valid_pca))
+            del dtb['fea']
+            dtb.create_dataset('fea', data=np.hstack((fea, pca)))
+            del fea, pca
+
+        # Memory efficiency
+        del train_pca, valid_pca, lst
+
+    # Compute the persistence limits for each EEG channel
+    def get_persistence_limits(self):
+
+        tda_lmt = './dataset/TDA_limits.pk'
+        # Limitations of persistence diagrams
+        if os.path.exists(tda_lmt):
+
+            # Load the existing thresholds
+            with open(tda_lmt, 'rb') as raw: dic = pickle.load(raw)
+
+        else:
+
+            lmt = []
+            # Get the betti curves limitations
+            for pth in [self.train_pth, self.valid_pth]:
+
+                # Iterates over the EEGs signals
+                for key in tqdm.tqdm(range(1, 5)):
+
+                    # Load the corresponding values
+                    with h5py.File(pth, 'r') as dtb: 
+                        val = dtb['eeg_{}'.format(key)].value
+
+                    # Computes the persistent limits for the relative patient
+                    pol = multiprocessing.Pool(processes=self.threads)
+                    lmt.append(np.asarray(pol.map(persistent_limits, val)))
+                    pol.close()
+                    pol.join()
+                    # Memory efficiency
+                    del val, pol
+
+            # Extracts the main limits
+            lmt = np.vstack(tuple(lmt))
+            mnu, mxu = min(lmt[:,0]), max(lmt[:,1]) 
+            mnd, mxd = min(lmt[:,2]), max(lmt[:,3])
+            # Memory efficiency
+            del lmt
+
+            # Serialize the obtained threshold
+            with open(tda_lmt, 'wb') as raw:
+                dic = {'min_up': mnu, 'max_up': mxu, 'min_dw': mnd, 'max_dw': mxd}
+                pickle.dump(dic, raw)
+
+        return dic
+
+    # Build the corresponding Betti curves
+    def add_betti_curves(self):
+
+        # Retrieve the persistence limits
+        dic = self.get_persistence_limits()
+
+        # Build the betti curves
+        for pth, out in zip([self.train_pth, self.valid_pth],
+                            [self.train_out, self.valid_out]):
+
+            # Iterates over the EEGs signals
+            for key in tqdm.tqdm(range(1, 5)):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: 
+                    val = dtb['eeg_{}'.format(key)].value
+                    
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=self.threads)
+                arg = {'mnu': dic['min_up'], 'mxu': dic['max_up'], 'mnd': dic['min_dw'], 'mxd': dic['max_dw']}
+                fun = partial(compute_betti_curves, **arg)
+                res = np.asarray(pol.map(fun, val))
+                pol.close()
+                pol.join()
+                # Memory efficiency
+                del val, pol, arg, fun
+
+                # Serialize the output
+                with h5py.File(out, 'a') as dtb:
+                    new = 'bup_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,0,:])
+                    new = 'bdw_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,1,:])
+
+    # Build the corresponding landscapes
+    def add_landscapes(self):
+
+        # Retrieve the persistence limits
+        dic = self.get_persistence_limits()
+
+        # Build the betti curves
+        for pth, out in zip([self.train_pth, self.valid_pth],
+                            [self.train_out, self.valid_out]):
+
+            res = []
+            # Iterates over the EEGs signals
+            for key in tqdm.tqdm(range(1, 5)):
+
+                # Load the corresponding values
+                with h5py.File(pth, 'r') as dtb: 
+                    val = dtb['eeg_{}'.format(key)].value
+                    
+                # Multiprocessed computation
+                pol = multiprocessing.Pool(processes=self.threads)
+                arg = {'mnu': dic['min_up'], 'mxu': dic['max_up'], 'mnd': dic['min_dw'], 'mxd': dic['max_dw']}
+                fun = partial(compute_landscapes, **arg)
+                res = np.asarray(pol.map(fun, val))
+                pol.close()
+                pol.join()
+
+                # Serialize the output
+                with h5py.File(out, 'a') as dtb:
+                    new = 'l_0_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,:10,:])
+                    new = 'l_1_{}'.format(key)
+                    if dtb.get(new): del dtb[new]
+                    dtb.create_dataset(new, data=res[:,10:,:])
+
     # Apply filtering and interpolation on the samples
     # sampling_freq refers to the desired sampling frequency
     # out_storage refers to where to put the newly build datasets
-    def build(self, sampling_freq=100, out_storage='/mnt/Storage'):
+    def build(self, sampling_freq=50, out_storage='/mnt/Storage'):
 
         # Defines the parameters for each key
         fil = {'po_r': True, 'po_ir': True,
                'acc_x': False, 'acc_y': False, 'acc_z': False,
                'eeg_1': True, 'eeg_2': True, 'eeg_3': True, 'eeg_4': True}
 
-        dic = {'eeg_1': (4, 20), 'eeg_2': (4, 20), 'eeg_3': (4, 20),
-               'eeg_4': (4, 20), 'po_ir': (3, 5), 'po_r': (3, 5)}
+        dic = {'eeg_1': (2, 10), 'eeg_2': (2, 10), 'eeg_3': (2, 10),
+               'eeg_4': (2, 10), 'po_ir': (2, 5), 'po_r': (2, 5)}
 
         # Iterates over the keys
         for key in tqdm.tqdm(fil.keys()):
@@ -72,241 +320,6 @@ class Database:
                 # Memory efficiency
                 del pol, fun, val
 
-    # Load the corresponding labels
-    # input refers to the input_file in which the labels are stored
-    def load_labels(self, input):
-
-        lab = pd.read_csv(input, sep=';', index_col=0)
-
-        with h5py.File(self.train_out, 'a') as dtb:
-            # Serialize the labels
-            if dtb.get('lab'): del dtb['lab']
-            dtb.create_dataset('lab', data=lab.values)
-
-    # Build the norm of the accelerometers
-    def add_norm_acc(self):
-
-        # Iterates over both the training and validation sets
-        for pth in [self.train_out, self.valid_out]:
-
-            with h5py.File(pth, 'r') as dtb:
-
-                # Aggregates the values
-                tmp = np.square(dtb['acc_x'].value)
-                tmp += np.square(dtb['acc_y'].value)
-                tmp += np.square(dtb['acc_z'].value)
-
-            # Serialize the result
-            with h5py.File(pth, 'a') as dtb:
-
-                if dtb.get('norm_acc'): del dtb['norm_acc']
-                dtb.create_dataset('norm_acc', data=np.sqrt(tmp))
-
-            # Memory efficiency
-            del tmp
-
-    # Build the norm of the EEGs
-    def add_norm_eeg(self):
-
-        # Iterates over both the training and validation sets
-        for pth in [self.train_out, self.valid_out]:
-
-            with h5py.File(pth, 'r') as dtb:
-
-                # Aggregates the values
-                tmp = np.square(dtb['eeg_1'].value)
-                tmp += np.square(dtb['eeg_2'].value)
-                tmp += np.square(dtb['eeg_3'].value)
-                tmp += np.square(dtb['eeg_4'].value)
-
-            # Serialize the result
-            with h5py.File(pth, 'a') as dtb:
-
-                if dtb.get('norm_eeg'): del dtb['norm_eeg']
-                dtb.create_dataset('norm_eeg', data=np.sqrt(tmp))
-
-            # Memory efficiency
-            del tmp
-
-    # Compute the persistence limits for each EEG channel
-    def get_persistence_limits(self):
-
-        tda_lmt = './dataset/TDA_limits.pk'
-        # Limitations of persistence diagrams
-        if os.path.exists(tda_lmt):
-
-            # Load the existing thresholds
-            with open(tda_lmt, 'rb') as raw: dic = pickle.load(raw)
-            print('# Persistence limits have been loaded ...')
-            time.sleep(0.5)
-
-        else:
-
-            lmt = []
-            # Get the betti curves limitations
-            for pth in [self.train_out, self.valid_out]:
-
-                # Iterates over the EEGs signals
-                for key in tqdm.tqdm(range(1, 5)):
-
-                    # Load the corresponding values
-                    with h5py.File(pth, 'r') as dtb: 
-                        val = dtb['eeg_{}'.format(key)].value
-
-                    # Computes the persistent limits for the relative patient
-                    pol = multiprocessing.Pool(processes=self.threads)
-                    lmt.append(np.asarray(pol.map(persistent_limits, val)))
-                    pol.close()
-                    pol.join()
-                    # Memory efficiency
-                    del val, pol
-
-            # Extracts the main limits
-            lmt = np.vstack(tuple(lmt))
-            mnu, mxu = min(lmt[:,0]), max(lmt[:,1]) 
-            mnd, mxd = min(lmt[:,2]), max(lmt[:,3])
-            # Memory efficiency
-            del lmt
-
-            # Serialize the obtained threshold
-            with open(tda_lmt, 'wb') as raw:
-                dic = {'min_up': mnu, 'max_up': mxu, 'min_dw': mnd, 'max_dw': mxd}
-                pickle.dump(dic, raw)
-            print('# Persistence limits have been serialized ...')
-            time.sleep(0.5)
-
-        return dic
-
-    # Build the corresponding Betti curves
-    def add_betti_curves(self):
-
-        # Retrieve the persistence limits
-        dic = self.get_persistence_limits()
-
-        # Build the betti curves
-        for pth in [self.train_out, self.valid_out]:
-
-            # Iterates over the EEGs signals
-            for key in tqdm.tqdm(range(1, 5)):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: 
-                    val = dtb['eeg_{}'.format(key)].value
-                    
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=self.threads)
-                arg = {'mnu': dic['min_up'], 'mxu': dic['max_up'], 'mnd': dic['min_dw'], 'mxd': dic['max_dw']}
-                fun = partial(compute_betti_curves, **arg)
-                res = np.asarray(pol.map(fun, val))
-                pol.close()
-                pol.join()
-                # Memory efficiency
-                del val, pol, arg, fun
-
-                # Serialize the output
-                with h5py.File(pth, 'a') as dtb:
-                    new = 'bup_{}'.format(key)
-                    if dtb.get(new): del dtb[new]
-                    dtb.create_dataset(new, data=res[:,0,:])
-                    new = 'bdw_{}'.format(key)
-                    if dtb.get(new): del dtb[new]
-                    dtb.create_dataset(new, data=res[:,1,:])
-
-    # Build the corresponding landscapes
-    def add_landscapes(self):
-
-        # Retrieve the persistence limits
-        dic = self.get_persistence_limits()
-
-        # Build the betti curves
-        for pth in [self.train_out, self.valid_out]:
-
-            res = []
-            # Iterates over the EEGs signals
-            for key in tqdm.tqdm(range(1, 5)):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: 
-                    val = dtb['eeg_{}'.format(key)].value
-                    
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=self.threads)
-                arg = {'mnu': dic['min_up'], 'mxu': dic['max_up'], 'mnd': dic['min_dw'], 'mxd': dic['max_dw']}
-                fun = partial(compute_landscapes, **arg)
-                res = np.asarray(pol.map(fun, val))
-                pol.close()
-                pol.join()
-
-                # Serialize the output
-                with h5py.File(pth, 'a') as dtb:
-                    new = 'l_0_{}'.format(key)
-                    if dtb.get(new): del dtb[new]
-                    dtb.create_dataset(new, data=res[:,:10,:])
-                    new = 'l_1_{}'.format(key)
-                    if dtb.get(new): del dtb[new]
-                    dtb.create_dataset(new, data=res[:,10:,:])
-
-    # Build the features for each channel
-    # n_components refers to the PCA transformation
-    def add_features(self, n_components=5):
-
-        lst = ['norm_acc', 'po_ir', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
-
-        for pth in [self.train_out, self.valid_out]:
-
-            res = []
-            # Iterates over the keys
-            for key in tqdm.tqdm(lst):
-
-                # Load the corresponding values
-                with h5py.File(pth, 'r') as dtb: val = dtb[key].value
-                # Multiprocessed computation
-                pol = multiprocessing.Pool(processes=self.threads)
-                res.append(np.asarray(pol.map(compute_features, val)))
-                pol.close()
-                pol.join()
-
-            # Serialize the output
-            with h5py.File(pth, 'a') as dtb:
-                if dtb.get('fea'): del dtb['fea']
-                dtb.create_dataset('fea', data=np.hstack(tuple(res)))
-                del res
-
-        # Build the features relative to their PCA reduction
-        train_pca, valid_pca = [], []
-
-        # Iterates over the keys
-        for key in tqdm.tqdm(lst):
-
-            # Defines the PCA transform adapted to incremental learning
-            pca = IncrementalPCA(n_components=n_components)
-            # Partial fit over training and validation
-            for pth in [self.train_out, self.valid_out]:
-                with h5py.File(pth, 'r') as dtb:
-                    pca.partial_fit(dtb[key].value)
-            # Apply transformation on training set
-            with h5py.File(self.train_out, 'r') as dtb:
-                train_pca.append(pca.transform(dtb[key].value))
-            # Apply transformation on validation set
-            with h5py.File(self.valid_out, 'r') as dtb:
-                valid_pca.append(pca.transform(dtb[key].value))
-
-        # Serialization for the training results
-        with h5py.File(self.train_out, 'a') as dtb:
-            fea, pca = dtb['fea'].value, np.hstack(tuple(train_pca))
-            del dtb['fea']
-            dtb.create_dataset('fea', data=np.hstack((fea, pca)))
-            del fea, pca
-        # Serialization for the validation results
-        with h5py.File(self.valid_out, 'a') as dtb:
-            fea, pca = dtb['fea'].value, np.hstack(tuple(valid_pca))
-            del dtb['fea']
-            dtb.create_dataset('fea', data=np.hstack((fea, pca)))
-            del fea, pca
-
-        # Memory efficiency
-        del train_pca, valid_pca, lst
-
     # Rescale the datasets considering both training and validation
     def rescale(self, size=400):
 
@@ -317,16 +330,12 @@ class Database:
             oth = [key for key in list(dtb.keys()) if key not in res + unt + ldc + ['lab']]
 
         # Transfer the labels from DTS to SCA
-
         with h5py.File(self.train_sca, 'a') as dtb:
             if dtb.get('lab'): del dtb['lab']
             with h5py.File(self.train_out, 'r') as inp:
                 dtb.create_dataset('lab', data=inp['lab'].value)
-        print('# Label transfer ...')
-        time.sleep(0.5)
-        # Specific scaling for the temporal signals
-        print('# Rescaling temporal signals ...')
-        time.sleep(0.5)
+
+        # Rescale the time series
         for key in tqdm.tqdm(res):
 
             with h5py.File(self.train_out, 'r') as dtb: v_t = dtb[key].value
@@ -363,8 +372,6 @@ class Database:
             del mms, sts, pip, old, v_t, v_v, m_x
 
         # Rescaling for the betti curves
-        print('# Rescaling betti curves ...')
-        time.sleep(0.5)
         for key in tqdm.tqdm(unt):
 
             # Defines the scalers
@@ -392,8 +399,6 @@ class Database:
             del mms, tmp
 
         # Rescaling for the persistent landscapes
-        print('# Rescaling persistent landscapes ...')
-        time.sleep(0.5)
         for key in tqdm.tqdm(ldc):
 
             m_x = []
@@ -416,12 +421,10 @@ class Database:
                     del val
 
         # Specific scaling for features datasets
-        print('# Rescaling other features ...')
-        time.sleep(0.5)
         for key in tqdm.tqdm(oth):
 
             # Build the scaler
-            mms = MinMaxScaler(feature_range=(-1, 0))
+            mms = MinMaxScaler(feature_range=(-1, 1))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_out, self.valid_out]:
@@ -466,7 +469,7 @@ class Database:
     # Defines both training and testing instances
     # output refers to where to put the data
     # test refers to the test_size
-    def preprocess(self, output, test=0.1):
+    def preprocess(self, output, test=0.3):
 
         # Split the training set into both training and testing
         with h5py.File(self.train_sca, 'r') as dtb:

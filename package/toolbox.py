@@ -318,7 +318,7 @@ def compute_landscapes(vec, mnu, mxu, mnd, mxd):
 
 # Defines the feature construction pipeline
 # val refers to a 1D array
-def compute_features(val):
+def compute_eeg_features(val):
 
     # Defines the amount of crossing-overs
     def crossing_over(val):
@@ -472,13 +472,58 @@ def compute_features(val):
     res.append(entropy(val))
     res += list(neural_features(val))
     res += list(compute_tda_features(val))
-    # Features over gradient
-    grd = np.gradient(val)
-    res.append(np.mean(grd))
-    res.append(np.std(grd))
-    res.append(min(grd))
-    res.append(max(grd))
-    res.append(entropy(grd))
+
+    return np.asarray(res)
+
+# Defines the feature construction pipeline
+# val refers to a 1D array
+def compute_stats_features(val):
+
+    # Defines the entropy of the signal
+    def entropy(val):
+        
+        dta = np.round(val, 4)
+        cnt = Counter()
+
+        for ele in dta: cnt[ele] += 1
+
+        pbs = [val / len(dta) for val in cnt.values()]
+        pbs = [prd for prd in pbs if prd > 0.0]
+
+        ent = 0.0
+        for prd in pbs:
+            ent -= prd * log(prd, 2.0)
+
+        return ent
+
+    # Defines the whole fourier features
+    def fourier(val, n_features=25):
+
+        res = []
+
+        fft = np.abs(np.fft.rfft(val))
+        for per in [25, 50, 75]: res.append(np.percentile(fft, per))
+        f,s = sg.periodogram(val, fs=len(val) / 30)
+        res.append(f[s.argmax()])
+        res.append(np.max(s))
+        res.append(np.sum(s))
+        res.append(entropy(s))
+
+        return res
+
+    res = []
+    # Build the feature vector
+    res.append(np.mean(val))
+    res.append(np.std(val))
+    res.append(min(val))
+    res.append(max(val))
+    for per in [25, 50, 75]: res.append(np.percentile(val, per))
+    # Frequential features
+    res += list(fourier(val))
+    # Statistical features
+    res.append(kurtosis(val))
+    res.append(skew(val))
+    res.append(entropy(val))
 
     return np.asarray(res)
 
