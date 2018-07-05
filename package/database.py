@@ -105,7 +105,7 @@ class Database:
             # Memory efficiency
             del tmp
 
-    # Build the norm of the ECGs
+    # Build the norm of the EEGs
     def add_norm_eeg(self):
 
         # Iterates over both the training and validation sets
@@ -128,15 +128,17 @@ class Database:
             # Memory efficiency
             del tmp
 
-    # Build the corresponding Betti curves
-    def add_betti_curves(self):
+    # Compute the persistence limits for each EEG channel
+    def get_persistence_limits(self):
 
-        pth = './dataset/TDA_limits.pk'
+        tda_lmt = './dataset/TDA_limits.pk'
         # Limitations of persistence diagrams
-        if os.path.exists(pth):
+        if os.path.exists(tda_lmt):
 
             # Load the existing thresholds
-            with open(pth, 'rb') as raw: dic = pickle.load(raw)
+            with open(tda_lmt, 'rb') as raw: dic = pickle.load(raw)
+            print('# Persistence limits have been loaded ...')
+            time.sleep(0.5)
 
         else:
 
@@ -167,11 +169,19 @@ class Database:
             del lmt
 
             # Serialize the obtained threshold
-            with open(pth, 'wb') as raw:
+            with open(tda_lmt, 'wb') as raw:
                 dic = {'min_up': mnu, 'max_up': mxu, 'min_dw': mnd, 'max_dw': mxd}
                 pickle.dump(dic, raw)
             print('# Persistence limits have been serialized ...')
             time.sleep(0.5)
+
+        return dic
+
+    # Build the corresponding Betti curves
+    def add_betti_curves(self):
+
+        # Retrieve the persistence limits
+        dic = self.get_persistence_limits()
 
         # Build the betti curves
         for pth in [self.train_out, self.valid_out]:
@@ -205,45 +215,8 @@ class Database:
     # Build the corresponding landscapes
     def add_landscapes(self):
 
-        pth = './dataset/TDA_limits.pk'
-        # Limitations of persistence diagrams
-        if os.path.exists(pth):
-
-            # Load the existing thresholds
-            with open(pth, 'rb') as raw: dic = pickle.load(raw)
-
-        else:
-
-            lmt = []
-            # Get the betti curves limitations
-            for pth in [self.train_out, self.valid_out]:
-
-                # Iterates over the EEGs signals
-                for key in tqdm.tqdm(range(1, 5)):
-
-                    # Load the corresponding values
-                    with h5py.File(pth, 'r') as dtb: 
-                        val = dtb['eeg_{}'.format(key)].value
-
-                    # Computes the persistent limits for the relative patient
-                    pol = multiprocessing.Pool(processes=self.threads)
-                    lmt.append(np.asarray(pol.map(persistent_limits, val)))
-                    pol.close()
-                    pol.join()
-                    # Memory efficiency
-                    del val, pol
-
-            # Extracts the main limits
-            lmt = np.vstack(tuple(lmt))
-            mnu, mxu = min(lmt[:,0]), max(lmt[:,1]) 
-            mnd, mxd = min(lmt[:,2]), max(lmt[:,3])
-            # Memory efficiency
-            del lmt
-
-            # Serialize the obtained threshold
-            with open(pth, 'wb') as raw:
-                dic = {'min_up': mnu, 'max_up': mxu, 'min_dw': mnd, 'max_dw': mxd}
-                pickle.dump(dic, raw)
+        # Retrieve the persistence limits
+        dic = self.get_persistence_limits()
 
         # Build the betti curves
         for pth in [self.train_out, self.valid_out]:

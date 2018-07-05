@@ -307,10 +307,10 @@ def compute_betti_curves(vec, mnu, mxu, mnd, mxd):
 
 # Compute the landscapes
 # vec refers to a 1D array
-def compute_landscapes(vec):
+def compute_landscapes(vec, mnu, mxu, mnd, mxd):
 
     fil = Levels(vec)
-    try: p,q = fil.landscapes(num_points=100)
+    try: p,q = fil.landscapes(mnu, mxu, mnd, mxd, num_points=100)
     except: p,q = np.zeros((10,100)), np.zeros((10,100))
     del fil
     
