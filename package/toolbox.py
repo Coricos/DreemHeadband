@@ -285,6 +285,29 @@ def reset_mean(vec):
 
     return StandardScaler(with_std=False).fit_transform(vec.reshape(-1,1)).ravel()
 
+# Computes the pairwise distances between EEGs
+# idx refers to the index of the sample
+# pth refers to where to pick the sampels
+def compute_distances(idx, pth):
+    
+    with h5py.File(pth, 'r') as dtb:
+        eeg_1 = dtb['eeg_1'][idx]
+        eeg_2 = dtb['eeg_2'][idx]
+        eeg_3 = dtb['eeg_3'][idx]
+        eeg_4 = dtb['eeg_4'][idx]
+        
+    dis = euclidean_distances([eeg_1, eeg_2, eeg_3, eeg_4])
+    tmp = np.vstack((eeg_1, eeg_2, eeg_3, eeg_4))
+    cov = np.cov(tmp)
+    res = cov[np.triu_indices(4)]
+    cov = np.corrcoef(tmp)
+    dis = dis[np.triu_indices(4)][[1,2,3,5,6,8]]
+    cov = cov[np.triu_indices(4)][[1,2,3,5,6,8]]
+
+    del eeg_1, eeg_2, eeg_3, eeg_4, tmp
+    
+    return np.hstack((res, cov, dis))
+
 # Multiprocessed way of computing the limits of a persistent diagrams
 # vec refers to a 1D numpy array
 def persistent_limits(vec):
@@ -319,6 +342,14 @@ def compute_landscapes(vec, mnu, mxu, mnd, mxd):
 # Defines the feature construction pipeline
 # val refers to a 1D array
 def compute_eeg_features(val):
+
+    # Parameters of the autoregressive models
+    def get_ar_coefficients(vec):
+    
+        mod = AR(vec)
+        mod = mod.fit()
+        
+        return mod.params
 
     # Defines the amount of crossing-overs
     def crossing_over(val):
@@ -472,6 +503,8 @@ def compute_eeg_features(val):
     res.append(entropy(val))
     res += list(neural_features(val))
     res += list(compute_tda_features(val))
+    # Autoregressive model
+    res += list(get_ar_coefficients(val))
 
     return np.asarray(res)
 
