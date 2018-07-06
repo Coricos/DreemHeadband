@@ -667,7 +667,7 @@ class DL_Model:
         with open(self.his, 'rb') as raw: dic = pickle.load(raw)
 
         # Generates the plot
-        plt.figure(figsize=(18,4))        
+        plt.figure(figsize=(18,6))        
         fig = gd.GridSpec(2,2)
 
         plt.subplot(fig[0,0])
@@ -881,6 +881,26 @@ class CV_DL_Model:
         if out is None: out = './results/test_{}.csv'.format(int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
 
+    # Plots the training history of all models
+    def generate_figures(self):
 
+        # Get the list of all the histories
+        lst = sorted(glob.glob('./models/HIS_ITER_*.history'))
 
+        # Plot the multiple training histories
+        plt.figure(figsize=(18, int(1.5*len(lst))))
+        fig = gd.GridSpec(len(lst)//2, 2)
+        for idx, pth in enumerate(lst):
+            plt.subplot(fig[idx // 2, idx % 2])
+            with open(pth, 'rb') as raw: dic = pickle.load(raw)
+            acc, val = dic['output_acc'], dic['val_output_acc']
+            plt.title('Accuracy Evolution | ITER {}'.format(idx))
+            plt.plot(range(len(acc)), acc, c='orange', label='Train')
+            plt.scatter(range(len(val)), val, marker='x', s=50, c='grey', label='Test')
+            plt.legend(loc='best')
+            plt.grid()
+            plt.xlabel('Epochs')
+            plt.ylabel('Accuracy')
+        plt.tight_layout()
+        plt.show()
 
