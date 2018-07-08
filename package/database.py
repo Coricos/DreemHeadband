@@ -323,7 +323,7 @@ class Database:
                     dtb.create_dataset(key, data=val)
 
                 # Memory efficiency
-                del pol, fun, val
+                del val
 
     # Rescale the datasets considering both training and validation
     def rescale(self, size=500):
