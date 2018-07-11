@@ -173,7 +173,7 @@ class CV_ML_Model:
             # Define the specific anomaly issue
             self.n_c = len(np.unique(self.lab))
             # Defines the vectors
-            self.vec = dtb['fea'].value
+            self.vec = dtb['fea'].value[34:]
 
         # Defines the cross-validation splits
         self.kfs = StratifiedKFold(n_splits=k_fold, shuffle=True)
@@ -220,9 +220,9 @@ class CV_ML_Model:
                 # Load the scaler
                 vtf = joblib.load(scaler)
                 # Defines the vectors
-                vec = vtf.transform(dtb['fea'].value)
+                vec = vtf.transform(dtb['fea'].value[34:])
             else:
-                vec = dtb['fea'].value
+                vec = dtb['fea'].value[34:]
 
         # Initial vector for result storing
         res = np.zeros((len(vec), self.n_c))
