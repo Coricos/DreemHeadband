@@ -15,6 +15,7 @@ if __name__ == '__main__':
     # Initialize the arguments
     prs = argparse.ArgumentParser()
     # Mandatory arguments
+    prs.add_argument('-d', '--database', help='Initial Input Data')
     prs.add_argument('-c', '--channels', help='Channels Definition', nargs='*')
     # Parse the arguments
     prs = prs.parse_args()
@@ -22,15 +23,10 @@ if __name__ == '__main__':
     # Generate the corresponding channels
     dic = generate_channels(prs.channels)
 
-    # Build a new database
-    print('\n# Database construction:')
-    time.sleep(0.5)
-    Database().preprocess('./dataset/DTB_Headband.h5', test=0.33)
-
     # Build and launch the corresponding DL model
     print('\n# Model launching:')
     time.sleep(0.5)
-    mod = DL_Model('./dataset/DTB_Headband.h5', dic)
+    mod = DL_Model(prs.database, dic)
     mod.learn()
     mod.write_to_file()
 
