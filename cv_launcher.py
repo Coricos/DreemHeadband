@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # Launch cross-validation for ml models
     if prs.objectif == 'ml':
-        mod = CV_ML_Model('./dataset/sca_train.h5', k_fold=prs.folds, threads=prs.threads, mp=self.multi)
+        mod = CV_ML_Model('./dataset/sca_train.h5', k_fold=prs.folds, threads=prs.threads, mp=prs.multi)
         mod.launch(prs.name, log_file=prs.log_file, max_iter=prs.max_iter)
         mod.make_predictions('./dataset/sca_valid.h5', prs.name, scaler='./models/VTF_Selection.jb')
 
