@@ -12,10 +12,11 @@ class ML_Model:
     # Initialization
     # path refers to the absolute path towards the datasets
     # threads refers to the amount of affordable threads
-    def __init__(self, path=None, threads=multiprocessing.cpu_count()):
+    def __init__(self, path=None, threads=multiprocessing.cpu_count(), mp=False):
 
         # Attributes
         self.njobs = threads
+        self.mp = mp
 
         if path:
             # Needed attribute
@@ -46,18 +47,18 @@ class ML_Model:
         val['y_valid'] = self.l_e
         val['w_valid'] = sample_weight(self.l_e)
         # Defines the random search through cross-validation
-        hyp = Hyperband(get_params, try_params, max_iter=max_iter, n_jobs=self.njobs)
+        hyp = Hyperband(get_params, try_params, max_iter=max_iter, n_jobs=self.njobs, mp=self.mp)
         res = hyp.run(nme, val, skip_last=1)
         res = sorted(res, key = lambda x: x['kappa'])[0]
         # Extract the best estimator
         if nme == 'RFS':
-            mod = RandomForestClassifier(**res['params'])
+            mod = RandomForestClassifier(n_jobs=self.njobs, **res['params'])
         if nme == 'GBT':
             mod = GradientBoostingClassifier(**res['params'])
         if nme == 'LGB':
-            mod = lgb.LGBMClassifier(objective='multiclass', **res['params'])
+            mod = lgb.LGBMClassifier(n_jobs=self.njobs, objective='multiclass', **res['params'])
         if nme == 'XGB':
-            mod = xgb.XGBClassifier(**res['params'])
+            mod = xgb.XGBClassifier(n_jobs=self.njobs, **res['params'])
         if nme == 'SGD':
             mod = SGDClassifier(**res['params'])
         # Refit the best model

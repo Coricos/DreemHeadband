@@ -262,17 +262,24 @@ def get_params(key):
 # Launch the discretisation of possibilities
 def try_params(params, key, data):
 
+    if params['mp']: 
+        threads = 1
+        del params['mp']
+    else:
+        threads = params['n_mp']
+        del params['mp'], params['n_mp']
+
     # Defines the new model
     if key == 'RFS':
-        mod = RandomForestClassifier(**params)
+        mod = RandomForestClassifier(n_jobs=threads, **params)
     if key == 'GBT':
         mod = GradientBoostingClassifier(**params)
     if key == 'LGB':
-        mod = lgb.LGBMClassifier(n_jobs=1, verbose=-1, objective='multiclass', **params)
+        mod = lgb.LGBMClassifier(n_jobs=threads, verbose=-1, objective='multiclass', **params)
     if key == 'ETS':
-        mod = ExtraTreesClassifier(**params)
+        mod = ExtraTreesClassifier(n_jobs=threads,  **params)
     if key == 'XGB':
-        mod = xgb.XGBClassifier(**params)
+        mod = xgb.XGBClassifier(n_jobs=threads, **params)
     if key == 'SGD':
         mod = SGDClassifier(**params)
     

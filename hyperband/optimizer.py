@@ -19,11 +19,12 @@ class Hyperband:
     # get_params_function is the generic function calling the parameters space
     # try_params_function refers to the sklearn fit of called parameters
     # n_jobs will limit the multiprocessed used of multi-search
-    def __init__(self, get_params_function, try_params_function, n_jobs=multiprocessing.cpu_count(), max_iter=100):
+    def __init__(self, get_params_function, try_params_function, n_jobs=multiprocessing.cpu_count(), mp=False, max_iter=100):
 
         self.get_params = get_params_function
         self.try_params = try_params_function
         self.n_jobs = n_jobs
+        self.mp = mp
         
         # Defines configuration downsampling rate (default=3)²
         self.eta = 3
@@ -62,11 +63,25 @@ class Hyperband:
                 # Defines the partial function relative to evaluation
                 fun = partial(self.try_params, key=key, data=data)
 
-                # Multiprocessed bandit branches if needed
-                pol = multiprocessing.Pool(processes=self.n_jobs)
-                res = pol.map(partial(evaluate_params, func=fun), T)
-                pol.close()
-                pol.join()
+                if self.mp:
+
+                    t = []
+                    for ele in T:
+                        ele['mp'] = self.mp
+                        t.append(ele)
+                    # Multiprocessed bandit branches if needed
+                    pol = multiprocessing.Pool(processes=self.n_jobs)
+                    res = pol.map(partial(evaluate_params, func=fun), t)
+                    pol.close()
+                    pol.join()
+
+                else:
+
+                    res = []
+                    for t in T: 
+                        t['mp'] = self.mp
+                        t['n_mp'] = self.n_jobs
+                        res.append(evaluate_params(t, fun))
 
                 # Extract the val losses
                 val_losses = np.asarray([ele['kappa'] for ele in res])
