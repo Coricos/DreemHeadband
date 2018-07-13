@@ -884,6 +884,12 @@ class CV_DL_Model:
             mod.learn(patience=10, dropout=0.6, decrease=150, batch=32, max_epochs=100)
             prd.append(mod.predict('v'))
 
+            # Save the feature maps
+            prd = mod.get_feature_map('e')
+            np.save('./models/FEA_E_ITER_{}'.format(idx), np.hstack((prd, mod.l_e.reshape(-1,1))))
+            prd = mod.get_feature_map('v')
+            np.save('./models/FEA_V_ITER_{}'.format(idx), prd)
+
             # Save experiment characteristics
             acc, f1s, kap = mod.get_score()
             
