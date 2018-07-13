@@ -55,6 +55,8 @@ class ML_Model:
         if params['mp']: del params['mp']
         else: del params['mp'], params['n_mp']
         # Extract the best estimator
+        if nme == 'ETS':
+            mod = ExtraTreesClassifier(**params)
         if nme == 'RFS':
             mod = RandomForestClassifier(n_jobs=self.njobs, **params)
         if nme == 'GBT':
