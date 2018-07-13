@@ -208,7 +208,7 @@ class CV_ML_Model:
     # log_file refers to where to store the intermediate scores
     def launch(self, nme, max_iter=100, log_file='./models/CV_SCORING.log'):
 
-        out = np.zeros((len(lab)), self.n_c)
+        out = np.zeros((len(self.lab)), self.n_c)
 
         for idx, (i_t, i_e) in enumerate(self.kfs.split(self.lab, self.lab)):
 
