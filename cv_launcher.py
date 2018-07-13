@@ -20,14 +20,16 @@ if __name__ == '__main__':
     prs.add_argument('-t', '--threads', help='Amount of threads', type=int, default=multiprocessing.cpu_count())
     prs.add_argument('-p', '--output', help='Predictions file', type=str, default='./results/cMOD_{}.csv'.format(int(time.time())))
     prs.add_argument('-c', '--channels', help='Channels Definition', nargs='*')
+    prs.add_argument('-x', '--max_iter', help='Maximum Iterations for hyperband', type=int, default=100)
+    prs.add_argument('-m', '--multi', help='Whether to apply multiprocessed hyperband or not', type=bool, default=False)
     prs.add_argument('-l', '--log_file', help='Where to write out the intermediate scores', type=str, default='./models/CV_SCORING.log')
     # Parse the arguments
     prs = prs.parse_args()
 
     # Launch cross-validation for ml models
     if prs.objectif == 'ml':
-        mod = CV_ML_Model('./dataset/sca_train.h5', k_fold=prs.folds, threads=prs.threads)
-        mod.launch(prs.name, log_file=prs.log_file)
+        mod = CV_ML_Model('./dataset/sca_train.h5', k_fold=prs.folds, threads=prs.threads, mp=self.multi)
+        mod.launch(prs.name, log_file=prs.log_file, max_iter=prs.max_iter)
         mod.make_predictions('./dataset/sca_valid.h5', prs.name, scaler='./models/VTF_Selection.jb')
 
     # Launch cross-validation for dl models
