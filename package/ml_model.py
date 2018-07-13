@@ -51,21 +51,20 @@ class ML_Model:
         res = hyp.run(nme, val, skip_last=1)
         res = sorted(res, key = lambda x: x['kappa'])[0]
         # Filter the best params
-        if params['mp']: 
-            del params['mp']
-        else:
-            del params['mp'], params['n_mp']
+        params = res['params']
+        if params['mp']: del params['mp']
+        else: del params['mp'], params['n_mp']
         # Extract the best estimator
         if nme == 'RFS':
-            mod = RandomForestClassifier(n_jobs=self.njobs, **res['params'])
+            mod = RandomForestClassifier(n_jobs=self.njobs, **params)
         if nme == 'GBT':
-            mod = GradientBoostingClassifier(**res['params'])
+            mod = GradientBoostingClassifier(**params)
         if nme == 'LGB':
-            mod = lgb.LGBMClassifier(n_jobs=self.njobs, objective='multiclass', **res['params'])
+            mod = lgb.LGBMClassifier(n_jobs=self.njobs, objective='multiclass', **params)
         if nme == 'XGB':
-            mod = xgb.XGBClassifier(n_jobs=self.njobs, **res['params'])
+            mod = xgb.XGBClassifier(n_jobs=self.njobs, **params)
         if nme == 'SGD':
-            mod = SGDClassifier(**res['params'])
+            mod = SGDClassifier(**params)
         # Refit the best model
         mod.fit(val['x_train'], val['y_train'], sample_weight=val['w_train'])
         # Serialize the best obtained model
