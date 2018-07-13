@@ -126,6 +126,24 @@ class ML_Model:
         build_matrix(prd, self.l_e, 'TEST')
         del prd
 
+    # Get the probabilities from the testing set
+    # nme refers to a new path if necessary
+    # marker allows specific redirection
+    def proba(self, nme, marker=None):
+
+        # Avoid unnecessary logs
+        warnings.simplefilter('ignore')
+
+        # Load the model if necessary
+        if marker is None: self.mod = './models/{}.pk'.format(nme)
+        else: self.mod = './models/{}_{}.pk'.format(nme, marker)
+        clf = joblib.load(self.mod)
+
+        # Compute the predictions for validation
+        prb = clf.predict_proba(self.valid)
+
+        return prb
+
     # Write validation to file
     # out refers to the output path
     # nme refers to a new path if necessary
@@ -186,8 +204,11 @@ class CV_ML_Model:
 
     # CV Launcher
     # nme refers to the type of model to be launched
+    # max_iter refers to the amount of iterations with the hyperband algorithm
     # log_file refers to where to store the intermediate scores
-    def launch(self, nme, log_file='./models/CV_SCORING.log'):
+    def launch(self, nme, max_iter=100, log_file='./models/CV_SCORING.log'):
+
+        out = np.zeros((len(lab)), self.n_c)
 
         for idx, (i_t, i_e) in enumerate(self.kfs.split(self.lab, self.lab)):
 
@@ -199,15 +220,30 @@ class CV_ML_Model:
             mod.train = self.vec[i_t]
             mod.valid = self.vec[i_e]
             # Launch the hyperband optimization
-            mod.learn(nme, marker=mkr)
+            mod.learn(nme, marker=mkr, max_iter=max_iter)
             # Retrieve the scores
             a,k = mod.score(nme, marker=mkr)
+            # Add the probabilities to the main launcher
+            out[i_e,:] = mod.proba(nme)
             # LOG file for those scores
             with open(log_file, 'a') as raw:
                 raw.write('# CV_ROUND {} | Accuracy {:3f} | Kappa {:3f} \n'.format(idx, a, k))
 
             # Memory efficiency
             del mkr, mod, a, k
+
+        # Write the general score
+        prd = [np.argmax(ele) for ele in out]
+        acc = accuracy_score(self.lab, prd)
+        kap = kappa_score(self.lab, prd)
+        # LOG file for those scores
+        with open(log_file, 'a') as raw:
+            raw.write('\n')
+            raw.write('# FINAL SCORE | Accuracy {:3f} | Kappa {:3f} \n'.format(acc, kap))
+            raw.write('\n')
+
+        # Serialize the probabilities as new features
+        np.save('./models/PRB_{}.npy'.format(nme), out)
 
     # Stacking of predictions
     # valid refers to where the validation input is stored
