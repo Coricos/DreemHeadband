@@ -224,7 +224,7 @@ class CV_ML_Model:
             # Retrieve the scores
             a,k = mod.score(nme, marker=mkr)
             # Add the probabilities to the main launcher
-            out[i_e,:] = mod.proba(nme)
+            out[i_e,:] = mod.proba(nme, marker=mkr)
             # LOG file for those scores
             with open(log_file, 'a') as raw:
                 raw.write('# CV_ROUND {} | Accuracy {:3f} | Kappa {:3f} \n'.format(idx, a, k))
