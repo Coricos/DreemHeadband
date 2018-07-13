@@ -50,6 +50,11 @@ class ML_Model:
         hyp = Hyperband(get_params, try_params, max_iter=max_iter, n_jobs=self.njobs, mp=self.mp)
         res = hyp.run(nme, val, skip_last=1)
         res = sorted(res, key = lambda x: x['kappa'])[0]
+        # Filter the best params
+        if params['mp']: 
+            del params['mp']
+        else:
+            del params['mp'], params['n_mp']
         # Extract the best estimator
         if nme == 'RFS':
             mod = RandomForestClassifier(n_jobs=self.njobs, **res['params'])
