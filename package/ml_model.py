@@ -179,11 +179,12 @@ class CV_ML_Model:
     # path refers to the absolute path towards the datasets
     # k_fold refers to 
     # threads refers to the amount of affordable threads
-    def __init__(self, path, k_fold=7, threads=multiprocessing.cpu_count()):
+    def __init__(self, path, k_fold=7, mp=False, threads=multiprocessing.cpu_count()):
 
         # Attributes
         self.input = path
         self.njobs = threads
+        self.mp = mp
 
         # Apply on the data
         with h5py.File(self.input, 'r') as dtb:
@@ -214,7 +215,7 @@ class CV_ML_Model:
 
             # Build the corresponding tuned model
             mkr = 'CV_{}'.format(idx)
-            mod = ML_Model(threads=self.njobs)
+            mod = ML_Model(threads=self.njobs, mp=self.mp)
             mod.l_t = self.lab[i_t]
             mod.l_e = self.lab[i_e]
             mod.train = self.vec[i_t]
