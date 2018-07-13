@@ -594,7 +594,7 @@ class DL_Model:
         model = Dense(model._keras_shape[1] // 3, **arg)(enc_1)
         model = BatchNormalization()(model)
         model = PReLU()(model)
-        enc_2 = AdaptiveDropout(self.drp.prb, self.drp)(model)
+        enc_2 = AdaptiveDropout(self.drp.prb, self.drp, name='encode')(model)
         print('# Latent Space:', enc_2._keras_shape[1])
 
         # Defines the decoder part
@@ -756,6 +756,37 @@ class DL_Model:
                 break
 
         return np.asarray(prd)
+
+    def get_feature_map(self, fmt, batch=512):
+
+        # Load the best model saved
+        if not hasattr(self, 'clf'): self.reconstruct()
+
+        # Defines the intermediary model
+        mod = Model(inputs=self.clf.input, outputs=self.clf.get_layer('encode').output)
+
+        # Defines the size of the validation set
+        if fmt == 'e': 
+            sze = len(self.l_e)
+        if fmt == 'v': 
+            with h5py.File(self.pth, 'r') as dtb: 
+                sze = dtb['eeg_1_v'].shape[0]
+
+        # Defines the tools for prediction
+        gen, ind, prd = self.data_val(fmt, batch=batch), 0, []
+
+        for vec in gen:
+            # Defines the right stop according to the batch_size
+            if (sze / batch) - int(sze / batch) == 0 : end = int(sze / batch)- 1
+            else : end = int(sze / batch)
+            # Iterate according to the right stopping point
+            if ind <= end :
+                prd.append(mod.predict(vec))
+                ind += 1
+            else : 
+                break
+
+        return np.vstack(tuple(prd))
 
     # Generates the confusion matrixes for train, test and validation sets
     def confusion_matrix(self):
