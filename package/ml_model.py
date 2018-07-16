@@ -52,8 +52,8 @@ class ML_Model:
         res = sorted(res, key = lambda x: x['kappa'])[0]
         # Filter the best params
         params = res['params']
-        if params['mp']: del params['mp']
-        else: del params['mp'], params['n_mp']
+        if 'mp' in params.keys(): del params['mp']
+        if 'n_mp' in params.keys(): del params['n_mp']
         # Extract the best estimator
         if nme == 'ETS':
             mod = ExtraTreesClassifier(**params)
