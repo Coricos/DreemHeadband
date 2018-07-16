@@ -869,7 +869,7 @@ class CV_DL_Model:
     # log_file refers to the scoring files logger
     def launch(self, out=None, log_file='./models/DL_SCORING.log'):
 
-        kys, prd = [], []
+        kys, pbs = [], []
         for key in list(self.cls.keys()):
             if self.cls[key]: kys.append(key[5:])
         # Serialize the channels for log purpose
@@ -882,7 +882,7 @@ class CV_DL_Model:
             # Launch the model scoring for each iteration
             mod = DL_Model(path, self.cls, marker='ITER_{}'.format(idx))
             mod.learn(patience=10, dropout=0.6, decrease=150, batch=32, max_epochs=100)
-            prd.append(mod.predict('v'))
+            pbs.append(mod.predict('v'))
 
             # Save the feature maps
             prd = mod.get_feature_map('e')
@@ -904,12 +904,12 @@ class CV_DL_Model:
         with open(log_file, 'a') as raw: raw.write('\n')
 
         # Write output of cross-validation to a suitable file
-        prd = np.vstack(tuple(prd)).T
-        prd = np_utils.to_categorical(prd.ravel(), num_classes=5).reshape(prd.shape[0], prd.shape[1], 5)
-        prd = np.sum(prd, axis=1)
-        prd = np.asarray([np.argmax(ele) for ele in prd])
+        pbs = np.vstack(tuple(pbs)).T
+        pbs = np_utils.to_categorical(pbs.ravel(), num_classes=5).reshape(pbs.shape[0], pbs.shape[1], 5)
+        pbs = np.sum(pbs, axis=1)
+        pbs = np.asarray([np.argmax(ele) for ele in pbs])
         idx = np.arange(43830, 64422)
-        res = np.hstack((idx.reshape(-1,1), prd.reshape(-1,1)))
+        res = np.hstack((idx.reshape(-1,1), pbs.reshape(-1,1)))
 
         # Creates the relative dataframe
         res = pd.DataFrame(res, columns=['id', 'label'])
