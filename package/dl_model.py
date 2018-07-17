@@ -895,7 +895,9 @@ class CV_DL_Model:
             pbs.append(prd)
 
             # Serialize the output probabilities
-            np.save('./models/PRD_MOD_{}.npy'.format(idx), prd)
+            np.save('./models/PRD_MOD_V_{}.npy'.format(idx), prd)
+            prd = mod.predict('e')
+            np.save('./models/PRD_MOD_E_{}.npy'.format(idx), prd)
 
             # Save experiment characteristics
             acc, f1s, kap = mod.get_score()
