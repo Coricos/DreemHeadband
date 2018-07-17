@@ -757,6 +757,9 @@ class DL_Model:
 
         return np.asarray(prd)
 
+    # Generates the feature map relative to the encoder build during training
+    # fmt refers to whether apply it for testing or validation
+    # batch refers to the batch size
     def get_feature_map(self, fmt, batch=512):
 
         # Load the best model saved
@@ -766,14 +769,19 @@ class DL_Model:
         mod = Model(inputs=self.clf.input, outputs=self.clf.get_layer('encode').output)
 
         # Defines the size of the validation set
+        if fmt == 't':
+            sze = len(self.l_t)
+            # Defines the tools for prediction
+            gen, ind, prd = self.data_gen(fmt, 10, batch=batch), 0, []
         if fmt == 'e': 
             sze = len(self.l_e)
-        if fmt == 'v': 
+            # Defines the tools for prediction
+            gen, ind, prd = self.data_val(fmt, batch=batch), 0, []
+        if fmt == 'v':
             with h5py.File(self.pth, 'r') as dtb: 
                 sze = dtb['eeg_1_v'].shape[0]
-
-        # Defines the tools for prediction
-        gen, ind, prd = self.data_val(fmt, batch=batch), 0, []
+            # Defines the tools for prediction
+            gen, ind, prd = self.data_val(fmt, batch=batch), 0, []
 
         for vec in gen:
             # Defines the right stop according to the batch_size
@@ -781,7 +789,8 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                prd.append(mod.predict(vec))
+                if fmt == 't': prd.append(mod.predict(vec[0]))
+                else: prd.append(mod.predict(vec))
                 ind += 1
             else : 
                 break
@@ -882,13 +891,11 @@ class CV_DL_Model:
             # Launch the model scoring for each iteration
             mod = DL_Model(path, self.cls, marker='ITER_{}'.format(idx))
             mod.learn(patience=10, dropout=0.6, decrease=150, batch=32, max_epochs=100)
-            pbs.append(mod.predict('v'))
+            prd = mod.predict('v')
+            pbs.append(prd)
 
-            # Save the feature maps
-            prd = mod.get_feature_map('e')
-            np.save('./models/FEA_E_ITER_{}'.format(idx), np.hstack((prd, mod.l_e.reshape(-1,1))))
-            prd = mod.get_feature_map('v')
-            np.save('./models/FEA_V_ITER_{}'.format(idx), prd)
+            # Serialize the output probabilities
+            np.save('./models/PRD_MOD_{}.npy'.format(idx), prd)
 
             # Save experiment characteristics
             acc, f1s, kap = mod.get_score()

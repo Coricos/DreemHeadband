@@ -516,9 +516,12 @@ class Database:
             lab = dtb['lab'].value.ravel()
         # Defines the cross-validation splits
         kfs = StratifiedKFold(n_splits=folds, shuffle=True)
+        log = dict()
 
         # For each round, creates a new dataset
         for idx, (i_t, i_e) in enumerate(kfs.split(lab, lab)):
+
+            log[idx] = i_e
 
             output = '{}/CV_ITER_{}.h5'.format(storage, idx)
             print('\n# Building CV_ITER_{}.h5'.format(idx))
@@ -553,3 +556,6 @@ class Database:
                         if out.get(key_v): del out[key_v]
                         out.create_dataset(key_v, data=dtb[key].value)
 
+        # Serialize the corresponding indexes
+        with open('{}/CV_DISTRIB.pk'.format(storage), 'wb') as raw:
+            pickle.dump(log, raw)
