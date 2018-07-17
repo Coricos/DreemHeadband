@@ -729,7 +729,7 @@ class DL_Model:
     # Validate on the unseen samples
     # fmt refers to whether apply it for testing or validation
     # batch refers to the batch size
-    def predict(self, fmt, batch=512):
+    def predict(self, fmt, probas=False, batch=512):
 
         # Load the best model saved
         if not hasattr(self, 'clf'): self.reconstruct()
@@ -750,7 +750,8 @@ class DL_Model:
             else : end = int(sze / batch)
             # Iterate according to the right stopping point
             if ind <= end :
-                prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)[0]]
+                if probas: prd += list(self.clf.predict(vec)[0])
+                else: prd += [np.argmax(pbs) for pbs in self.clf.predict(vec)[0]]
                 ind += 1
             else : 
                 break
@@ -891,12 +892,13 @@ class CV_DL_Model:
             # Launch the model scoring for each iteration
             mod = DL_Model(path, self.cls, marker='ITER_{}'.format(idx))
             mod.learn(patience=10, dropout=0.6, decrease=150, batch=32, max_epochs=100)
-            prd = mod.predict('v')
-            pbs.append(prd)
+            prd = mod.predict('v', probas=True)
+            tmp = np.asarray([np.argmax(ele) for ele in prd])
+            pbs.append(tmp)
 
             # Serialize the output probabilities
             np.save('./models/PRD_MOD_V_{}.npy'.format(idx), prd)
-            prd = mod.predict('e')
+            prd = mod.predict('e', probas=True)
             np.save('./models/PRD_MOD_E_{}.npy'.format(idx), prd)
 
             # Save experiment characteristics
