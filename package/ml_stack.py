@@ -10,6 +10,11 @@ from hyperband.optimizer import *
 
 class ML_Stacker:
 
+    # Initialization of the stacker
+    # models refers to which models to use (for diversity)
+    # cv_folds refers to the amount of folds in cross-validation
+    # mp is used by hyperband for multi-armed bandit
+    # threads refers to the amount of concurrent threads
     def __init__(self, models, cv_folds=5, mp=False, threads=multiprocessing.cpu_count()):
 
         self.pbs, self.prd = [], []
@@ -34,6 +39,10 @@ class ML_Stacker:
         self.prd = sts.transform(self.prd)
         self.out = np.zeros((len(self.prd), self.n_c))
             
+    # Launched the hyperband optimization on meta-estimator
+    # nme defines the type of estimator to use
+    # max_iter put a threshold on the amount of hyperband iterations
+    # log_file refers to where to write the scoring outputs
     def run(self, nme, max_iter=100, log_file='./models/CV_STACKING.log'):
 
         # Avoid unnecessary logs
@@ -66,9 +75,7 @@ class ML_Stacker:
 
     # Write validation to file
     # out refers to the output path
-    # nme refers to a new path if necessary
-    # marker allows specific redirection
-    def write_to_file(self):
+    def write_to_file(self, out=None):
 
         # Avoid unnecessary logs
         warnings.simplefilter('ignore')
@@ -84,5 +91,3 @@ class ML_Stacker:
         # Write to csv
         if out is None: out = './results/cSTK_{}.csv'.format(int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
-
-
