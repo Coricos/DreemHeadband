@@ -14,8 +14,9 @@ class ML_Stacker:
     # models refers to which models to use (for diversity)
     # cv_folds refers to the amount of folds in cross-validation
     # mp is used by hyperband for multi-armed bandit
+    # feature_map refers to the autoencoder reduction
     # threads refers to the amount of concurrent threads
-    def __init__(self, models, cv_folds=5, mp=False, threads=multiprocessing.cpu_count()):
+    def __init__(self, models, cv_folds=5, mp=False, feature_map=False, threads=multiprocessing.cpu_count()):
 
         self.pbs, self.prd = [], []
         self.kfs = StratifiedKFold(n_splits=cv_folds, shuffle=True)
@@ -32,6 +33,10 @@ class ML_Stacker:
 
         self.pbs = np.hstack(tuple(self.pbs))
         self.prd = np.hstack(tuple(self.prd))
+
+        if feature_map:
+            self.pbs = np.hstack((self.pbs, np.load('./models/MAP_MOD_T.npy')))
+            self.prd = np.hstack((self.prd, np.load('./models/MAP_MOD_V.npy')))
 
         sts = StandardScaler(with_std=False)
         sts.fit(np.vstack((self.pbs, self.prd)))
