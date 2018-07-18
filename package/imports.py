@@ -23,6 +23,7 @@ from scipy.interpolate import interp1d
 from arch.bootstrap import CircularBlockBootstrap
 from statsmodels.tsa.ar_model import AR
 
+from sklearn.svm import SVC, LinearSVC
 from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.manifold import TSNE

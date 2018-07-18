@@ -67,6 +67,8 @@ class ML_Model:
             mod = xgb.XGBClassifier(n_jobs=self.njobs, **params)
         if nme == 'SGD':
             mod = SGDClassifier(**params)
+        if nme == 'SVC':
+            mod = SVC(**params)
         # Refit the best model
         mod.fit(val['x_train'], val['y_train'], sample_weight=val['w_train'])
         # Serialize the best obtained model
@@ -290,5 +292,24 @@ class CV_ML_Model:
         out = './results/c{}_{}.csv'.format(nme, int(time.time()))
         res.to_csv(out, index=False, header=True, sep=';')
 
+    # Serialize the probabilities corresponding to the output models
+    # nme refers to the name of the estimator
+    # storage refers to where to serialize the output array
+    def serialize_probas(self, nme, storage='./models'):
 
+        vtf = joblib.load('./models/VTF_Selection.jb')
+
+        with h5py.File('./dataset/sca_valid.h5', 'r') as dtb:
+            prd = np.zeros((dtb['eeg_1'].shape[0], 5))
+            fea = vtf.transform(dtb['fea'].value[:,34:])
+
+        for idx, ele in enumerate(sorted(glob.glob('./models/{}_CV_*.pk'.format(nme)))):
+            prd += joblib.load(ele).predict_proba(fea)
+
+        prd /= len(glob.glob('./models/{}_CV_*.pk'.format(nme)))
+
+        np.save('{}/PRD_{}.npy'.format(storage, nme), prd)
+
+        # Memory efficiency
+        del vtf, prd, fea
 

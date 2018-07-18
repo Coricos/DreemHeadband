@@ -25,36 +25,48 @@ def handle_integers(params):
 def train_and_eval_classifier(clf, data):
     
     x_train, y_train = data['x_train'], data['y_train']
-    x_valid, y_valid = data['x_valid'], data['y_valid'] 
-    
-    if 'w_train' in data.keys():
-        clf.fit(x_train, y_train, sample_weight=data['w_train'])
-    else:
-        clf.fit(x_train, y_train)
+    x_valid, y_valid = data['x_valid'], data['y_valid']
 
-    prd = clf.predict(x_train)
+    try:
+        
+        if 'w_train' in data.keys():
+            clf.fit(x_train, y_train, sample_weight=data['w_train'])
+        else:
+            clf.fit(x_train, y_train)
 
-    if 'w_train' in data.keys():
-        f1s = f1_score(y_train, prd, sample_weight=data['w_train'], average='weighted')
-        acc = accuracy_score(y_train, prd, sample_weight=data['w_train'])
-        kap = kappa_score(y_train, prd)
-    else:
-        f1s = f1_score(y_train, prd, average='weighted')
-        acc = accuracy_score(y_train, prd)
-        kap = kappa_score(y_train, prd)
+        prd = clf.predict(x_train)
+
+        if 'w_train' in data.keys():
+            f1s = f1_score(y_train, prd, sample_weight=data['w_train'], average='weighted')
+            acc = accuracy_score(y_train, prd, sample_weight=data['w_train'])
+            kap = kappa_score(y_train, prd)
+        else:
+            f1s = f1_score(y_train, prd, average='weighted')
+            acc = accuracy_score(y_train, prd)
+            kap = kappa_score(y_train, prd)
+
+    except:
+
+        kap, f1s, acc = 0.0, 0.0, 0.0
 
     print('# Training | kappa: {:.2%}, f1-score: {:.2%}, accuracy: {:.2%}'.format(kap, f1s, acc))
 
-    prd = clf.predict(x_valid)
+    try: 
 
-    if 'w_valid' in data.keys():
-        f1s = f1_score(y_valid, prd, sample_weight=data['w_valid'], average='weighted')
-        acc = accuracy_score(y_valid, prd, sample_weight=data['w_valid'])
-        kap = kappa_score(y_valid, prd)
-    else:
-        f1s = f1_score(y_valid, prd, average='weighted')
-        acc = accuracy_score(y_valid, prd)
-        kap = kappa_score(y_valid, prd)
+        prd = clf.predict(x_valid)
+
+        if 'w_valid' in data.keys():
+            f1s = f1_score(y_valid, prd, sample_weight=data['w_valid'], average='weighted')
+            acc = accuracy_score(y_valid, prd, sample_weight=data['w_valid'])
+            kap = kappa_score(y_valid, prd)
+        else:
+            f1s = f1_score(y_valid, prd, average='weighted')
+            acc = accuracy_score(y_valid, prd)
+            kap = kappa_score(y_valid, prd)
+
+    except:
+
+        kap, f1s, acc = 0.0, 0.0, 0.0
 
     print('# Testing  | kappa: {:.2%}, f1-score: {:.2%}, accuracy: {:.2%}'.format(kap, f1s, acc))
     

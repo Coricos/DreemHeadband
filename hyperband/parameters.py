@@ -213,10 +213,8 @@ SPACE['XGB'] = SPACE_XGB
 
 SPACE_SGD = {
     
-    'loss': hp.choice('ls', [
-        'default',
-        hp.choice('ls_', ('squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'))
-    ]),    
+    'loss': hp.choice('ls_', ('log', 'modified_huber')),
+  
     'epsilon': hp.choice('ep', [
         'default', 
         hp.uniform('ep_', 0.001, 0.2)
@@ -251,6 +249,29 @@ SPACE_SGD = {
 
 SPACE['SGD'] = SPACE_SGD
 
+SPACE_SVM = {
+    
+    'kernel': hp.choice('kr', [
+        'default',
+        hp.choice('kr_', ('linear', 'poly', 'rbf', 'sigmoid'))
+    ]),
+    'C': hp.choice('pe', [
+        'default', 
+        hp.uniform('pe_', 0.01, 5.0)
+    ]),
+    'gamma': hp.choice('ga', [
+        'default', 
+        hp.uniform('ga_', 1e-5, 1.0)
+    ]),
+
+    'probability': True,
+
+    'shrinking': hp.choice('sh', (True, False)),
+
+    'decision_function_shape': hp.choice('ds', ('ovo', 'ovr'))}
+
+SPACE['SVM'] = SPACE_SVM
+
 # Defines the relative parameters
 def get_params(key):
 
@@ -282,5 +303,7 @@ def try_params(params, key, data):
         mod = xgb.XGBClassifier(n_jobs=threads, **params)
     if key == 'SGD':
         mod = SGDClassifier(**params)
+    if key == 'SVM':
+        mod = SVC(**params)
     
     return train_and_eval_classifier(mod, data)

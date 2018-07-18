@@ -952,3 +952,29 @@ class CV_DL_Model:
         plt.tight_layout()
         plt.show()
 
+    # Build probas as features
+    # storage refers to where to serialize the output array
+    def serialize_probas(self, storage='./models'):
+
+        log = pickle.load(open('./dataset/CV_DISTRIB.pk', 'rb'))
+
+        with h5py.File('./dataset/sca_train.h5', 'r') as dtb:
+            prd = np.zeros((dtb['eeg_1'].shape[0], 5))
+
+        for idx, ele in enumerate(sorted(glob.glob('./models/PRD_MOD_E_*.npy'))):
+            prd[log[idx]] = np.load(ele)
+
+        np.save('./models/PRB_MOD.npy', prd)
+
+        with h5py.File('./dataset/sca_valid.h5', 'r') as dtb:
+            prd = np.zeros((dtb['eeg_1'].shape[0], 5))
+
+        for ele in sorted(glob.glob('./models/PRD_MOD_V_*.npy')):
+            prd += np.load(ele)
+
+        prd /= len(glob.glob('./models/PRD_MOD_V_*.npy'))
+
+        np.save('./models/PRD_MOD.npy', prd)
+
+        # Memory efficiency
+        del log, prd
