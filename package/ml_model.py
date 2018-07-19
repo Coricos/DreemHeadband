@@ -67,7 +67,7 @@ class ML_Model:
             mod = xgb.XGBClassifier(n_jobs=self.njobs, **params)
         if nme == 'SGD':
             mod = SGDClassifier(**params)
-        if nme == 'SVC':
+        if nme == 'SVM':
             mod = SVC(**params)
         # Refit the best model
         mod.fit(val['x_train'], val['y_train'], sample_weight=val['w_train'])
