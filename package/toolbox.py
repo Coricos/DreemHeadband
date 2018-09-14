@@ -502,7 +502,7 @@ def compute_eeg_features(val):
     res.append(crossing_over(val))
     res.append(entropy(val))
     res += list(neural_features(val))
-    res += list(compute_tda_features(val))
+    # res += list(compute_tda_features(val))
     # Autoregressive model
     res += list(get_ar_coefficients(val))
 
