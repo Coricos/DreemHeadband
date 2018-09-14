@@ -24,7 +24,7 @@ if __name__ == '__main__':
     dtb.unshift()
     dtb.add_norm_acc()
     dtb.add_norm_eeg()
-    dtb.add_features()
+    # dtb.add_features()
     # dtb.add_betti_curves()
     # dtb.add_landscapes()
     dtb.build_series()
