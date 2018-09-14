@@ -38,6 +38,18 @@ class Database:
             if dtb.get('lab'): del dtb['lab']
             dtb.create_dataset('lab', data=lab.values)
 
+    # Suppress the latent mean of signals
+    def unshift(self):
+
+        # Iterates over both the training and validation sets
+        for pth in [self.train_pth, self.valid_pth]:
+
+            for key in ['acc_x', 'acc_y', 'acc_z', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']:
+                with h5py.File(pth, 'a') as dtb:
+                    sts = StandardScaler(with_std=False)
+                    dtb[key][...] = np.transpose(sts.fit_transform(np.transpose(dtb[key].value)))
+                    del sts
+
     # Build the norm of the accelerometers
     def add_norm_acc(self):
 
