@@ -5,7 +5,8 @@
 # Core packages
 
 import h5py, multiprocessing, tqdm, nolds, sys
-import pickle, warnings, time, pywt, joblib, neurokit
+import pickle, warnings, time, pywt, joblib
+# import neurokit
 import os, shlex, subprocess, GPUtil, glob
 
 import numpy as np
