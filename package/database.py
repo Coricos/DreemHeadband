@@ -301,8 +301,7 @@ class Database:
                     dtb.create_dataset(new, data=res[:,10:,:])
 
     # Apply filtering and interpolation on the samples
-    # out_storage refers to where to put the newly build datasets
-    def build_series(self, out_storage='/mnt/Storage'):
+    def build_series(self):
 
         # Defines the parameters for each key
         fil = {'po_r': True, 'po_ir': True,
@@ -389,53 +388,53 @@ class Database:
             del mms, sts, pip, old, v_t, v_v, m_x
 
         # Rescaling for the betti curves
-        for key in tqdm.tqdm(unt):
+        # for key in tqdm.tqdm(unt):
 
-            # Defines the scalers
-            mms = MinMaxScaler(feature_range=(0,1))
+        #     # Defines the scalers
+        #     mms = MinMaxScaler(feature_range=(0,1))
 
-            for pth in [self.train_out, self.valid_out]:
+        #     for pth in [self.train_out, self.valid_out]:
 
-                with h5py.File(pth, 'r') as dtb:
-                    mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
+        #         with h5py.File(pth, 'r') as dtb:
+        #             mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+        #     for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-                with h5py.File(inp, 'r') as dtb:
+        #         with h5py.File(inp, 'r') as dtb:
 
-                    shp = dtb[key].shape
-                    tmp = np.hstack(dtb[key].value).reshape(-1,1)
-                    res = mms.transform(tmp).reshape(shp)
+        #             shp = dtb[key].shape
+        #             tmp = np.hstack(dtb[key].value).reshape(-1,1)
+        #             res = mms.transform(tmp).reshape(shp)
 
-                with h5py.File(out, 'a') as dtb:
+        #         with h5py.File(out, 'a') as dtb:
 
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=res)
+        #             if dtb.get(key): del dtb[key]
+        #             dtb.create_dataset(key, data=res)
 
-            # Memory efficiency
-            del mms, tmp
-
+        #     # Memory efficiency
+        #     del mms, tmp
+        
         # Rescaling for the persistent landscapes
-        for key in tqdm.tqdm(ldc):
+        # for key in tqdm.tqdm(ldc):
 
-            m_x = []
+        #     m_x = []
 
-            for pth in [self.train_out, self.valid_out]:
-                # Defines the maximum value for all landscapes
-                with h5py.File(pth, 'r') as dtb:
-                    m_x.append(np.max(dtb[key].value))
+        #     for pth in [self.train_out, self.valid_out]:
+        #         # Defines the maximum value for all landscapes
+        #         with h5py.File(pth, 'r') as dtb:
+        #             m_x.append(np.max(dtb[key].value))
 
-            m_x = max(tuple(m_x))
+        #     m_x = max(tuple(m_x))
 
-            for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+        #     for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-                with h5py.File(inp, 'r') as dtb:
-                    val = dtb[key].value / m_x
+        #         with h5py.File(inp, 'r') as dtb:
+        #             val = dtb[key].value / m_x
 
-                with h5py.File(out, 'a') as dtb:
-                    if dtb.get(key): del dtb[key]
-                    dtb.create_dataset(key, data=val)
-                    del val
+        #         with h5py.File(out, 'a') as dtb:
+        #             if dtb.get(key): del dtb[key]
+        #             dtb.create_dataset(key, data=val)
+        #             del val
 
         # Specific scaling for features datasets
         for key in tqdm.tqdm(oth):
