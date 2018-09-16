@@ -22,9 +22,9 @@ if __name__ == '__main__':
     # Launch the datasets construction
     dtb = Database(threads=prs.threads)
     dtb.load_labels()
-    dtb.unshift()
-    dtb.add_norm_acc()
-    dtb.add_norm_eeg()
+    # dtb.unshift()
+    # dtb.add_norm_acc()
+    # dtb.add_norm_eeg()
     dtb.add_features()
     # dtb.add_betti_curves()
     # dtb.add_landscapes()
