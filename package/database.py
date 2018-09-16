@@ -359,8 +359,6 @@ class Database:
             mms = MinMaxScaler(feature_range=(-1,1))
             sts = StandardScaler(with_std=False)
             
-            for inp in [self.train_out, self.valid_out]:
-
             with h5py.File(self.train_out, 'r') as dtb:
                 pol = multiprocessing.Pool(processes=self.threads)
                 if key in eeg: fun = partial(resize_time_serie, size=size, log=True)
