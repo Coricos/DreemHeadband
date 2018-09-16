@@ -13,6 +13,7 @@ if __name__ == '__main__':
     # Initialize the arguments
     prs = argparse.ArgumentParser()
     # Mandatory arguments
+    prs.add_argument('-s', '--size', help='Interpolation size', type=int, default=750)
     prs.add_argument('-f', '--folds', help='Number of folds for cross-validation', type=int, default=10)
     prs.add_argument('-t', '--threads', help='Number of concurrent threads', type=int, default=multiprocessing.cpu_count())
     # Parse the arguments
@@ -24,9 +25,9 @@ if __name__ == '__main__':
     dtb.unshift()
     dtb.add_norm_acc()
     dtb.add_norm_eeg()
-    # dtb.add_features()
+    dtb.add_features()
     # dtb.add_betti_curves()
     # dtb.add_landscapes()
-    dtb.build_series()
-    dtb.rescale(size=500)
-    dtb.build_cv(prs.folds)
+    # dtb.build_series()
+    dtb.rescale(size=prs.size)
+    # dtb.build_cv(prs.folds)

@@ -126,17 +126,21 @@ def kalman_filter(val, std_factor=3, smooth_window=5):
         return x_t
 
 # Resize the 30s epochs for better understanding through convolution
-# size refers to the ending lenght
-def resize_time_serie(val, size=400, threshold=1.0):
+# size refers to the ending length
+# log refers whether to apply a logarithmic scale on the signal
+def resize_time_serie(val, size=400, log=False):
 
-    if np.max(np.abs(val)) > threshold:
-        mms = MinMaxScaler(feature_range=(0,2*threshold))
-        sts = StandardScaler(with_std=False)
-        sca = Pipeline([('mms', mms), ('sts', sts)])
+    if log:
+        tmp = np.zeros(len(val))
+        idx = np.where(val > 0)[0]
+        tmp[idx] = np.log(1 + val[idx])
+        idx = np.where(val < 0)[0]
+        tmp[idx] = - np.log(1 + np.abs(val[idx]))
+        tmp = interpolate(tmp, size=size)
     else:
-        sca = StandardScaler(with_std=False)
+        tmp = interpolate(val, size=size)
     
-    return sca.fit_transform(interpolate(val, size=400).reshape(-1,1)).ravel()
+    return tmp
 
 # Defines a vector reduction through interpolation
 # val refers to a 1D array
@@ -452,6 +456,8 @@ def compute_eeg_features(val):
     # Compute hjorth features
     def neural_features(val):
 
+        warnings.simplefilter('ignore')
+
         res = []
         
         try:
@@ -459,12 +465,6 @@ def compute_eeg_features(val):
             for key in sorted(list(tmp.keys())): res.append(tmp[key])
         except:
             res += list(np.zeros(16))
-
-        arg = {'shannon': False, 'sampen': False, 'multiscale': False, 'svd': False, 'correlation': False, 
-               'higushi': False, 'petrosian': False, 'fisher': False, 'hurst': False, 'dfa': False}
-        for bands in [[0.5, 4, 8, 13, 30], [0.5, 1.5, 12, 14]]:
-            try: res.append(list(neurokit.complexity(val, sampling_rate=len(val)/30, bands=bands, **arg).values())[0])
-            except: res.append(0.0)
 
         dif = np.diff(val)
         dif = np.asarray([val[0]] + list(dif))

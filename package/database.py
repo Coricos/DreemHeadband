@@ -103,7 +103,7 @@ class Database:
 
     # Build the features for each channel
     # n_components refers to the PCA transformation
-    def add_features(self, n_components=10):
+    def add_features(self, n_components=5):
 
         # Build the features over the initial signals
         for pth, out in zip([self.train_pth, self.valid_pth], 
@@ -112,7 +112,7 @@ class Database:
             res = []
 
             # Iterates over the other signals
-            for key in tqdm.tqdm(['po_r', 'po_ir', 'norm_acc', 'norm_eeg']):
+            for key in tqdm.tqdm(['po_r', 'po_ir', 'acc_x', 'acc_y', 'acc_z', 'norm_acc', 'norm_eeg']):
 
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
@@ -123,7 +123,7 @@ class Database:
                 pol.join()
 
             # Iterates over the EEG signals
-            for key in tqdm.tqdm(['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']):
+            for key in tqdm.tqdm(['norm_eeg', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']):
 
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
@@ -337,10 +337,11 @@ class Database:
                 del val
 
     # Rescale the datasets considering both training and validation
-    def rescale(self, size=500):
+    def rescale(self, size=750):
 
         with h5py.File(self.train_out, 'r') as dtb:
-            res = ['norm_acc', 'norm_eeg', 'acc_x', 'acc_y', 'acc_z', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir']
+            eeg = ['norm_eeg', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4',]
+            res = ['norm_acc', 'acc_x', 'acc_y', 'acc_z', 'po_r', 'po_ir']
             unt = ['bup_1', 'bup_2', 'bup_3', 'bup_4', 'bdw_1', 'bdw_2', 'bdw_3', 'bdw_4']
             ldc = ['l_0_1', 'l_0_2', 'l_0_3', 'l_0_4', 'l_1_1', 'l_1_2', 'l_1_3', 'l_1_4']
             oth = [key for key in list(dtb.keys()) if key not in res + unt + ldc + ['lab']]
@@ -352,95 +353,101 @@ class Database:
                 dtb.create_dataset('lab', data=inp['lab'].value)
 
         # Rescale the time series
-        for key in tqdm.tqdm(res):
+        for key in tqdm.tqdm(eeg + res):
 
-            with h5py.File(self.train_out, 'r') as dtb: v_t = dtb[key].value
-            with h5py.File(self.valid_out, 'r') as dtb: v_v = dtb[key].value
-
-            old, m_x = [], max(np.max(np.abs(v_t)), np.max(np.abs(v_v)))
-            coe = list(np.max(v_t, axis=1)) + list(np.max(v_v, axis=1))
-            coe = np.percentile(np.asarray(coe), 75)
-
+            # Define the scalers
+            mms = MinMaxScaler(feature_range=(-1,1))
+            sts = StandardScaler(with_std=False)
+            
             for inp in [self.train_out, self.valid_out]:
 
-                with h5py.File(inp, 'r') as dtb:
+            with h5py.File(self.train_out, 'r') as dtb:
+                pol = multiprocessing.Pool(processes=self.threads)
+                if key in eeg: fun = partial(resize_time_serie, size=size, log=True)
+                else: fun = partial(resize_time_serie, size=size, log=False)
+                n_t = np.vstack(tuple(pol.map(fun, dtb[key].value)))
+                pol.close()
+                pol.join()
 
-                    pol = multiprocessing.Pool(processes=self.threads)
-                    fun = partial(resize_time_serie, size=size, threshold=coe)
-                    old += pol.map(fun, dtb[key].value)
-                    pol.close()
-                    pol.join()
+            with h5py.File(self.valid_out, 'r') as dtb:
+                pol = multiprocessing.Pool(processes=self.threads)
+                if key in eeg: fun = partial(resize_time_serie, size=size, log=True)
+                else: fun = partial(resize_time_serie, size=size, log=False)
+                n_v = np.vstack(tuple(pol.map(fun, dtb[key].value)))
+                pol.close()
+                pol.join()
 
-            old = np.vstack(tuple(old))
-            mms = MinMaxScaler(feature_range=(0,2))
-            sts = StandardScaler(with_std=False)
+            # Fit the scalers
+            mms.fit(np.hstack(np.vstack((n_t, n_v))).reshape(-1,1))
+            sts.fit(mms.transform(np.hstack(tuple(n_t)).reshape(-1,1)))
             pip = Pipeline([('mms', mms), ('sts', sts)])
-            old = pip.fit_transform(np.hstack(tuple(old)).reshape(-1,1)).reshape(old.shape)
-
+            
             with h5py.File(self.train_sca, 'a') as dtb: 
                 if dtb.get(key): del dtb[key]
-                dtb.create_dataset(key, data=old[:len(v_t)])
+                dtb.create_dataset(key, data=pip.transform(np.hstack(tuple(n_t)).reshape(-1,1)).reshape(n_t.shape))
             with h5py.File(self.valid_sca, 'a') as dtb:
                 if dtb.get(key): del dtb[key]
-                dtb.create_dataset(key, data=old[len(v_t):])
+                dtb.create_dataset(key, data=pip.transform(np.hstack(tuple(n_v)).reshape(-1,1)).reshape(n_v.shape))
             
             # Memory efficiency
-            del mms, sts, pip, old, v_t, v_v, m_x
+            del mms, sts, pip, n_t, n_v
 
         # Rescaling for the betti curves
-        # for key in tqdm.tqdm(unt):
+        for key in tqdm.tqdm(unt):
 
-        #     # Defines the scalers
-        #     mms = MinMaxScaler(feature_range=(0,1))
+            try: 
+                # Defines the scalers
+                mms = MinMaxScaler(feature_range=(0,1))
 
-        #     for pth in [self.train_out, self.valid_out]:
+                for pth in [self.train_out, self.valid_out]:
+                    with h5py.File(pth, 'r') as dtb:
+                        mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
 
-        #         with h5py.File(pth, 'r') as dtb:
-        #             mms.partial_fit(np.hstack(dtb[key].value).reshape(-1,1))
+                for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-        #     for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+                    with h5py.File(inp, 'r') as dtb:
+                        shp = dtb[key].shape
+                        tmp = np.hstack(dtb[key].value).reshape(-1,1)
+                        res = mms.transform(tmp).reshape(shp)
 
-        #         with h5py.File(inp, 'r') as dtb:
+                    with h5py.File(out, 'a') as dtb:
+                        if dtb.get(key): del dtb[key]
+                        dtb.create_dataset(key, data=res)
 
-        #             shp = dtb[key].shape
-        #             tmp = np.hstack(dtb[key].value).reshape(-1,1)
-        #             res = mms.transform(tmp).reshape(shp)
+                # Memory efficiency
+                del mms, tmp
 
-        #         with h5py.File(out, 'a') as dtb:
-
-        #             if dtb.get(key): del dtb[key]
-        #             dtb.create_dataset(key, data=res)
-
-        #     # Memory efficiency
-        #     del mms, tmp
+            except: pass
         
         # Rescaling for the persistent landscapes
-        # for key in tqdm.tqdm(ldc):
+        for key in tqdm.tqdm(ldc):
 
-        #     m_x = []
+            try: 
+                m_x = []
 
-        #     for pth in [self.train_out, self.valid_out]:
-        #         # Defines the maximum value for all landscapes
-        #         with h5py.File(pth, 'r') as dtb:
-        #             m_x.append(np.max(dtb[key].value))
+                for pth in [self.train_out, self.valid_out]:
+                    # Defines the maximum value for all landscapes
+                    with h5py.File(pth, 'r') as dtb:
+                        m_x.append(np.max(dtb[key].value))
 
-        #     m_x = max(tuple(m_x))
+                m_x = max(tuple(m_x))
 
-        #     for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
+                for inp, out in [(self.train_out, self.train_sca), (self.valid_out, self.valid_sca)]:
 
-        #         with h5py.File(inp, 'r') as dtb:
-        #             val = dtb[key].value / m_x
+                    with h5py.File(inp, 'r') as dtb:
+                        val = dtb[key].value / m_x
+                    with h5py.File(out, 'a') as dtb:
+                        if dtb.get(key): del dtb[key]
+                        dtb.create_dataset(key, data=val)
+                        del val
 
-        #         with h5py.File(out, 'a') as dtb:
-        #             if dtb.get(key): del dtb[key]
-        #             dtb.create_dataset(key, data=val)
-        #             del val
+            except: pass
 
         # Specific scaling for features datasets
         for key in tqdm.tqdm(oth):
 
             # Build the scaler
-            mms = MinMaxScaler(feature_range=(-1, 1))
+            mms = MinMaxScaler(feature_range=(-1,1))
             sts = StandardScaler(with_std=False)
 
             for pth in [self.train_out, self.valid_out]:
@@ -448,10 +455,9 @@ class Database:
                 with h5py.File(pth, 'r') as dtb:
                     mms.partial_fit(remove_out_with_mean(dtb[key].value))
 
-            for pth in [self.train_out, self.valid_out]:
-                # Partial fit for both training and validation
-                with h5py.File(pth, 'r') as dtb:
-                    sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
+            # Partial fit for both training and validation
+            with h5py.File(self.train_out, 'r') as dtb:
+                sts.partial_fit(mms.transform(remove_out_with_mean(dtb[key].value)))
 
             pip = Pipeline([('mms', mms), ('sts', sts)])
 
@@ -459,7 +465,6 @@ class Database:
 
                 with h5py.File(inp, 'r') as dtb:
                     val = pip.transform(remove_out_with_mean(dtb[key].value))
-
                 with h5py.File(out, 'a') as dtb:
                     if dtb.get(key): del dtb[key]
                     dtb.create_dataset(key, data=val)
@@ -500,7 +505,6 @@ class Database:
                 with h5py.File(output, 'a') as out:
 
                     lab_t, lab_e = '{}_t'.format(key), '{}_e'.format(key)
-
                     if out.get(lab_t): del out[lab_t]
                     out.create_dataset(lab_t, data=dtb[key].value[i_t])
                     if out.get(lab_e): del out[lab_e]
@@ -514,7 +518,6 @@ class Database:
                 with h5py.File(output, 'a') as out:
 
                     lab_v = '{}_v'.format(key)
-
                     if out.get(lab_v): del out[lab_v]
                     out.create_dataset(lab_v, data=dtb[key].value)
     
@@ -533,7 +536,6 @@ class Database:
         for idx, (i_t, i_e) in enumerate(kfs.split(lab, lab)):
 
             log[idx] = i_e
-
             output = '{}/CV_ITER_{}.h5'.format(storage, idx)
             print('\n# Building CV_ITER_{}.h5'.format(idx))
 
@@ -545,9 +547,7 @@ class Database:
                 for key in tqdm.tqdm(list(dtb.keys())):
 
                     with h5py.File(output, 'a') as out:
-
                         key_t, key_e = '{}_t'.format(key), '{}_e'.format(key)
-
                         if out.get(key_t): del out[key_t]
                         out.create_dataset(key_t, data=dtb[key].value[i_t])
                         if out.get(key_e): del out[key_e]
@@ -561,9 +561,7 @@ class Database:
                 for key in tqdm.tqdm(list(dtb.keys())):
 
                     with h5py.File(output, 'a') as out:
-
                         key_v = '{}_v'.format(key)
-
                         if out.get(key_v): del out[key_v]
                         out.create_dataset(key_v, data=dtb[key].value)
 
