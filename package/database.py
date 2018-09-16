@@ -112,7 +112,7 @@ class Database:
             res = []
 
             # Iterates over the other signals
-            for key in tqdm.tqdm(['po_r', 'po_ir', 'acc_x', 'acc_y', 'acc_z', 'norm_acc', 'norm_eeg']):
+            for key in tqdm.tqdm(['po_r', 'po_ir', 'acc_x', 'acc_y', 'acc_z', 'norm_acc']):
 
                 # Load the corresponding values
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
