@@ -37,5 +37,3 @@ if __name__ == '__main__':
         dic = generate_channels(prs.channels)
         mod = CV_DL_Model(dic, storage='./dataset')
         mod.launch(out=prs.output, log_file=prs.log_file)
-
-
