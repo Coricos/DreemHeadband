@@ -152,14 +152,14 @@ def interpolate(val, size=2000):
     o = np.linspace(0, size, num=size, endpoint=True)
 
     if len(val) < size:
-        f = interp1d(x, val, kind='linear', fill_value='extrapolate')
+        f = interp1d(x, val, kind='quadratic', fill_value='extrapolate')
         return f(o)
 
     if len(val) == size:
         return val
 
     if len(val) > size:
-        f = interp1d(x, val, kind='cubic')
+        f = interp1d(x, val, kind='linear')
         return f(o)
 
 # Compute features related to the chaos theory
@@ -385,13 +385,16 @@ def compute_eeg_features(val):
 
         res = []
 
-        fft = np.abs(np.fft.rfft(val))
-        for per in [25, 50, 75]: res.append(np.percentile(fft, per))
         f,s = sg.periodogram(val, fs=len(val) / 30)
         res.append(f[s.argmax()])
         res.append(np.max(s))
         res.append(np.sum(s))
         res.append(entropy(s))
+        # Brain Waves
+        res.append(np.sum(s[np.where((f > 0.5) & (f < 3.0))[0]]))
+        res.append(np.sum(s[np.where((f > 3.0) & (f < 8.0))[0]]))
+        res.append(np.sum(s[np.where((f > 12.) & (f < 38.))[0]]))
+        res.append(np.sum(s[np.where((f > 38.) & (f < 42.))[0]]))
 
         return res
 
@@ -515,7 +518,7 @@ def compute_stats_features(val):
     # Defines the entropy of the signal
     def entropy(val):
         
-        dta = np.round(val, 4)
+        dta = np.round(val, 5)
         cnt = Counter()
 
         for ele in dta: cnt[ele] += 1
@@ -534,8 +537,6 @@ def compute_stats_features(val):
 
         res = []
 
-        fft = np.abs(np.fft.rfft(val))
-        for per in [25, 50, 75]: res.append(np.percentile(fft, per))
         f,s = sg.periodogram(val, fs=len(val) / 30)
         res.append(f[s.argmax()])
         res.append(np.max(s))
