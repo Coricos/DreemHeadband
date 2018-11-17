@@ -4,6 +4,12 @@
 
 from package.toolbox import *
 
+# Detect anomalies
+
+# Anomaly:
+
+# Defines the database architecture
+
 class Database:
 
     # Initialization
@@ -337,7 +343,7 @@ class Database:
                 del val
 
     # Rescale the datasets considering both training and validation
-    def rescale(self, size=750):
+    def rescale(self, size=2000):
 
         with h5py.File(self.train_out, 'r') as dtb:
             eeg = ['norm_eeg', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4',]
@@ -361,16 +367,14 @@ class Database:
             
             with h5py.File(self.train_out, 'r') as dtb:
                 pol = multiprocessing.Pool(processes=self.threads)
-                if key in eeg: fun = partial(resize_time_serie, size=size, log=True)
-                else: fun = partial(resize_time_serie, size=size, log=False)
+                fun = partial(resize_time_serie, size=size, log=False)
                 n_t = np.vstack(tuple(pol.map(fun, dtb[key].value)))
                 pol.close()
                 pol.join()
 
             with h5py.File(self.valid_out, 'r') as dtb:
                 pol = multiprocessing.Pool(processes=self.threads)
-                if key in eeg: fun = partial(resize_time_serie, size=size, log=True)
-                else: fun = partial(resize_time_serie, size=size, log=False)
+                fun = partial(resize_time_serie, size=size, log=False)
                 n_v = np.vstack(tuple(pol.map(fun, dtb[key].value)))
                 pol.close()
                 pol.join()
