@@ -1,5 +1,5 @@
 # Personal Use
-*.ipynb
+.ipynb_checkpoints/
 results/
 
 # Heavy data
