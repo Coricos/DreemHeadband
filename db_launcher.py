@@ -18,11 +18,13 @@ if __name__ == '__main__':
     # Parse the arguments
     prs = prs.parse_args()
 
+    # Rename the keys for further processing
+    rename(storage='./dataset')
     # Launch the datasets construction
     dtb = Database(threads=prs.threads)
     dtb.load_labels()
     dtb.unshift()
     dtb.add_norm_acc()
     dtb.add_norm_eeg()
+    # Compute the features
     dtb.add_features()
-    dtb.rescale(size=prs.size)
