@@ -141,7 +141,7 @@ class Database:
             with h5py.File(pth, 'r') as dtb: shp = dtb['eeg_1'].shape[0]
             # Multiprocessed computation
             pol = multiprocessing.Pool(processes=self.threads)
-            fun = partial(compute_distances, pth=pth)
+            fun = partial(compute_distances, h5_path=pth)
             res.append(np.asarray(pol.map(fun, np.arange(shp))))
             pol.close()
             pol.join()
