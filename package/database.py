@@ -57,8 +57,7 @@ class Database:
     def add_norm_acc(self):
 
         # Iterates over both the training and validation sets
-        for pth, out in zip([self.train_pth, self.valid_pth],
-                            [self.train_out, self.valid_out]):
+        for pth, out in zip([self.train_pth, self.valid_pth], [self.train_out, self.valid_out]):
 
             with h5py.File(pth, 'r') as dtb:
 
@@ -82,8 +81,7 @@ class Database:
     def add_norm_eeg(self):
 
         # Iterates over both the training and validation sets
-        for pth, out in zip([self.train_pth, self.valid_pth],
-                            [self.train_out, self.valid_out]):
+        for pth, out in zip([self.train_pth, self.valid_pth], [self.train_out, self.valid_out]):
 
             with h5py.File(pth, 'r') as dtb:
 
@@ -109,8 +107,7 @@ class Database:
     def add_features(self, n_components=5):
 
         # Build the features over the initial signals
-        for pth, out in zip([self.train_pth, self.valid_pth], 
-                            [self.train_out, self.valid_out]):
+        for pth, out in zip([self.train_pth, self.valid_pth], [self.train_out, self.valid_out]):
 
             res = []
 
@@ -121,9 +118,11 @@ class Database:
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
                 # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=self.threads)
-                res.append(np.asarray(pol.map(compute_stats_features, val)))
+                fun = partial(compute_features, brain=False)
+                res.append(np.asarray(pol.map(fun, val)))
                 pol.close()
                 pol.join()
+                del val
 
             # Iterates over the EEG signals
             for key in tqdm.tqdm(['norm_eeg', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']):
@@ -132,16 +131,18 @@ class Database:
                 with h5py.File(pth, 'r') as dtb: val = dtb[key].value
                 # Multiprocessed computation
                 pol = multiprocessing.Pool(processes=self.threads)
-                res.append(np.asarray(pol.map(compute_eeg_features, val)))
+                fun = partial(compute_features, brain=True)
+                res.append(np.asarray(pol.map(fun, val)))
                 pol.close()
                 pol.join()
+                del val
 
             # Relation between EEGs
-            with h5py.File(pth, 'r') as dtb: shp = dtb['eeg_1'].shape
+            with h5py.File(pth, 'r') as dtb: shp = dtb['eeg_1'].shape[0]
             # Multiprocessed computation
             pol = multiprocessing.Pool(processes=self.threads)
             fun = partial(compute_distances, pth=pth)
-            res.append(np.asarray(pol.map(fun, np.arange(shp[0]))))
+            res.append(np.asarray(pol.map(fun, np.arange(shp))))
             pol.close()
             pol.join()
 

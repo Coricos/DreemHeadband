@@ -5,8 +5,7 @@
 # Core packages
 import h5py, multiprocessing, tqdm, nolds, sys
 import pickle, warnings, time, pywt, joblib
-import neurokit
-import os, shlex, subprocess, GPUtil, glob
+import neurokit, os, shlex, subprocess, GPUtil, glob
 
 import numpy as np
 import pandas as pd
@@ -27,7 +26,8 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 
 from sklearn.svm import SVC, LinearSVC
 from sklearn.utils import shuffle
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import pairwise_distances, confusion_matrix
 from sklearn.manifold import TSNE
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier

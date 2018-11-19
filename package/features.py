@@ -192,3 +192,12 @@ def compute_features(val, brain=False):
         res += list(wavelet_features(val))
 
     return np.asarray(res)
+
+# Compute pairwise euclidean distance between eeg signals
+
+def compute_distances(idx, h5_path='./dataset/train.h5'):
+    
+    with h5py.File(h5_path, 'r') as dtb:
+        vec = np.asarray([dtb[key][idx] for key in ['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']])
+        
+    return pairwise_distances(vec)[np.triu_indices(4, k=1)]
