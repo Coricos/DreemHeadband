@@ -2,7 +2,8 @@
 # May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
-from package.imports import *
+try: from package.imports import *
+except: from imports import *
 
 # Computes associated persistent objects
 

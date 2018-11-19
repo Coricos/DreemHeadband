@@ -2,7 +2,8 @@
 # May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
-from package.topology import *
+try: from package.topology import *
+except: from topology import *
 
 # Defines a function to rename the datasets for clearer management
 # storage refers to where to pick the dataset
@@ -15,12 +16,20 @@ def rename(storage='./dataset'):
 
         with h5py.File(pth, 'a') as dtb:
 
-            dtb['acc_x'] = dtb['accelerometer_x']
-            del dtb['accelerometer_x']
-            dtb['acc_y'] = dtb['accelerometer_y']
-            del dtb['accelerometer_y']
-            dtb['acc_z'] = dtb['accelerometer_z']
-            del dtb['accelerometer_z']
+            try:
+                dtb['acc_x'] = dtb['accelerometer_x']
+                del dtb['accelerometer_x']
+            except: pass
+            
+            try: 
+                dtb['acc_y'] = dtb['accelerometer_y']
+                del dtb['accelerometer_y']
+            except: pass
+
+            try:
+                dtb['acc_z'] = dtb['accelerometer_z']
+                del dtb['accelerometer_z']
+            except: pass
 
 # Display a specific 30s sample
 # idx refers to the index of the sample
@@ -145,21 +154,20 @@ def resize_time_serie(val, size=400, log=False):
 # Defines a vector reduction through interpolation
 # val refers to a 1D array
 # size refers to the desired size
-def interpolate(val, size=2000):
+def interpolate(val, size=1000):
 
-    # Defines whether the size is determined or not
     x = np.linspace(0, size, num=len(val), endpoint=True)
     o = np.linspace(0, size, num=size, endpoint=True)
 
     if len(val) < size:
-        f = interp1d(x, val, kind='quadratic', fill_value='extrapolate')
+        f = interp1d(x, val, kind='linear', fill_value='extrapolate')
         return f(o)
 
     if len(val) == size:
         return val
 
     if len(val) > size:
-        f = interp1d(x, val, kind='linear')
+        f = interp1d(x, val, kind='quadratic')
         return f(o)
 
 # Compute features related to the chaos theory
@@ -289,29 +297,6 @@ def reset_mean(vec):
 
     return StandardScaler(with_std=False).fit_transform(vec.reshape(-1,1)).ravel()
 
-# Computes the pairwise distances between EEGs
-# idx refers to the index of the sample
-# pth refers to where to pick the sampels
-def compute_distances(idx, pth):
-    
-    with h5py.File(pth, 'r') as dtb:
-        eeg_1 = dtb['eeg_1'][idx]
-        eeg_2 = dtb['eeg_2'][idx]
-        eeg_3 = dtb['eeg_3'][idx]
-        eeg_4 = dtb['eeg_4'][idx]
-        
-    dis = euclidean_distances([eeg_1, eeg_2, eeg_3, eeg_4])
-    tmp = np.vstack((eeg_1, eeg_2, eeg_3, eeg_4))
-    cov = np.cov(tmp)
-    res = cov[np.triu_indices(4)]
-    cov = np.corrcoef(tmp)
-    dis = dis[np.triu_indices(4)][[1,2,3,5,6,8]]
-    cov = cov[np.triu_indices(4)][[1,2,3,5,6,8]]
-
-    del eeg_1, eeg_2, eeg_3, eeg_4, tmp
-    
-    return np.hstack((res, cov, dis))
-
 # Multiprocessed way of computing the limits of a persistent diagrams
 # vec refers to a 1D numpy array
 def persistent_limits(vec):
@@ -342,224 +327,6 @@ def compute_landscapes(vec, mnu, mxu, mnd, mxd):
     del fil
     
     return np.vstack((p,q))
-
-# Defines the feature construction pipeline
-# val refers to a 1D array
-def compute_eeg_features(val):
-
-    # Parameters of the autoregressive models
-    def get_ar_coefficients(vec):
-    
-        mod = AR(vec)
-        mod = mod.fit()
-        
-        return mod.params
-
-    # Defines the amount of crossing-overs
-    def crossing_over(val):
-        
-        sgn = np.sign(val)
-        sgn[sgn == 0] == -1
-
-        return len(np.where(np.diff(sgn))[0])
-    
-    # Defines the entropy of the signal
-    def entropy(val):
-        
-        dta = np.round(val, 4)
-        cnt = Counter()
-
-        for ele in dta: cnt[ele] += 1
-
-        pbs = [val / len(dta) for val in cnt.values()]
-        pbs = [prd for prd in pbs if prd > 0.0]
-
-        ent = 0.0
-        for prd in pbs:
-            ent -= prd * log(prd, 2.0)
-
-        return ent
-
-    # Defines the whole fourier features
-    def fourier(val, n_features=25):
-
-        res = []
-
-        f,s = sg.periodogram(val, fs=len(val) / 30)
-        res.append(f[s.argmax()])
-        res.append(np.max(s))
-        res.append(np.sum(s))
-        res.append(entropy(s))
-        # Brain Waves
-        res.append(np.sum(s[np.where((f > 0.5) & (f < 3.0))[0]]))
-        res.append(np.sum(s[np.where((f > 3.0) & (f < 8.0))[0]]))
-        res.append(np.sum(s[np.where((f > 12.) & (f < 38.))[0]]))
-        res.append(np.sum(s[np.where((f > 38.) & (f < 42.))[0]]))
-
-        return res
-
-    # Defines the wavelet features
-    def wavelet(val):
-
-        res = []
-
-        c,_ = pywt.cwt(val, np.arange(1, 32), 'cmor', 30)
-        coe = (np.square(np.abs(c))).mean(axis=0)
-        res.append(np.trapz(coe))
-        res.append(np.mean(coe))
-        res.append(np.std(coe))
-        res.append(entropy(coe))
-        for per in [25, 50, 75]: 
-            res.append(np.percentile(coe, per))
-
-        cA_5, cD_5, cD_4, cD_3, _, _ = pywt.wavedec(val, 'db4', level=5)
-    
-        for sig in [cA_5, cD_5, cD_4, cD_3]:
-            res += [np.min(sig), np.max(sig), np.sum(np.square(sig)), np.mean(sig), np.std(sig)]
-            
-        sgn = np.sign(val)
-        sgn = np.split(sgn, np.where(np.diff(sgn) != 0)[0]+1)
-        sgn = np.asarray([len(ele) for ele in sgn])
-        res += [np.nanmean(sgn), np.std(sgn)]
-        
-        sgn, ine = np.asarray([0] + list(sgn)), 0.0
-        for idx in range(len(sgn)-1):
-            ine += (sgn[idx+1] - sgn[idx])*np.trapz(np.abs(val[np.sum(sgn[:idx]):np.sum(sgn[:idx+1])]))
-        res.append(ine)
-
-        return res
-
-    # Compute the spectrogram features
-    def spectrogram(val):
-
-        res = []
-        f_s = len(val)/30
-
-        f,_,S = sg.spectrogram(val, fs=f_s, return_onesided=True)
-        res += list(f[S.argmax(axis=0)])
-        res += list(np.max(S, axis=0))
-        psd = np.sum(S, axis=0)
-        res += list(psd)
-        res.append(np.mean(psd))
-        res.append(np.std(psd))
-        res.append(entropy(psd))
-
-        f,_,Z = sg.stft(val, fs=f_s, window='hamming', nperseg=int(5*f_s), noverlap=int(0.7*5*f_s))
-        Z = np.abs(Z.T)
-        res += list(f[Z.argmax(axis=1)])
-        res += list(np.max(Z, axis=1))
-        psd = np.sum(Z, axis=1)
-        res += list(psd)
-        res.append(np.mean(psd))
-        res.append(np.std(psd))
-        res.append(entropy(psd))
-
-        return res
-
-    # Compute hjorth features
-    def neural_features(val):
-
-        warnings.simplefilter('ignore')
-
-        res = []
-        
-        try:
-            tmp = neurokit.complexity(val, sampling_rate=len(val)/30, lyap_r=True, lyap_e=True)
-            for key in sorted(list(tmp.keys())): res.append(tmp[key])
-        except:
-            res += list(np.zeros(16))
-
-        dif = np.diff(val)
-        dif = np.asarray([val[0]] + list(dif))
-        num = len(val)
-
-        m_2 = float(np.sum(dif ** 2)) / num
-        t_p = np.sum(np.square(val))
-        res.append(np.sqrt(m_2 / t_p))
-        
-        m_4 = 0.0
-        for idx in range(1, len(dif)):
-            m_4 += np.square(dif[idx] - dif[idx-1])
-        m_4 = m_4 / num
-        res.append(np.sqrt(m_4 * t_p / m_2 / m_2))
-
-        return np.asarray(res)
-
-    res = []
-
-    # Build the feature vector
-    res.append(np.mean(val))
-    res.append(np.std(val))
-    res.append(min(val))
-    res.append(max(val))
-    for per in [25, 50, 75]: res.append(np.percentile(val, per))
-    # Frequential features
-    res += list(fourier(val))
-    # Wavelet features
-    res += list(wavelet(val))
-    # Spectrogram features
-    res += list(spectrogram(val))
-    # Statistical features
-    res.append(kurtosis(val))
-    res.append(skew(val))
-    res.append(crossing_over(val))
-    res.append(entropy(val))
-    res += list(neural_features(val))
-    # res += list(compute_tda_features(val))
-    # Autoregressive model
-    res += list(get_ar_coefficients(val))
-
-    return np.asarray(res)
-
-# Defines the feature construction pipeline
-# val refers to a 1D array
-def compute_stats_features(val):
-
-    # Defines the entropy of the signal
-    def entropy(val):
-        
-        dta = np.round(val, 5)
-        cnt = Counter()
-
-        for ele in dta: cnt[ele] += 1
-
-        pbs = [val / len(dta) for val in cnt.values()]
-        pbs = [prd for prd in pbs if prd > 0.0]
-
-        ent = 0.0
-        for prd in pbs:
-            ent -= prd * log(prd, 2.0)
-
-        return ent
-
-    # Defines the whole fourier features
-    def fourier(val, n_features=25):
-
-        res = []
-
-        f,s = sg.periodogram(val, fs=len(val) / 30)
-        res.append(f[s.argmax()])
-        res.append(np.max(s))
-        res.append(np.sum(s))
-        res.append(entropy(s))
-
-        return res
-
-    res = []
-    # Build the feature vector
-    res.append(np.mean(val))
-    res.append(np.std(val))
-    res.append(min(val))
-    res.append(max(val))
-    for per in [25, 50, 75]: res.append(np.percentile(val, per))
-    # Frequential features
-    res += list(fourier(val))
-    # Statistical features
-    res.append(kurtosis(val))
-    res.append(skew(val))
-    res.append(entropy(val))
-
-    return np.asarray(res)
 
 # Easier to call and recreate the channel array
 # turn_on refers to the list of channels to turn-on
@@ -729,3 +496,14 @@ def independent_ate(channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir
         plt.grid()
         plt.tight_layout()
         plt.show()
+
+
+# Extract outliers from specific distribution
+# ele refers to an array of values
+# threshold refers to how far from the median distribution we can go
+def outlier_from_median(ele, threshold):
+        
+    val = np.abs(ele - np.median(ele))
+    val = val / np.median(val) if np.median(val) else 0.0
+    
+    return np.where(val > threshold)[0]

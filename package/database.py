@@ -2,11 +2,8 @@
 # May 17th, 2018
 # Dreem Headband Sleep Phases Classification Challenge
 
-from package.toolbox import *
-
-# Detect anomalies
-
-# Anomaly:
+try: from package.features import *
+except: from features import *
 
 # Defines the database architecture
 

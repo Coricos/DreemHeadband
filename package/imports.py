@@ -3,16 +3,16 @@
 # Dreem Headband Sleep Phases Classification Challenge
 
 # Core packages
-
 import h5py, multiprocessing, tqdm, nolds, sys
 import pickle, warnings, time, pywt, joblib
-# import neurokit
+import neurokit
 import os, shlex, subprocess, GPUtil, glob
 
 import numpy as np
 import pandas as pd
 import scipy.signal as sg
 
+from itertools import groupby
 from math import log, ceil
 from hyperopt import hp
 from hyperopt.pyll.stochastic import sample
@@ -23,6 +23,7 @@ from scipy.stats import kurtosis, skew
 from scipy.interpolate import interp1d
 from arch.bootstrap import CircularBlockBootstrap
 from statsmodels.tsa.ar_model import AR
+from statsmodels.tsa.seasonal import seasonal_decompose
 
 from sklearn.svm import SVC, LinearSVC
 from sklearn.utils import shuffle
@@ -50,7 +51,7 @@ import tensorflow as tf
 from keras import backend as K
 from keras import regularizers, initializers
 from keras.utils import np_utils
-from keras.models import Model, load_model
+from keras.models import Model, load_model, Sequential
 from keras.layers import Convolution2D, MaxPooling2D, Flatten
 from keras.layers import Conv1D, Input, MaxPooling1D, GlobalAveragePooling1D
 from keras.layers import AveragePooling1D, AveragePooling2D, UpSampling1D
