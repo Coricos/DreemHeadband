@@ -61,8 +61,7 @@ if __name__ == '__main__':
 
     # Use linear features to use SGD
     if prs.model == 'SGD':
-        coe = np.asarray([pearsonr(y_t, x_t[:,col])[0] for col in range(x_t.shape[1])])
-        sgd = np.abs(np.asarray(coe)) > 0.2
+        sgd = np.load('./models/sgd_mask.npy')
         x_t = x_t[:,sgd]
         x_v = x_v[:,sgd]
 
