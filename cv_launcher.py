@@ -6,6 +6,7 @@ import argparse, warnings
 
 from package.detection import *
 from optiML import CrossClassification
+from scipy.stats import pearsonr
 
 # Defines a split generator
 
@@ -57,6 +58,13 @@ if __name__ == '__main__':
     pip.fit(np.vstack((x_t, x_v)))
     x_t = pip.transform(x_t)
     x_v = pip.transform(x_v)
+
+    # Use linear features to use SGD
+    if prs.model == 'SGD':
+        coe = np.asarray([pearsonr(y_t, x_t[:,col])[0] for col in range(x_t.shape[1])])
+        sgd = np.abs(np.asarray(coe)) > 0.2
+        x_t = x_t[:,sgd]
+        x_v = x_v[:,sgd]
 
     # Launch the model optimization
     clf = CrossClassification(x_t, x_v, y_t, slurm=prs.slurm, threads=prs.threads)
