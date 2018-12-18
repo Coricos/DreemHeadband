@@ -41,11 +41,9 @@ if __name__ == '__main__':
     # Get rid of obvious outiers
     lab = pd.read_csv('./dataset/label.csv', sep=';', index_col=0)
     msk = np.load('./models/row_mask.npy')
-    # Load the data relative to the problem
-    with h5py.File('./dataset/dts_train.h5', 'r') as dtb:
-        x_t, y_t = dtb['fea'].value[msk[:len(lab)]], dtb['lab'].value[msk[:len(lab)]]
-    with h5py.File('./dataset/dts_valid.h5', 'r') as dtb:
-        x_v = dtb['fea'].value[msk[len(lab):]]
+    x_t = np.load('./dataset/fea_train.npy')[msk[:len(lab)]]
+    y_t = lab.values.ravel()[msk[:len(lab)]]
+    x_v = np.load('./dataset/fea_valid.npy')[msk[len(lab):]]
 
     # Preprocessing
     vtf = VarianceThreshold()
@@ -59,11 +57,14 @@ if __name__ == '__main__':
     x_t = pip.transform(x_t)
     x_v = pip.transform(x_v)
 
-    # Use linear features to use SGD
-    if prs.model == 'SGD':
-        sgd = np.load('./models/sgd_mask.npy')
-        x_t = x_t[:,sgd]
-        x_v = x_v[:,sgd]
+    # Restrict to a subset of features
+    use = ['norm_acc', 'norm_eeg', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+    fea = np.asarray(joblib.load('./dataset/features.jb'))[vtf.get_support()]
+    msk = np.zeros(len(fea), dtype=bool)
+    idx = [i for i in range(len(fea)) if fea[i].startswith(tuple(use))]
+    msk[np.asarray(idx)] = True
+    x_t = x_t[:,msk]
+    x_v = x_v[:,msk]
 
     # Launch the model optimization
     clf = CrossClassification(x_t, x_v, y_t, slurm=prs.slurm, threads=prs.threads)
