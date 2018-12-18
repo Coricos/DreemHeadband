@@ -497,7 +497,6 @@ def independent_ate(channels=['eeg_1', 'eeg_2', 'eeg_3', 'eeg_4', 'po_r', 'po_ir
         plt.tight_layout()
         plt.show()
 
-
 # Extract outliers from specific distribution
 # ele refers to an array of values
 # threshold refers to how far from the median distribution we can go

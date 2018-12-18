@@ -33,7 +33,6 @@ class Profiles:
 
         idx = np.asarray(sorted(list(set(np.where(sms > 10)[0]) & set(ind))))
         mea = np.mean(np.diff(np.cumsum(sms)[idx]) * 30) / 60 / 60
-        print('# Mean Duration of Night per Person: {} hours'.format(np.round(mea, 1)))
 
         prf, mkr = [], []
         for pat in range(len(idx)-1):
