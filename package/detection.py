@@ -56,7 +56,7 @@ class Profiles:
         plt.ylabel('Sleep Phase')
         plt.show()
 
-    def learn(self, profiles, save='./models/lstm_labels.ks', timesteps=30, test_size=0.25, epochs=100):
+    def learn(self, profiles, save='./models/lstm_labels.ks', timesteps=20, test_size=0.25, epochs=100):
 
         vec = []
 
@@ -73,9 +73,13 @@ class Profiles:
 
         # Build the LSTM model
         model = Sequential()
-        model.add(LSTM(30, input_shape=(x_t.shape[1], x_t.shape[2]), return_sequences=True))
+        model.add(LSTM(5*timesteps, input_shape=(x_t.shape[1], x_t.shape[2]), return_sequences=True))
         model.add(Dropout(0.5))
-        model.add(LSTM(30, return_sequences=False))
+        model.add(LSTM(timesteps, return_sequences=True))
+        model.add(Dropout(0.5))
+        model.add(LSTM(timesteps, return_sequences=True))
+        model.add(Dropout(0.5))
+        model.add(LSTM(timesteps, return_sequences=False))
         model.add(Dropout(0.5))
         model.add(Dense(5, activation='softmax'))
         model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
@@ -89,6 +93,18 @@ class Profiles:
         # Launch the training
         model.fit(x_t, y_t, epochs=epochs, batch_size=32, shuffle=True, 
                   callbacks=[early, check], validation_data=(x_v, y_v))
+
+    def smooth_output(self, prd, save='./models/lstm_labels.ks', timesteps=20):
+
+        # Build the embedding
+        m_i = np.arange(timesteps)*(0+1)
+        m_j = np.arange(np.max(prd.shape[0]-(timesteps)*(0+1), 0))
+        x_v = prd[m_i + m_j.reshape(-1,1)]
+        # Make the predictions
+        model = load_model(save)
+        prd = model.predict(x_v)
+
+        return np.hstack((np.zeros(timesteps), np.argmax(prd, axis=1)))
 
 # Detect anomalies
 
