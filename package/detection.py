@@ -20,7 +20,7 @@ class Profiles:
 
         plt.figure(figsize=(18,4))
         plt.bar(np.arange(len(prp)), prp, color='salmon')
-        plt.xlabel('Sleep Phase')
+        plt.xticks(np.arange(len(prp)), ['Awake', 'Stage 1', 'Stage 2', 'Stage 3 & 4', 'REM Sleep'])
         plt.ylabel('Relative Ratio')
         plt.show()
 
