@@ -3,7 +3,8 @@
 # Dreem Headband Sleep Phases Classification Challenge
 
 # Core packages
-import h5py, multiprocessing, tqdm, nolds, sys
+# import tqdm
+import h5py, multiprocessing, nolds, sys, six
 import pickle, warnings, time, pywt, joblib
 import neurokit, os, shlex, subprocess, GPUtil, glob
 

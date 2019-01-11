@@ -37,9 +37,9 @@ def display(idx, storage='./dataset/valid.h5'):
 
     with h5py.File(storage, 'r') as dtb:
         # Load the signals
-        a_x = dtb['acc_x'][idx,:]
-        a_y = dtb['acc_y'][idx,:]
-        a_z = dtb['acc_z'][idx,:]
+        a_x = dtb['accelerometer_x'][idx,:]
+        a_y = dtb['accelerometer_y'][idx,:]
+        a_z = dtb['accelerometer_z'][idx,:]
         n_a = np.sqrt(np.square(a_x) + np.square(a_y) + np.square(a_z))
         e_1 = dtb['eeg_1'][idx,:]
         e_2 = dtb['eeg_2'][idx,:]
@@ -506,3 +506,128 @@ def outlier_from_median(ele, threshold):
     val = val / np.median(val) if np.median(val) else 0.0
     
     return np.where(val > threshold)[0]
+
+# Obtains the importances of a specific model given a specific level
+# lvl refers to a level of noise
+# model refers to a given model
+def get_importances(lvl, model):
+    
+    # Get rid of obvious outiers
+    lab = pd.read_csv('./dataset/label.csv', sep=';', index_col=0)
+    msk = np.load('./models/level_{}/row_mask.npy'.format(lvl))
+    x_t = np.load('./dataset/fea_train.npy')[msk[:len(lab)]]
+    x_v = np.load('./dataset/fea_valid.npy')[msk[len(lab):]]
+
+    # Preprocessing
+    vtf = VarianceThreshold()
+    vtf.fit(np.vstack((x_t, x_v)))
+
+    # Restrict to a subset of features
+    use = ['norm_acc', 'norm_eeg', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+    fea = np.asarray(joblib.load('./dataset/features.jb'))[vtf.get_support()]
+    msk = np.zeros(len(fea), dtype=bool)
+    idx = [i for i in range(len(fea)) if fea[i].startswith(tuple(use))]
+    msk[np.asarray(idx)] = True
+    fea = fea[msk]
+    
+    warnings.simplefilter('ignore')
+    # Retrieve the importances
+    clf = [joblib.load('./models/level_{}/cv{}_mod_{}.jb'.format(lvl, i, model)) for i in range(5)]
+    imp = np.sum([ele.feature_importances_ for ele in clf], axis=0)
+    imp = imp / np.sum(imp)
+    
+    return imp, fea
+
+# Smoothing method
+# y refers to the input vector
+# window_size refers to the averaging section
+def savitzky_golay(y, window_size, order=2, deriv=0, rate=1):
+
+    from math import factorial
+
+    window_size = np.abs(np.int(window_size))
+    order = np.abs(np.int(order))
+    order_range = range(order+1)
+    half_window = (window_size -1) // 2
+    # Precompute coefficients
+    b = np.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
+    m = np.linalg.pinv(b).A[deriv] * rate**deriv * factorial(deriv)
+    # Pad the signal at the extremes with values taken from the signal itself
+    firstvals = y[0] - np.abs( y[1:half_window+1][::-1] - y[0])
+    lastvals = y[-1] + np.abs(y[-half_window-1:-1][::-1] - y[-1])
+    y = np.concatenate((firstvals, y, lastvals))
+
+    return np.convolve(m[::-1], y, mode='valid')
+
+# Rebuild the whole probabilities for a specific level
+# lvl refers to a level of noise
+def get_prediction_from_level(lvl):
+    
+    warnings.simplefilter('ignore')
+
+    # Get rid of obvious outiers
+    lab = pd.read_csv('./dataset/label.csv', sep=';', index_col=0)
+    msk = np.load('./models/level_{}/row_mask.npy'.format(lvl))
+    x_t = np.load('./dataset/fea_train.npy')[msk[:len(lab)]]
+    y_t = lab.values.ravel()[msk[:len(lab)]]
+    x_v = np.load('./dataset/fea_valid.npy')[msk[len(lab):]]
+
+    # Preprocessing
+    vtf = VarianceThreshold()
+    vtf.fit(np.vstack((x_t, x_v)))
+    x_t = vtf.transform(x_t)
+    x_v = vtf.transform(x_v)
+    mms = MinMaxScaler()
+    sts = StandardScaler(with_std=False)
+    pip = Pipeline([('mms', mms), ('sts', sts)])
+    pip.fit(np.vstack((x_t, x_v)))
+    x_t = pip.transform(x_t)
+    x_v = pip.transform(x_v)
+    del x_v, mms, sts, pip
+
+    # Restrict to a subset of features
+    use = ['norm_acc', 'norm_eeg', 'eeg_1', 'eeg_2', 'eeg_3', 'eeg_4']
+    fea = np.asarray(joblib.load('./dataset/features.jb'))[vtf.get_support()]
+    msk = np.zeros(len(fea), dtype=bool)
+    idx = [i for i in range(len(fea)) if fea[i].startswith(tuple(use))]
+    msk[np.asarray(idx)] = True
+    x_t = x_t[:,msk]
+    del use, fea, msk, idx, vtf
+
+    # Look for missing predictions
+    prb = np.load('./models/level_{}/prb_t_LGB.npy'.format(lvl))
+    kap = np.round(kappa_score(y_t, np.argmax(prb, axis=1)), 4)
+    mis = np.where(np.sum(prb, axis=1) == 0)[0]
+    clf = [joblib.load('./models/level_{}/cv{}_mod_LGB.jb'.format(lvl, i)) for i in range(5)]
+    prd = np.asarray([ele.predict_proba(x_t[mis]) for ele in clf])
+    prd = np.sum(prd, axis=0) / 5
+    prb[mis] = prd
+    fin = np.round(kappa_score(y_t, np.argmax(prb, axis=1)), 4)
+
+    return prb, [lvl, np.round(len(prb) / len(lab), 3), len(mis), kap, fin]
+
+# Transform a dataframe into an image
+def dtf_to_img(dtf, row_height=0.6, font_size=11, ax=None):
+
+    # Basic needed attributes
+    header_color, row_colors, edge_color = '#40466e', ['#f1f1f2', 'w'], 'w'
+    bbox, header_columns = [0, 0, 1, 1], 0
+
+    if ax is None:
+        size = (18, dtf.shape[0]*row_height)
+        fig, ax = plt.subplots(figsize=(size))
+        ax.axis('off')
+
+    mpl_table = ax.table(cellText=dtf.values, bbox=bbox, colLabels=dtf.columns, cellLoc='center')
+    mpl_table.auto_set_font_size(False)
+    mpl_table.set_fontsize(font_size)
+
+    for k, cell in six.iteritems(mpl_table._cells):
+        cell.set_edgecolor(edge_color)
+        if k[0] == 0 or k[1] < header_columns:
+            cell.set_text_props(weight='bold', color='w')
+            cell.set_facecolor(header_color)
+        else:
+            cell.set_facecolor(row_colors[k[0]%len(row_colors)])
+
+    return ax
