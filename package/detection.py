@@ -52,6 +52,7 @@ class Profiles:
             ext = np.where(profile == idx)[0]
             plt.bar(ind[ext], 0.5, bottom=profile[ext]-0.25, width=1.2)
         plt.ylim([-0.5, 4.5])
+        plt.yticks(np.arange(len(np.unique(profile))), ['Awake', 'Stage 1', 'Stage 2', 'Stage 3 & 4', 'REM Sleep'])
         plt.xlabel('Time')
         plt.ylabel('Sleep Phase')
         plt.show()
