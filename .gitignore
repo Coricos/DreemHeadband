@@ -1,9 +1,18 @@
+# Author:  DINDIN Meryll
+# Date:    05 August 2019
+# Project: DreemHeadband
+
 # Personal Use
-.ipynb_checkpoints/
-results/
+stager/.ipynb_checkpoints/
+stimuler/.ipynb_checkpoints/
 
 # Heavy data
-dataset/
+data/
+stager/results/
+stimuler/results/
+stager/models/
+stimuler/models/
 
 # Cythonized
-package/__pycache__/
+stager/__pycache__/
+stimuler/__pycache__/
