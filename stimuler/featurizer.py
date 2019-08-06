@@ -85,9 +85,9 @@ class Featurize_1D:
         self.feature.append(np.sum(psd))
         self.columns.append('SUM_SLIDING_POWER_SPECTRUM')
         self.feature.append(np.mean(psd))
-        self.columns.append('MEAN_POWER_SPECTRUM')
+        self.columns.append('MEAN_SLIDING_POWER_SPECTRUM')
         self.feature.append(np.std(psd))
-        self.columns.append('STD_POWER_SPECTRUM')
+        self.columns.append('STD_SLIDING_POWER_SPECTRUM')
         self.feature.append(entropy(psd))
         self.columns.append('ENTROPY_SPECTROGRAM')
         # Memory efficiency
@@ -125,7 +125,7 @@ class Featurize_1D:
         sgn[sgn == 0] == -1
         # Add to featurization
         self.feature.append(len(np.where(np.diff(sgn))[0]))
-        self.columns.append(['CROSSING_OVERS'])
+        self.columns.append('CROSSING_OVERS')
         # Memory efficieny
         del sgn
 
