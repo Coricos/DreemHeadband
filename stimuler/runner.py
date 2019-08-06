@@ -16,15 +16,14 @@ class Runner:
         
         return Featurize_1D(signal, sampling_frequency=self.frq).getFeatures()
     
-    def compute(self, signals, verbose=True):
+    def compute(self, signals):
         
-        if verbose:
-            with ThreadPoolExecutor(max_workers=self.cpu) as executor:
-                res = list(tqdm(executor.map(self.featurize_signal, signals), total=len(signals)))
-        else:
-            with ThreadPoolExecutor(max_workers=self.cpu) as executor:
-                res = list(executor.map(self.featurize_signal, signals))
-                
+        # Multiprocessed computation
+        pol = Pool(processes=self.cpu)
+        res = list(pol.map(self.featurize_signal, signals))
+        pol.close()
+        pol.join()
+        # Concatenation
         res = pd.concat(res, axis=0)
         res.columns = [str(e) for e in res.columns]
         
@@ -37,11 +36,10 @@ if __name__ == '__main__':
     prs.add_argument('-f', '--frq', help='Frequency', type=int, default=125)
     prs.add_argument('-d', '--dir', help='Directory', type=str, default='train')
     prs.add_argument('-c', '--cpu', help='NumOfCpus', type=int, default=cpu_count())
-    prs.add_argument('-v', '--vbs', help='VerboseTQ', type=bool, default=True)
     prs = prs.parse_args()
 
     # Run the featurization
-    with h5py.File('../data/slow_waves/{}.h5'.format(prs.dir)) as dtb: sig = dtb['features'][:10,11:]
-    dtf = Runner(prs.frq, max_workers=prs.cpu).compute(sig, verbose=prs.vbs)
+    with h5py.File('../data/slow_waves/{}.h5'.format(prs.dir)) as dtb: sig = dtb['features'][:,11:]
+    dtf = Runner(prs.frq, max_workers=prs.cpu).compute(sig)
     # Serialize to parquet format
     dtf.to_parquet('../data/slow_waves/{}_cmp.pq'.format(prs.dir))
