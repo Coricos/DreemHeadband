@@ -99,4 +99,4 @@ class Experiment:
 
 if __name__ == '__main__':
 
-    Experiment().single('LGB', test_size=0.5)
+    Experiment().single('XGB', test_size=0.33)
