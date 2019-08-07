@@ -3,6 +3,7 @@
 # Project: DreemHeadband
 
 # Personal Use
+logs/
 stager/.ipynb_checkpoints/
 stimuler/.ipynb_checkpoints/
 
