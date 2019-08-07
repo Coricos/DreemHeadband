@@ -88,6 +88,7 @@ class Experiment:
         cfg = {'strategy': 'single', 'model': model, 'id': self._id, 'optimization': 'bayesian'}
         cfg.update({'random_state': random_state, 'threads': threads})
         cfg.update({'trial_init': self._INIT, 'trial_opti': self._OPTI})
+        cfg.update({'best_score': prb.bestScore(), 'validation_metric': 'acc'})
         nme = '/'.join([self.dir, 'config.json'])
         with open(nme, 'w') as raw: json.dump(cfg, raw, indent=4, sort_keys=True)
 
