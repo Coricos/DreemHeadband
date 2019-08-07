@@ -39,15 +39,15 @@ class DataLoader:
 		# Initialize scaler
 		sts = StandardScaler()
 		# Apply to train and test
-		self.x_t = sts.fit_transform(self.x_t)
-		self.x_v = sts.transform(self.x_v)
+		x_t = sts.fit_transform(self.x_t)
+		self.x_t = pd.DataFrame(x_t, columns=self.x_t.columns, index=self.x_t.index)
+		x_v = sts.transform(self.x_v)
+		self.x_v = pd.DataFrame(x_v, columns=self.x_v.columns, index=self.x_v.index)
 		# Memory efficiency
-		del sts
+		del sts, x_t, x_v
 
 	def _categorize(self):
 
 		# Reapply binary categorization
 		self.x_t['sleep_stage'] = (self.x_t['sleep_stage'] < 0).astype('int')
 		self.x_v['sleep_stage'] = (self.x_v['sleep_stage'] < 0).astype('int')
-
-	
