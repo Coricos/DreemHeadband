@@ -25,4 +25,4 @@ if __name__ == '__main__':
     cmd += ['--cpu={}'.format(cfg['cpus-per-task']), '&']
 
     # Launch the command
-    os.system(cmd)
+    os.system(' '.join(cmd))
