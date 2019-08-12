@@ -59,7 +59,7 @@ class DataLoader:
 
 class Experiment:
 
-    _INIT = 3
+    _INIT = 50
     _OPTI = 0
 
     def __init__(self, name=str(int(time.time()))):
@@ -106,7 +106,7 @@ class Experiment:
         arg = {'test_size': cfg['test_size'], 'random_state': cfg['random_state']}
         x_t, x_v, y_t, y_v = self.dtb.split(**arg, shuffle=True)
         # Defines the problem
-        arg = {'threads': cfg['cpus-per-task']}
+        arg = {'threads': cfg['threads']}
         prb = Prototype(x_t, x_v, y_t, y_v, cfg['model'], self.obj, 'acc', **arg)
         prb = prb.fitModel(prm, cfg['random_state'])
 
@@ -120,7 +120,7 @@ class Experiment:
     def evaluateModel(self, model=None):
 
         if model is None: model = joblib.load('/'.join([self.dir, 'model.jb']))
-        
+
         # Extract the parameters
         with open('/'.join([self.dir, 'config.json']), 'r') as raw: cfg = json.load(raw)
         with open('/'.join([self.dir, 'params.json']) , 'r') as raw: prm = json.load(raw)
