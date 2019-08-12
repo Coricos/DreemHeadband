@@ -205,7 +205,7 @@ class Experiment:
 
         if model is None: model = joblib.load('/'.join([self.dir, 'model.jb']))
         y_p = model.predict(self.dtb.out.values)
-        y_p = pd.DataFrame(np.vstack((self.out.index, y_p)).T, columns=['index', 'prediction'])
+        y_p = pd.DataFrame(np.vstack((self.dtb.out.index, y_p)).T, columns=['index', 'prediction'])
         y_p = y_p.set_index('index')
         y_p.to_csv('/'.join([self.dir, 'predictions.csv']))
 
