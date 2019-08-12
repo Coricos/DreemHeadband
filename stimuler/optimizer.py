@@ -224,4 +224,4 @@ if __name__ == '__main__':
     exp.single(prs.mod, test_size=prs.sze, random_state=prs.rnd, threads=prs.cpu)
     exp.saveModel()
     # Keep the results
-    exp.submit(mod)
+    exp.submit()
