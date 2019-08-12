@@ -6,6 +6,7 @@ import os
 import h5py
 import time
 import json
+import joblib
 import argparse
 import warnings
 import numpy as np
@@ -24,6 +25,7 @@ from multiprocessing import cpu_count, Pool
 
 try: 
 	import seaborn as sns
-	from matplotlib import cm
+	import matplotlib.pyplot as plt
 	import matplotlib.gridspec as gridspec
+	from matplotlib import cm
 except: pass

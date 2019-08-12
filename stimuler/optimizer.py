@@ -59,8 +59,8 @@ class DataLoader:
 
 class Experiment:
 
-    _INIT = 70
-    _OPTI = 10
+    _INIT = 3
+    _OPTI = 0
 
     def __init__(self, name=str(int(time.time()))):
 
@@ -97,7 +97,7 @@ class Experiment:
         nme = '/'.join([self.dir, 'params.json'.format(model)])
         with open(nme, 'w') as raw: json.dump(prm, raw, indent=4, sort_keys=True)
 
-    def getModel(self, threads=cpu_count(), evaluate=True):
+    def saveModel(self):
 
         # Extract the parameters
         with open('/'.join([self.dir, 'config.json']), 'r') as raw: cfg = json.load(raw)
@@ -106,47 +106,63 @@ class Experiment:
         arg = {'test_size': cfg['test_size'], 'random_state': cfg['random_state']}
         x_t, x_v, y_t, y_v = self.dtb.split(**arg, shuffle=True)
         # Defines the problem
-        prb = Prototype(x_t, x_v, y_t, y_v, cfg['model'], self.obj, 'acc', threads=threads)
+        arg = {'threads': cfg['cpus-per-task']}
+        prb = Prototype(x_t, x_v, y_t, y_v, cfg['model'], self.obj, 'acc', **arg)
         prb = prb.fitModel(prm, cfg['random_state'])
 
-        if evaluate:
+        # Serialize the model
+        joblib.dump(prb, '/'.join([self.dir, 'model.jb']))
 
-            y_p = prb.predict(x_v)
-            lab = ['accuracy', 'f1 score', 'precision', 'recall', 'kappa']
-            sco = np.asarray([
-                accuracy_score(y_v, y_p),
-                f1_score(y_v, y_p, average='weighted'),
-                precision_score(y_v, y_p, average='weighted'),
-                recall_score(y_v, y_p, average='weighted'),
-                cohen_kappa_score(y_v, y_p)
-            ])
-            cfm = confusion_matrix(y_v, y_p)
+    def getModel(self):
 
-            plt.figure(figsize=(18,4))
-            grd = gridspec.GridSpec(1, 3)
+        return joblib.load('/'.join([self.dir, 'model.jb']))
 
-            arg = {'y': 1.05, 'fontsize': 14}
-            plt.suptitle('General Classification Performances for Experiment {}'.format(self._id), **arg)
+    def evaluateModel(self, model=None):
 
-            ax0 = plt.subplot(grd[0, 0])
-            crs = cm.Greens(sco)
-            plt.bar(np.arange(len(sco)), sco, width=0.4, color=crs)
-            for i,s in enumerate(sco): plt.text(i-0.15, s-0.05, '{:1.2f}'.format(s))
-            plt.xticks(np.arange(len(sco)), lab)
-            plt.xlabel('metric')
-            plt.ylabel('percentage')
+        if model is None: model = joblib.load('/'.join([self.dir, 'model.jb']))
+        
+        # Extract the parameters
+        with open('/'.join([self.dir, 'config.json']), 'r') as raw: cfg = json.load(raw)
+        with open('/'.join([self.dir, 'params.json']) , 'r') as raw: prm = json.load(raw)
+        # Split the data for validation
+        arg = {'test_size': cfg['test_size'], 'random_state': cfg['random_state']}
+        _, x_v, _, y_v = self.dtb.split(**arg, shuffle=True)
 
-            ax1 = plt.subplot(grd[0, 1:])
-            sns.heatmap(cfm, annot=True, fmt='d', axes=ax1, cbar=False, cmap="Greens")
-            plt.ylabel('y_true')
-            plt.xlabel('y_pred')
+        y_p = prb.predict(x_v)
+        lab = ['accuracy', 'f1 score', 'precision', 'recall', 'kappa']
+        sco = np.asarray([
+            accuracy_score(y_v, y_p),
+            f1_score(y_v, y_p, average='weighted'),
+            precision_score(y_v, y_p, average='weighted'),
+            recall_score(y_v, y_p, average='weighted'),
+            cohen_kappa_score(y_v, y_p)])
+        cfm = confusion_matrix(y_v, y_p)
 
-            plt.tight_layout()
-            plt.show()
+        plt.figure(figsize=(18,4))
+        grd = gridspec.GridSpec(1, 3)
 
-        return prb
+        arg = {'y': 1.05, 'fontsize': 14}
+        plt.suptitle('General Classification Performances for Experiment {}'.format(self._id), **arg)
 
-    def getImportances(self, model, n_display=30):
+        ax0 = plt.subplot(grd[0, 0])
+        crs = cm.Greens(sco)
+        plt.bar(np.arange(len(sco)), sco, width=0.4, color=crs)
+        for i,s in enumerate(sco): plt.text(i-0.15, s-0.05, '{:1.2f}'.format(s))
+        plt.xticks(np.arange(len(sco)), lab)
+        plt.xlabel('metric')
+        plt.ylabel('percentage')
+
+        ax1 = plt.subplot(grd[0, 1:])
+        sns.heatmap(cfm, annot=True, fmt='d', axes=ax1, cbar=False, cmap="Greens")
+        plt.ylabel('y_true')
+        plt.xlabel('y_pred')
+
+        plt.tight_layout()
+        plt.show()
+
+    def getImportances(self, model=None, n_display=30):
+
+        if model is None: model = joblib.load('/'.join([self.dir, 'model.jb']))
 
         imp = model.feature_importances_ / np.sum(model.feature_importances_)
         imp = pd.DataFrame(np.vstack((self.dtb.out.columns, imp)).T, columns=['feature', 'importance'])
@@ -185,8 +201,9 @@ class Experiment:
         ax.spines['left'].set_position(('axes', 0.015))
         plt.show()
 
-    def submit(self, model):
+    def submit(self, model=None):
 
+        if model is None: model = joblib.load('/'.join([self.dir, 'model.jb']))
         y_p = model.predict(self.dtb.out.values)
         y_p = pd.DataFrame(np.vstack((self.out.index, y_p)).T, columns=['index', 'prediction'])
         y_p = y_p.set_index('index')
@@ -205,6 +222,6 @@ if __name__ == '__main__':
     exp = Experiment()
     # Run a single-shot learning
     exp.single(prs.mod, test_size=prs.sze, random_state=prs.rnd, threads=prs.cpu)
+    exp.saveModel()
     # Keep the results
-    mod = self.getModel(evaluate=False, threads=prs.cpu)
     exp.submit(mod)
