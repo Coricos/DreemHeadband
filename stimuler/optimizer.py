@@ -190,8 +190,7 @@ class Experiment:
         y_p = model.predict(self.dtb.out.values)
         y_p = pd.DataFrame(np.vstack((self.out.index, y_p)).T, columns=['index', 'prediction'])
         y_p = y_p.set_index('index')
-
-        return y_p
+        y_p.to_csv('/'.join([self.dir, 'predictions.csv']))
 
 if __name__ == '__main__':
 
@@ -203,4 +202,9 @@ if __name__ == '__main__':
     prs.add_argument('-c', '--cpu', help='NumOfCpus', type=int, default=cpu_count())
     prs = prs.parse_args()
 
-    Experiment().single(prs.mod, test_size=prs.sze, random_state=prs.rnd, threads=prs.cpu)
+    exp = Experiment()
+    # Run a single-shot learning
+    exp.single(prs.mod, test_size=prs.sze, random_state=prs.rnd, threads=prs.cpu)
+    # Keep the results
+    mod = self.getModel(evaluate=False, threads=prs.cpu)
+    exp.submit(mod)
