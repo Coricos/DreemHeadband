@@ -128,7 +128,7 @@ class Experiment:
         arg = {'test_size': cfg['test_size'], 'random_state': cfg['random_state']}
         _, x_v, _, y_v = self.dtb.split(**arg, shuffle=True)
 
-        y_p = prb.predict(x_v)
+        y_p = model.predict(x_v)
         lab = ['accuracy', 'f1 score', 'precision', 'recall', 'kappa']
         sco = np.asarray([
             accuracy_score(y_v, y_p),
