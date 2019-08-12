@@ -67,7 +67,7 @@ class Experiment:
         self._id = name
         self.obj = 'classification'
         self.dir = '../experiments/{}'.format(self._id)
-        os.mkdir(self.dir)
+        if not os.path.exists(self.dir): os.mkdir(self.dir)
         self.log = Logger('/'.join([self.dir, 'logs.log']))
         self.dtb = DataLoader()
 
@@ -96,6 +96,19 @@ class Experiment:
         prm = prb.bestParameters()
         nme = '/'.join([self.dir, 'params.json'.format(model)])
         with open(nme, 'w') as raw: json.dump(prm, raw, indent=4, sort_keys=True)
+
+    def get(self, config_file, parameters_file, test_size=0.2, threads=cpu_count()):
+
+        # Extract the parameters
+        with open(config_file, 'r') as raw: cfg = json.load(raw)
+        with open(parameters_file , 'r') as raw: prm = json.load(raw)
+        # Split the data for validation
+        x_t, x_v, y_t, y_v = self.dtb.split(test_size=test_size, random_state=cfg['random_state'])
+        # Defines the problem
+        prb = Prototype(x_t, x_v, y_t, y_v, cfg['model'], self.obj, 'acc', threads=threads)
+        prb = prb.fitModel(prm, cfg['random_state'])
+
+        return prb
 
 if __name__ == '__main__':
 
