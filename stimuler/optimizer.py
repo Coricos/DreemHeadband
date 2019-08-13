@@ -179,7 +179,7 @@ class Experiment:
         # Numeric placeholder for the y axis
         rge = list(range(1, len(imp.index)+1))
 
-        fig, ax = plt.subplots(figsize=(18,8))
+        fig, ax = plt.subplots(figsize=(18,10))
         # Create for each feature an horizontal line 
         plt.hlines(y=rge, xmin=0, xmax=imp.importance, color='salmon', alpha=0.4, linewidth=5)
         # Create for each feature a dot at the level of the percentage value
