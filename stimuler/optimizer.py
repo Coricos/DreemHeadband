@@ -21,11 +21,13 @@ class DataLoader:
         self.y_t = lab.values.ravel()
 
         # Test dataset
-        f_0 = pd.read_parquet('/'.join([directory, 'train_cmp.pq']))
-        f_1 = pd.read_parquet('/'.join([directory, 'train_fea.pq'])).drop('label', axis=1)
+        f_0 = pd.read_parquet('/'.join([directory, 'valid_cmp.pq']))
+        f_1 = pd.read_parquet('/'.join([directory, 'valid_fea.pq']))
         f_0.index = f_1.index
         # Use as attributes
         self.x_v = f_0.join(f_1, how='left')
+        # Match columns
+        self.x_v = self.x_v[self.x_t.columns]
 
         # Memory efficiency
         del lab, f_0, f_1
@@ -53,7 +55,7 @@ class DataLoader:
         x_v = sts.transform(x_v)
         # Apply to validation
         arg = {'columns': self.x_v.columns, 'index': self.x_v.index}
-        self.out  = pd.DataFrame(sts.transform(self.x_v), **arg)
+        self.out = pd.DataFrame(sts.transform(self.x_v), **arg)
 
         return x_t, x_v, y_t, y_v
 
@@ -205,8 +207,8 @@ class Experiment:
 
         if model is None: model = joblib.load('/'.join([self.dir, 'model.jb']))
         y_p = model.predict(self.dtb.out.values)
-        y_p = pd.DataFrame(np.vstack((self.dtb.out.index, y_p)).T, columns=['index', 'prediction'])
-        y_p = y_p.set_index('index')
+        y_p = pd.DataFrame(np.vstack((self.dtb.out.index, y_p)).T, columns=['id', 'label'])
+        y_p = y_p.set_index('id')
         y_p.to_csv('/'.join([self.dir, 'predictions.csv']))
 
 if __name__ == '__main__':
