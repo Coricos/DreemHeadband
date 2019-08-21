@@ -73,7 +73,7 @@ class Experiment:
         self.log = Logger('/'.join([self.dir, 'logs.log']))
         self.dtb = DataLoader()
 
-    def single(self, model, test_size=0.2, random_state=42, threads=cpu_count()):
+    def single(self, model, test_size=0.2, random_state=42, threads=cpu_count(), weights=False):
 
         self.log.info('Launch training for {} model'.format(model))
         self.log.info('Use {} concurrent threads\n'.format(threads))
@@ -81,7 +81,7 @@ class Experiment:
         # Split the data for validation
         x_t, x_v, y_t, y_v = self.dtb.split(test_size=test_size, random_state=random_state)
         # Defines the problem
-        prb = Prototype(x_t, x_v, y_t, y_v, model, self.obj, 'acc', threads=threads)
+        prb = Prototype(x_t, x_v, y_t, y_v, model, self.obj, 'acc', threads=threads, weights=weights)
         # Launch the Bayesian optimization
         opt = Bayesian(prb, prb.loadBoundaries(), self.log, seed=random_state)
         opt.run(n_init=self._INIT, n_iter=self._OPTI)
@@ -219,11 +219,12 @@ if __name__ == '__main__':
     prs.add_argument('-s', '--sze', help='TestSizes', type=float, default=0.33)
     prs.add_argument('-r', '--rnd', help='RandomSte', type=int, default=42)
     prs.add_argument('-c', '--cpu', help='NumOfCpus', type=int, default=cpu_count())
+    prs.add_argument('-w', '--wei', help='UseWeight', type=bool, default=False)
     prs = prs.parse_args()
 
     exp = Experiment()
     # Run a single-shot learning
-    exp.single(prs.mod, test_size=prs.sze, random_state=prs.rnd, threads=prs.cpu)
+    exp.single(prs.mod, test_size=prs.sze, random_state=prs.rnd, threads=prs.cpu, weights=prs.wei)
     exp.saveModel()
     # Keep the results
     exp.submit()
