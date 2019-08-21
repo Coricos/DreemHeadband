@@ -15,6 +15,7 @@ if __name__ == '__main__':
     prs.add_argument('-m', '--mod', help='ModelType', type=str, default='LGB')
     prs.add_argument('-s', '--sze', help='TestSizes', type=float, default=0.33)
     prs.add_argument('-r', '--rnd', help='RandomSte', type=int, default=42)
+    prs.add_argument('-w', '--wei', help='UseWeight', type=bool, default=False)
     prs = prs.parse_args()
 
     # Defines the command chunks
