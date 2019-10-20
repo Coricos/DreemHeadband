@@ -4,6 +4,7 @@
 
 try: from stimuler.imports import *
 except: from imports import *
+
 # Challenger Package
 from featurizers import Featurize_1D
 

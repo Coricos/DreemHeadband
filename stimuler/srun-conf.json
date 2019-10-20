@@ -1,5 +1,5 @@
 {
 	"ntasks": 1,
-	"cpus-per-task": 32,
+	"cpus-per-task": 34,
 	"mem": 128000
 }
