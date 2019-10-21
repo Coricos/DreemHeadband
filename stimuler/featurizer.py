@@ -42,7 +42,7 @@ if __name__ == '__main__':
     prs = prs.parse_args()
 
     # Run the featurization
-    with h5py.File('../data/slow_waves/{}.h5'.format(prs.dir)) as dtb: sig = dtb['features'][:10,11:]
+    with h5py.File('../data/slow_waves/{}.h5'.format(prs.dir)) as dtb: sig = dtb['features'][:,11:]
     dtf = Featurizer(prs.frq, max_workers=prs.cpu).compute(sig)
     # Serialize to parquet format
     dtf.to_parquet('../data/slow_waves/{}_cmp.pq'.format(prs.dir))
