@@ -61,4 +61,4 @@ if __name__ == '__main__':
     pip = Pipeline([('mms', MinMaxScaler()), ('sts', StandardScaler())])
     # Launch the cross-validation
     prb = WrapperCV(dtb.x_t, dtb.x_v, dtb.y_t, folds=5, random_state=prs.rnd)
-    prb.run(prs.mod, 'classification', 'acc', pip, threads=prs.cpu, weights=prs.wei, config=cfg)
+    prb.run(prs.mod, 'classification', 'acc', pip, threads=prs.cpu, config=cfg)
