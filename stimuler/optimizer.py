@@ -49,15 +49,15 @@ if __name__ == '__main__':
     # Initialize the arguments
     prs = argparse.ArgumentParser()    
     prs.add_argument('-m', '--mod', help='ModelType', type=str, default='LGB')
-    prs.add_argument('-r', '--rnd', help='RandomSte', type=int, default=42)
+    prs.add_argument('-r', '--rnd', help='RandomSte', type=int, default=12)
+    prs.add_argument('-i', '--itr', help='NumTrials', type=int, default=80)
     prs.add_argument('-c', '--cpu', help='NumOfCpus', type=int, default=cpu_count())
-    prs.add_argument('-w', '--wei', help='UseWeight', type=bool, default=False)
     prs = prs.parse_args()
 
     # Preprocess the data
     dtb = DataLoader()
     # Specify the cv tools
-    cfg = {'BAYESIAN_INIT': 1, 'BAYESIAN_OPTI': 0}
+    cfg = {'OPTUNA_TRIALS': prs.itr}
     pip = Pipeline([('mms', MinMaxScaler()), ('sts', StandardScaler())])
     # Launch the cross-validation
     prb = WrapperCV(dtb.x_t, dtb.x_v, dtb.y_t, folds=5, random_state=prs.rnd)
