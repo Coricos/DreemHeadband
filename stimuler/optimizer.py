@@ -44,21 +44,31 @@ class DataLoader:
         self.x_t['sleep_stage'] = (self.x_t['sleep_stage'] < 0).astype('int')
         self.x_v['sleep_stage'] = (self.x_v['sleep_stage'] < 0).astype('int')
 
+class PlaceHolder:
+
+    def __init__(self, directory='../data/slow_waves', suffix='stacked'):
+
+        # Labels
+        self.y_t = pd.read_csv('/'.join([directory, 'label.csv']), index_col=0).values.ravel()
+        # Use as attributes
+        self.x_t = pd.read_parquet('/'.join([directory, 'train_{}.pq'.format(suffix)])).values
+        self.x_v = pd.read_parquet('/'.join([directory, 'valid_{}.pq'.format(suffix)])).values
+
 if __name__ == '__main__':
 
     # Initialize the arguments
     prs = argparse.ArgumentParser()    
     prs.add_argument('-m', '--mod', help='ModelType', type=str, default='LGB')
-    prs.add_argument('-r', '--rnd', help='RandomSte', type=int, default=12)
+    prs.add_argument('-r', '--rnd', help='RandomSte', type=int, default=1234)
     prs.add_argument('-i', '--itr', help='NumTrials', type=int, default=80)
     prs.add_argument('-c', '--cpu', help='NumOfCpus', type=int, default=cpu_count())
     prs = prs.parse_args()
 
     # Preprocess the data
-    dtb = DataLoader()
+    dtb = PlaceHolder()
     # Specify the cv tools
     cfg = {'OPTUNA_TRIALS': prs.itr}
-    pip = Pipeline([('mms', MinMaxScaler()), ('sts', StandardScaler())])
+    pip = StandardScaler()
     # Launch the cross-validation
     prb = WrapperCV(dtb.x_t, dtb.x_v, dtb.y_t, folds=5, random_state=prs.rnd)
     prb.run(prs.mod, 'classification', 'acc', pip, threads=prs.cpu, config=cfg)
