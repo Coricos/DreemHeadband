@@ -1,8 +1,8 @@
-# Author:  DINDIN Meryll
-# Date:    05 August 2019
-# Project: DreemHeadband
+# Author:  Meryll Dindin
+# Date:    02 March 2020
+# Project: DreemEEG
 
-# Virtualenv Relative
+# Virtualenv
 bin/
 etc/
 lib/
@@ -10,18 +10,12 @@ share/
 include/
 xgboost/
 
-# Personal Use
-logs/
-stager/.ipynb_checkpoints/
-stimuler/.ipynb_checkpoints/
+# Development
+**/*.ipynb
+**/__pycache__/
+**/.ipynb_checkpoints/
 
-# Heavy Data
-data/
-stager/results/
-stimuler/results/
-stager/models/
-stimuler/models/
-
-# Cythonized
-stager/__pycache__/
-stimuler/__pycache__/
+# Data
+**/data/
+**/models/
+**/experiments/
