@@ -17,4 +17,4 @@ if __name__ == '__main__':
     cmd += sys.argv[1:]
     cmd += ['&']
 
-    print(' '.join(cmd))
+    os.system(' '.join(cmd))
