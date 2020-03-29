@@ -5,7 +5,7 @@
 import os, json, sys, subprocess
 
 rmf = ['bin', 'etc', 'include', 'lib', 'lib64', 'pyvenv.cfg', 'share']
-msk = ['challenger', 'package', 'elementtree']
+msk = ['challenger', 'package', 'elementtree', 'ffprobe']
 
 def packages_from_project(path):
 
@@ -16,12 +16,16 @@ def packages_from_project(path):
     except:
         return []
 
-def update_requirements(path):
+def update_requirements(path, mask):
 
     try:
-        pth = '/'.join([path, 'requirements.txt'])
-        cmd = 'pipreqs --force --savepath {}'.format(pth)
+        cmd = 'pipreqs --force --print --savepath /dev/null'
         pck = subprocess.check_output(cmd.split(' ') + [path])
+        pck = pck.decode('utf-8')[:-1].split('\n')
+        pck = [e for e in pck if not e.split('==')[0] in mask and len(e) > 0]
+        if len(pck) != 0: 
+            with open('{}/requirements.txt'.format(path), 'w') as f: 
+                f.write('\n'.join(pck)+'\n')
     except:
         pass
 
@@ -91,6 +95,9 @@ if __name__ == '__main__':
         frc = ['numpy', 'cmake', 'jupyter', 'notebook', 'ipython', 'ipykernel']
         with open('requirements.txt', 'w') as f: f.write('\n'.join(frc)+'\n')
         os.system('pip install -r requirements.txt')
+        os.system('pip install jupyter_contrib_nbextensions')
+        os.system('jupyter contrib nbextension install --user')
+        os.system('jupyter nbextension enable codefolding/main')
         src = os.getcwd().split('/')[-1]
         os.system('python -m ipykernel install --user --name={}'.format(src.lower()))
         lst = [d for d in os.listdir() if os.path.isdir(d) and not d.startswith('.') and d not in rmf]
@@ -104,7 +111,7 @@ if __name__ == '__main__':
     if sys.argv[1] == 'update-project':
 
         lst = [d for d in os.listdir() if os.path.isdir(d) and not d.startswith('.') and d not in rmf]
-        for drc in lst: update_requirements(drc)
+        for drc in lst: update_requirements(drc, msk)
 
     if sys.argv[1] == 'config-python':
 
