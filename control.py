@@ -16,6 +16,15 @@ def packages_from_project(path):
     except:
         return []
 
+def update_requirements(path):
+
+    try:
+        pth = '/'.join([path, 'requirements.txt'])
+        cmd = 'pipreqs --force --savepath {}'.format(pth)
+        pck = subprocess.check_output(cmd.split(' ') + [path])
+    except:
+        pass
+
 def compile_list_packages(packages):
     
     lst = []
@@ -90,7 +99,12 @@ if __name__ == '__main__':
         lst = [p for p in lst if p not in msk + frc]
         with open('requirements.txt', 'w') as f: f.write('\n'.join(lst)+'\n')
         os.system('pip install -r requirements.txt')
-        #os.remove('requirements.txt')
+        os.remove('requirements.txt')
+
+    if sys.argv[1] == 'update-project':
+
+        lst = [d for d in os.listdir() if os.path.isdir(d) and not d.startswith('.') and d not in rmf]
+        for drc in lst: update_requirements(drc)
 
     if sys.argv[1] == 'config-python':
 

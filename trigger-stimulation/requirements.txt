@@ -1,8 +1,9 @@
-pandas
-joblib
-tqdm
-seaborn
-h5py
-numpy
-matplotlib
-scikit_learn
+h5py==2.10.0
+joblib==0.14.1
+numpy==1.16.4
+challenger==1.0
+tqdm==4.28.1
+pandas==0.25.2
+matplotlib==3.0.2
+seaborn==0.10.0
+scikit_learn==0.22.2.post1

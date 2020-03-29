@@ -1,4 +1,5 @@
-pandas
-tqdm
-h5py
-numpy
+challenger==1.0
+tqdm==4.28.1
+h5py==2.10.0
+numpy==1.16.4
+pandas==0.25.2
