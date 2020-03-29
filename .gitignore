@@ -9,7 +9,6 @@ lib/
 lib64
 share/
 include/
-xgboost/
 pyvenv.cfg
 
 # Development
