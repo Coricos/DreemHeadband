@@ -1,21 +1,23 @@
 # Author:  Meryll Dindin
 # Date:    02 March 2020
-# Project: DreemEEG
+# Project: BrainAnalysis
 
 # Virtualenv
 bin/
 etc/
 lib/
+lib64
 share/
 include/
 xgboost/
+pyvenv.cfg
 
 # Development
 **/*.ipynb
 **/__pycache__/
 **/.ipynb_checkpoints/
 
-# Data
+# Heavier files
 **/data/
 **/models/
 **/experiments/
